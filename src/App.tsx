@@ -37,7 +37,7 @@ function App() {
   const [sourceLanguage, setSourceLanguage] = useState<SourceLanguage>('en');
   const [language, setLanguage] = useState<CaptionLanguage>('en');
   const [whisperModel, setWhisperModel] = useState<'tiny' | 'base'>('tiny');
-  /** Active transcription backend: Gemini AI (cloud) or local Whisper (in-browser). */
+  /** Active transcription backend: CaptionCraft AI (cloud) or local Whisper (in-browser). */
   const [transcriptionBackend, setTranscriptionBackend] = useState<'gemini' | 'local'>('gemini');
 
   const [isTranscribing, setIsTranscribing] = useState(false);
@@ -48,7 +48,6 @@ function App() {
   const [transcriptionError, setTranscriptionError] = useState('');
   const [modelStatus, setModelStatus] = useState<LocalModelStatus>('idle');
   const [modelProgress, setModelProgress] = useState(0);
-  const [modelBackend, setModelBackend] = useState<'webgpu' | 'wasm' | undefined>();
   const [audioReady, setAudioReady] = useState(false);
   const [showExportPage, setShowExportPage] = useState(false);
   const [projectTitle, setProjectTitle] = useState('Untitled Caption Project');
@@ -192,7 +191,7 @@ function App() {
     setTranscriptionProgress(0);
     setTranscriptionProcessedDuration(0);
     setSubtitles([]);
-    setTranscriptionStatus('Sending audio to Gemini 2.0 Flash…');
+    setTranscriptionStatus('Sending audio to CaptionCraft AI…');
 
     try {
       const result = await transcribeWithGemini(audioBlob, {
@@ -205,7 +204,7 @@ function App() {
           setTranscriptionProcessedDuration(progress.processedDuration);
           setTranscriptionTotalDuration(progress.totalDuration);
           setTranscriptionStatus(
-            `Gemini transcribing chunk ${progress.completedChunks}/${progress.totalChunks} · ` +
+             `CaptionCraft AI transcribing chunk ${progress.completedChunks}/${progress.totalChunks} · ` +
             `${formatSeconds(progress.processedDuration)} / ${formatSeconds(progress.totalDuration)}`,
           );
         },
@@ -231,7 +230,7 @@ function App() {
         updateSubtitles(error.partialSubtitles);
         setTranscriptionError(`${error.message} Completed segments were kept.`);
       } else {
-        setTranscriptionError(error instanceof Error ? error.message : 'Gemini transcription failed.');
+         setTranscriptionError(error instanceof Error ? error.message : 'CaptionCraft AI transcription failed.');
       }
       setTranscriptionStatus('Transcription failed');
     } finally {
@@ -274,7 +273,6 @@ function App() {
         onModelStatus: status => {
           if (!session.isCurrent(jobId)) return;
           setModelStatus(status.status);
-          setModelBackend(status.backend);
           if (status.message) setTranscriptionStatus(status.message);
         },
         onModelProgress: progress => {
@@ -403,7 +401,6 @@ function App() {
     localTranscriptionRef.current.cancel();
     setModelStatus('idle');
     setModelProgress(0);
-    setModelBackend(undefined);
     setIsTranscribing(false);
     setTranscriptionError('Transcription cancelled. Completed caption segments were kept; retry to resume.');
     setTranscriptionStatus('Transcription cancelled · completed segments were kept');
@@ -429,7 +426,6 @@ function App() {
     setTranscriptionTotalDuration(0);
     setModelStatus('idle');
     setModelProgress(0);
-    setModelBackend(undefined);
   };
 
   const handleSourceLanguageChange = (next: SourceLanguage) => {
@@ -490,20 +486,10 @@ function App() {
         />
       ) : (
         <div className="editor-shell">
-          <div className="editor-steps" aria-label="Caption workflow">
-            <button className="editor-back-button" onClick={handleRemoveMedia}>← Back to Upload</button>
-            <div className="editor-step complete"><span>01</span> Upload Media</div>
-            <div className="editor-step active"><span>02</span> Generate &amp; Edit</div>
-            <div className="editor-step"><span>03</span> Preview &amp; Export</div>
-            <div className="editor-model-status">
-              {transcriptionBackend === 'gemini'
-                ? 'Gemini 2.0 Flash · cloud'
-                : `Local Whisper · ${modelBackend ?? 'not loaded'}`}
-            </div>
-          </div>
           <div className="editor-columns">
             <Sidebar
               onFileUpload={handleFileUpload}
+              onBackToUpload={handleRemoveMedia}
               isTranscribing={isTranscribing}
               transcriptionStatus={transcriptionStatus}
               transcriptionProgress={transcriptionProgress}
@@ -523,11 +509,6 @@ function App() {
               setLanguage={setLanguage}
               whisperModel={whisperModel}
               onSelectWhisperModel={setWhisperModel}
-              onLoadModel={() => localTranscriptionRef.current.preload({
-                modelId: whisperModel === 'base' ? LOCAL_WHISPER_BASE_MODEL_ID : LOCAL_WHISPER_MODEL_ID,
-                onModelStatus: status => { setModelStatus(status.status); setModelBackend(status.backend); },
-                onModelProgress: progress => { if (typeof progress.progress === 'number') setModelProgress(progress.progress); },
-              }).catch(error => setTranscriptionError(error instanceof Error ? error.message : 'Unable to load the local model.'))}
               onJumpToTime={setJumpTime}
               mediaDuration={mediaDuration}
               selectedSubtitleId={selectedSubtitleId}
@@ -543,7 +524,7 @@ function App() {
                 setTranscriptionProcessedDuration(0);
                 setTranscriptionStatus(
                   backend === 'gemini'
-                    ? 'Switched to Gemini AI · click Generate captions'
+                     ? 'Switched to CaptionCraft AI · click Generate captions'
                     : 'Switched to Local Whisper · click Generate captions',
                 );
               }}

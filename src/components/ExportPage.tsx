@@ -5,6 +5,7 @@ import { EXPORT_RESOLUTION_PRESETS, getExportDimensions } from '../utils/exportC
 import {
   downloadBlob,
   downloadSubtitleFile,
+  BROWSER_EXPORT_LIMITATION,
   getExportFormatAvailability,
   normalizeExportFilename,
   type ExportFormat,
@@ -28,6 +29,12 @@ export interface ExportPageProps {
 
 const resolutions: ExportResolutionPreset[] = ['720p', '1080p', '2K', '4K'];
 const frameRates = [24, 30, 60];
+const aspectRatios: Array<{ value: AspectRatio; label: string }> = [
+  { value: '16:9', label: '16:9 · Landscape' },
+  { value: '9:16', label: '9:16 · Portrait' },
+  { value: '1:1', label: '1:1 · Square' },
+  { value: '4:5', label: '4:5 · Portrait' },
+];
 
 export function ExportPage({
   aspectRatio,
@@ -40,6 +47,7 @@ export function ExportPage({
   onBack,
 }: ExportPageProps) {
   const [resolution, setResolution] = useState<ExportResolutionPreset>('1080p');
+  const [selectedAspectRatio, setSelectedAspectRatio] = useState<AspectRatio>(aspectRatio);
   const [frameRate, setFrameRate] = useState(30);
   const [format, setFormat] = useState<ExportFormat>('webm');
   const [includeAudio, setIncludeAudio] = useState(true);
@@ -48,15 +56,27 @@ export function ExportPage({
   const [status, setStatus] = useState<ExportPageStatus>('idle');
   const [error, setError] = useState('');
   const controllerRef = useRef<AbortController | null>(null);
+  const filenameEditedRef = useRef(false);
 
   const availability = useMemo(() => getExportFormatAvailability(format, includeAudio), [format, includeAudio]);
   const formatSupported = formatSupport?.[format] ?? availability.supported;
-  const dimensions = getExportDimensions(resolution, aspectRatio);
+  const dimensions = getExportDimensions(resolution, selectedAspectRatio);
   const busy = status === 'rendering';
+
+  useEffect(() => {
+    if (!filenameEditedRef.current) setFilename(initialFilename);
+  }, [initialFilename]);
 
   useEffect(() => () => controllerRef.current?.abort(), []);
 
-  const options: ExportOptions = { resolution, frameRate, format, includeAudio, filename: normalizeExportFilename(filename, format), aspectRatio };
+  const options: ExportOptions = {
+    resolution,
+    frameRate,
+    format,
+    includeAudio,
+    filename: normalizeExportFilename(filename, format),
+    aspectRatio: selectedAspectRatio,
+  };
 
   const handleRender = async () => {
     if (!renderExport) {
@@ -104,12 +124,14 @@ export function ExportPage({
       </header>
       <section className="export-resolution-section" aria-label="Video settings">
         <label>Resolution<select value={resolution} onChange={event => setResolution(event.target.value as ExportResolutionPreset)} disabled={busy}>{resolutions.map(value => <option key={value} value={value}>{EXPORT_RESOLUTION_PRESETS[value].label}</option>)}</select></label>
+        <label>Aspect ratio<select value={selectedAspectRatio} onChange={event => setSelectedAspectRatio(event.target.value as AspectRatio)} disabled={busy}>{aspectRatios.map(option => <option key={option.value} value={option.value}>{option.label}</option>)}</select></label>
         <label>Frame rate<select value={frameRate} onChange={event => setFrameRate(Number(event.target.value))} disabled={busy}>{frameRates.map(value => <option key={value} value={value}>{value} fps</option>)}</select></label>
-        <label>Format<select value={format} onChange={event => setFormat(event.target.value as ExportFormat)} disabled={busy}><option value="webm">WebM</option><option value="mp4">MP4</option></select></label>
-        <label>Filename<input value={filename} onChange={event => setFilename(event.target.value)} disabled={busy} aria-label="Export filename" /></label>
+       <label>Format<select value={format} onChange={event => setFormat(event.target.value as ExportFormat)} disabled={busy}><option value="webm">WebM · browser capture</option><option value="mp4">MP4 · H.264 x264</option><option value="mkv">MKV · H.264 x264</option><option value="mov">MOV · H.264 x264</option></select></label>
+        <label>Filename<input value={filename} onChange={event => { filenameEditedRef.current = true; setFilename(event.target.value); }} disabled={busy} aria-label="Export filename" /></label>
         <label className="export-audio-toggle"><input type="checkbox" checked={includeAudio} onChange={event => setIncludeAudio(event.target.checked)} disabled={busy} /> Include audio</label>
         <p className="export-summary">Output: {dimensions.width} × {dimensions.height} · {duration > 0 ? `${duration.toFixed(1)}s` : 'duration follows source'} </p>
       </section>
+      {format === 'mp4' && <p className="section-help export-capability-note">{BROWSER_EXPORT_LIMITATION}</p>}
       {!formatSupported && <p className="inline-error" role="status"><XCircle size={17} /> {availability.message ?? `${format.toUpperCase()} export is unavailable.`}</p>}
       {status === 'error' && <p className="inline-error" role="alert"><XCircle size={17} /> {error}</p>}
       {status === 'success' && <p className="inline-success" role="status"><CheckCircle2 size={17} /> Video downloaded successfully.</p>}

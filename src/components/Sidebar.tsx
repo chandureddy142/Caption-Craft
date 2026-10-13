@@ -1,7 +1,6 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo } from 'react';
 import type { CaptionLanguage, SourceLanguage, Subtitle } from '../types';
-import { getCaptionText } from '../utils/transliterate';
-import { AlertCircle, Check, Download, FileText, Merge, Play, Plus, RefreshCw, Scissors, Settings, Trash2, Upload, X } from 'lucide-react';
+import { AlertCircle, Download, FileText, RefreshCw, Upload, X } from 'lucide-react';
 import { exportToSRT, exportToVTT, downloadStringAsFile } from '../utils/exporter';
 
 interface SidebarProps {
@@ -23,7 +22,7 @@ interface SidebarProps {
   setSourceLanguage: (language: SourceLanguage) => void;
   language: CaptionLanguage;
   setLanguage: (lang: CaptionLanguage) => void;
-  onLoadModel: () => void;
+  onBackToUpload: () => void;
   onJumpToTime: (time: number) => void;
   mediaDuration?: number;
   mediaFile?: File | null;
@@ -34,7 +33,7 @@ interface SidebarProps {
   onSelectWhisperModel?: (model: 'tiny' | 'base') => void;
   /** Active transcription backend. */
   transcriptionBackend?: 'gemini' | 'local';
-  /** Switch between Gemini AI and local Whisper. */
+  /** Switch between CaptionCraft AI and local Whisper. */
   onSelectBackend?: (backend: 'gemini' | 'local') => void;
   /** True when VITE_GEMINI_API_KEY is absent/placeholder. */
   geminiKeyMissing?: boolean;
@@ -67,130 +66,25 @@ export const Sidebar: React.FC<SidebarProps> = ({
   onRetryTranscription,
   onCancelTranscription,
   subtitles,
-  setSubtitles,
   sourceLanguage,
   setSourceLanguage,
   language,
   setLanguage,
-  onLoadModel,
-  onJumpToTime,
+  onBackToUpload,
   mediaDuration = 0,
   mediaFile = null,
   onReplaceMedia,
   selectedSubtitleId = null,
-  onSelectSubtitle,
   whisperModel = 'tiny',
   onSelectWhisperModel,
   transcriptionBackend = 'gemini',
   onSelectBackend,
   geminiKeyMissing = false,
 }) => {
-  const [localSelectedSubtitleId, setLocalSelectedSubtitleId] = useState<string | null>(null);
-  const effectiveSelectedId = selectedSubtitleId ?? localSelectedSubtitleId;
-
-  const selectSubtitle = (id: string | null, seek = true) => {
-    setLocalSelectedSubtitleId(id);
-    onSelectSubtitle?.(id);
-    if (seek && id) {
-      const subtitle = subtitles.find(item => item.id === id);
-      if (subtitle) onJumpToTime(subtitle.start);
-    }
-  };
-
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     event.target.value = '';
     if (file) onFileUpload(file);
-  };
-
-  const updateCaptionText = (id: string, newText: string) => {
-    setSubtitles(previous => previous.map(subtitle => {
-      if (subtitle.id !== id) return subtitle;
-      if (language === 'tenglish') return { ...subtitle, tenglishText: newText };
-      return { ...subtitle, text: newText, tenglishText: language === 'te' ? undefined : subtitle.tenglishText };
-    }));
-  };
-
-  const updateCaptionTime = (id: string, field: 'start' | 'end', value: string) => {
-    const number = Number(value);
-    if (!Number.isFinite(number)) return;
-    setSubtitles(previous => previous.map(subtitle => {
-      if (subtitle.id !== id) return subtitle;
-      if (field === 'start') {
-        const start = Math.max(0, number);
-        return { ...subtitle, start, end: Math.max(subtitle.end, start + 0.05) };
-      }
-      return { ...subtitle, end: Math.max(subtitle.start + 0.05, number) };
-    }));
-  };
-
-  const deleteCaption = (id: string) => {
-    setSubtitles(previous => previous.filter(subtitle => subtitle.id !== id));
-    if (effectiveSelectedId === id) selectSubtitle(null, false);
-  };
-
-  const addCaption = () => {
-    const selectedIndex = effectiveSelectedId ? subtitles.findIndex(item => item.id === effectiveSelectedId) : -1;
-    const previous = selectedIndex >= 0 ? subtitles[selectedIndex] : subtitles[subtitles.length - 1];
-    const requestedStart = previous ? previous.end + 0.1 : 0;
-    const start = mediaDuration > 0 ? Math.min(requestedStart, Math.max(0, mediaDuration - 0.05)) : requestedStart;
-    const end = mediaDuration > 0 ? Math.min(mediaDuration, start + 2) : start + 2;
-    const caption: Subtitle = { id: `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`, start, end, text: 'New caption' };
-    setSubtitles(previousSubtitles => {
-      const next = [...previousSubtitles];
-      next.splice(selectedIndex >= 0 ? selectedIndex + 1 : next.length, 0, caption);
-      return next;
-    });
-    selectSubtitle(caption.id, false);
-    onJumpToTime(start);
-  };
-
-  const splitCaption = (id: string) => {
-    const index = subtitles.findIndex(item => item.id === id);
-    if (index < 0) return;
-    const source = subtitles[index];
-    const midpoint = source.start + (source.end - source.start) / 2;
-    const visibleWords = getCaptionText(source.text, language, source.tenglishText).trim().split(/\s+/).filter(Boolean);
-    const splitPoint = Math.max(1, Math.ceil(visibleWords.length / 2));
-    const canonicalWords = source.text.trim().split(/\s+/).filter(Boolean);
-    const canonicalPoint = Math.min(canonicalWords.length, splitPoint);
-    const firstVisible = visibleWords.length > 1 ? visibleWords.slice(0, splitPoint).join(' ') : getCaptionText(source.text, language, source.tenglishText);
-    const secondVisible = visibleWords.length > 1 ? visibleWords.slice(splitPoint).join(' ') : firstVisible;
-    const first: Subtitle = {
-      ...source,
-      end: midpoint,
-      text: canonicalWords.length > 1 ? canonicalWords.slice(0, canonicalPoint).join(' ') : source.text,
-      tenglishText: language === 'tenglish' ? firstVisible : undefined,
-    };
-    const second: Subtitle = {
-      ...source,
-      id: `${source.id}-split-${Date.now()}`,
-      start: midpoint,
-      text: canonicalWords.length > 1 ? canonicalWords.slice(canonicalPoint).join(' ') : source.text,
-      tenglishText: language === 'tenglish' ? secondVisible : undefined,
-    };
-    setSubtitles(previous => previous.toSpliced(index, 1, first, second));
-    selectSubtitle(second.id, false);
-    onJumpToTime(second.start);
-  };
-
-  const mergeCaption = (id: string) => {
-    const index = subtitles.findIndex(item => item.id === id);
-    if (index < 0 || index === subtitles.length - 1) return;
-    const first = subtitles[index];
-    const second = subtitles[index + 1];
-    const merged: Subtitle = {
-      ...first,
-      end: Math.max(first.end, second.end),
-      text: `${first.text.trim()} ${second.text.trim()}`.trim(),
-      tenglishText: language === 'tenglish'
-        ? `${getCaptionText(first.text, language, first.tenglishText).trim()} ${getCaptionText(second.text, language, second.tenglishText).trim()}`.trim()
-        : undefined,
-      words: first.words || second.words ? [...(first.words ?? []), ...(second.words ?? [])] : undefined,
-    };
-    setSubtitles(previous => previous.toSpliced(index, 2, merged));
-    selectSubtitle(merged.id, false);
-    onJumpToTime(merged.start);
   };
 
   const coverage = useMemo(() => {
@@ -216,7 +110,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
     <aside className="control-sidebar">
       <div className="sidebar-brand-row">
         <div className="brand-lockup compact"><div className="brand-mark">CC</div><span className="brand-name">CaptionCraft</span></div>
-        <button className="icon-button" onClick={onLoadModel} title="Load local Whisper model"><Settings size={17} /></button>
+        <button className="ghost-button" onClick={onBackToUpload}>← Back to Upload</button>
       </div>
 
       <div className="media-summary">
@@ -265,9 +159,9 @@ export const Sidebar: React.FC<SidebarProps> = ({
             className={transcriptionBackend === 'gemini' ? 'active' : ''}
             onClick={() => onSelectBackend?.('gemini')}
             disabled={isTranscribing}
-            title="Use Gemini 2.0 Flash for cloud-based transcription (faster, more accurate, supports Telugu)"
+            title="Use CaptionCraft AI for cloud-based transcription (faster, more accurate, supports Telugu)"
           >
-            ⚡ Gemini AI
+            ⚡ CaptionCraft AI
           </button>
           <button
             type="button"
@@ -280,7 +174,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
           </button>
         </div>
 
-        {/* Gemini backend info / key warning */}
+        {/* CaptionCraft AI backend info / key warning */}
         {transcriptionBackend === 'gemini' && (
           <>
             {geminiKeyMissing ? (
@@ -293,7 +187,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
               </div>
             ) : (
               <p className="section-help" style={{ marginBottom: '9px' }}>
-                Powered by <strong>Gemini 2.0 Flash</strong> · Telugu, Tenglish &amp; English · precise timestamps.
+                Powered by <strong>CaptionCraft AI</strong> · Telugu, Tenglish &amp; English · precise timestamps.
               </p>
             )}
           </>
@@ -347,22 +241,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
       </section>
 
        <section className="sidebar-section captions-section">
-        <div className="section-heading"><div><span className="section-kicker">04</span><h2>Caption editing</h2></div><span className="count-badge">{subtitles.length}</span></div>
-        {subtitles.length > 0 && <div className="coverage-card"><div className="coverage-label"><span>{coverage.covered.toFixed(1)}s covered</span><span className={coverage.gaps ? 'gap-label' : ''}>{coverage.gaps ? `${coverage.gaps} gap${coverage.gaps === 1 ? '' : 's'}` : 'No gaps'}</span></div><div className="coverage-track">{coverage.sorted.map(subtitle => <span key={subtitle.id} title={`${subtitle.start.toFixed(1)}–${subtitle.end.toFixed(1)}s`} className={subtitle.id === effectiveSelectedId ? 'active' : ''} style={{ left: `${coverage.duration ? (subtitle.start / coverage.duration) * 100 : 0}%`, width: `${coverage.duration ? Math.max(0.7, ((subtitle.end - subtitle.start) / coverage.duration) * 100) : 0}%` }} />)}</div></div>}
-        <div className="caption-list">
-          {coverage.sorted.map((subtitle, index) => {
-            const previousEnd = index === 0 ? 0 : coverage.sorted[index - 1].end;
-            const isSelected = subtitle.id === effectiveSelectedId;
-            return <article className={`caption-card ${isSelected ? 'selected' : ''}`} key={subtitle.id} onClick={() => selectSubtitle(subtitle.id)}>
-              {subtitle.start > previousEnd + 0.01 && <div className="gap-warning">Gap · {(subtitle.start - previousEnd).toFixed(1)}s uncovered</div>}
-              <div className="caption-card-top"><button className="tiny-icon-button" onClick={(event) => { event.stopPropagation(); selectSubtitle(subtitle.id); }} title="Seek to caption"><Play size={12} /></button><div className="time-fields"><input aria-label="Caption start time" type="number" step="0.1" value={subtitle.start} onClick={event => event.stopPropagation()} onFocus={() => selectSubtitle(subtitle.id)} onChange={event => updateCaptionTime(subtitle.id, 'start', event.target.value)} /><span>–</span><input aria-label="Caption end time" type="number" step="0.1" value={subtitle.end} onClick={event => event.stopPropagation()} onChange={event => updateCaptionTime(subtitle.id, 'end', event.target.value)} /><small>s</small></div><div className="caption-actions"><button className="tiny-icon-button" onClick={event => { event.stopPropagation(); splitCaption(subtitle.id); }} title="Split caption"><Scissors size={13} /></button>{index < coverage.sorted.length - 1 && <button className="tiny-icon-button" onClick={event => { event.stopPropagation(); mergeCaption(subtitle.id); }} title="Merge with next"><Merge size={13} /></button>}<button className="tiny-icon-button danger" onClick={event => { event.stopPropagation(); deleteCaption(subtitle.id); }} title="Delete caption"><Trash2 size={13} /></button></div></div>
-              <textarea aria-label="Caption text" value={getCaptionText(subtitle.text, language, subtitle.tenglishText)} onClick={event => event.stopPropagation()} onFocus={() => selectSubtitle(subtitle.id)} onChange={event => updateCaptionText(subtitle.id, event.target.value)} />
-              {isSelected && <div className="selected-caption-label"><Check size={12} /> Selected · edit on preview with Enter</div>}
-            </article>;
-          })}
-        </div>
-        {!subtitles.length && !isTranscribing && <p className="empty-state">No captions yet. Generate them or add a manual segment.</p>}
-        <button className="secondary-action add-caption-button" onClick={addCaption} disabled={isTranscribing}><Plus size={15} /> Add caption manually</button>
+         <div className="section-heading"><div><span className="section-kicker">04</span><h2>Caption overview</h2></div><span className="count-badge">{subtitles.length}</span></div>
+         {subtitles.length > 0 && <div className="coverage-card"><div className="coverage-label"><span>{coverage.covered.toFixed(1)}s covered</span><span className={coverage.gaps ? 'gap-label' : ''}>{coverage.gaps ? `${coverage.gaps} gap${coverage.gaps === 1 ? '' : 's'}` : 'No gaps'}</span></div><div className="coverage-track">{coverage.sorted.map(subtitle => <span key={subtitle.id} title={`${subtitle.start.toFixed(1)}–${subtitle.end.toFixed(1)}s`} className={subtitle.id === selectedSubtitleId ? 'active' : ''} style={{ left: `${coverage.duration ? (subtitle.start / coverage.duration) * 100 : 0}%`, width: `${coverage.duration ? Math.max(0.7, ((subtitle.end - subtitle.start) / coverage.duration) * 100) : 0}%` }} />)}</div></div>}
+         <p className="section-help">Drag caption clips or their edges on the timeline to edit timing. Double-click a caption on the preview to edit its text.</p>
+         {!subtitles.length && !isTranscribing && <p className="empty-state">No captions yet. Generate them or add one on the timeline.</p>}
         <div className="subtitle-downloads"><button className="ghost-button" onClick={exportSrt} disabled={!subtitles.length}><Download size={14} /> SRT</button><button className="ghost-button" onClick={exportVtt} disabled={!subtitles.length}><Download size={14} /> VTT</button></div>
       </section>
 

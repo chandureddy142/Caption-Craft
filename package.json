@@ -12,6 +12,8 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@ffmpeg/ffmpeg": "^0.12.15",
+    "@ffmpeg/util": "^0.12.2",
     "@huggingface/transformers": "^4.3.1",
     "lucide-react": "^1.53.0",
     "react": "^19.2.8",

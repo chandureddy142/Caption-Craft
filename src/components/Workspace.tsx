@@ -14,6 +14,7 @@ import {
 } from '../utils/backgroundThemes';
 import {
   Check,
+  Copy,
   Download,
   FileImage,
   FileText,
@@ -22,13 +23,17 @@ import {
   Pause,
   Play,
   RotateCcw,
+  Scissors,
   Sliders,
+  Trash2,
   Upload,
   Undo2,
   Redo2,
   Volume2,
   VolumeX,
   X,
+  ZoomIn,
+  ZoomOut,
 } from 'lucide-react';
 import { ExportModal } from './ExportModal';
 import { downloadStringAsFile, exportToSRT, exportToVTT } from '../utils/exporter';
@@ -41,6 +46,24 @@ import {
 function formatDuration(seconds: number): string {
   if (!Number.isFinite(seconds) || seconds <= 0) return '0:00';
   return `${Math.floor(seconds / 60)}:${String(Math.floor(seconds % 60)).padStart(2, '0')}`;
+}
+
+const MIN_CAPTION_DURATION = 0.05;
+type TimelineDragMode = 'move' | 'start' | 'end';
+type TimelineTiming = Pick<Subtitle, 'start' | 'end'>;
+
+function clamp(value: number, min: number, max: number): number {
+  return Math.max(min, Math.min(max, value));
+}
+
+interface TimelineDrag {
+  id: string;
+  mode: TimelineDragMode;
+  pointerId: number;
+  startX: number;
+  pixelsPerSecond: number;
+  original: TimelineTiming;
+  preview: TimelineTiming;
 }
 
 type CaptureStreamVideoElement = HTMLVideoElement & {
@@ -127,10 +150,17 @@ export const Workspace: React.FC<WorkspaceProps> = ({
   const [editingSubtitleId, setEditingSubtitleId] = useState<string | null>(null);
   const [draftText, setDraftText] = useState('');
   const [inlineEditorStyle, setInlineEditorStyle] = useState<React.CSSProperties | null>(null);
+  const inlineEditorRef = useRef<HTMLTextAreaElement>(null);
+  const editingSubtitleIdRef = useRef<string | null>(null);
+  const draftTextRef = useRef('');
   /** Export quality preset — drives off-screen canvas size and MediaRecorder bitrate. */
   const [exportResolution, setExportResolution] = useState<ExportResolutionPreset>('1080p');
   /** Current media time during an active export — fed to ExportModal progress bar. */
   const [exportCurrentTime, setExportCurrentTime] = useState(0);
+  const [timelineZoom, setTimelineZoom] = useState(1);
+  const [timelineTimingPreview, setTimelineTimingPreview] = useState<(TimelineTiming & { id: string }) | null>(null);
+  const timelineDragRef = useRef<TimelineDrag | null>(null);
+  const captionTrackRef = useRef<HTMLDivElement>(null);
 
   const animationRef = useRef<number | undefined>(undefined);
   const drawFrameRef = useRef<() => void>(() => undefined);
@@ -329,15 +359,6 @@ export const Workspace: React.FC<WorkspaceProps> = ({
     if (media) {
       const handleEnded = () => {
         setIsPlaying(false);
-        if (isExporting && mediaRecorderRef.current) {
-          // Stop the export rAF loop before stopping the recorder
-          if (exportAnimRef.current) {
-            cancelAnimationFrame(exportAnimRef.current);
-            exportAnimRef.current = undefined;
-          }
-          setExportProgress(100);
-          mediaRecorderRef.current.stop();
-        }
       };
       media.addEventListener('ended', handleEnded);
       return () => media.removeEventListener('ended', handleEnded);
@@ -367,27 +388,35 @@ export const Workspace: React.FC<WorkspaceProps> = ({
       setCurrentTime(subtitle.start);
     }
     selectSubtitle(subtitle.id);
-    setDraftText(getCaptionText(subtitle.text, language, subtitle.tenglishText));
+    const nextDraft = getCaptionText(subtitle.text, language, subtitle.tenglishText);
+    draftTextRef.current = nextDraft;
+    setDraftText(nextDraft);
+    editingSubtitleIdRef.current = subtitle.id;
     setEditingSubtitleId(subtitle.id);
   };
 
   const saveInlineEdit = () => {
-    if (!editingSubtitleId) return;
+    const id = editingSubtitleIdRef.current;
+    if (!id) return;
+    const nextText = draftTextRef.current;
     setSubtitles?.(prev => prev.map(subtitle => {
-      if (subtitle.id !== editingSubtitleId) return subtitle;
-      if (language === 'tenglish') return { ...subtitle, tenglishText: draftText };
-      return { ...subtitle, text: draftText, tenglishText: language === 'te' ? undefined : subtitle.tenglishText };
+      if (subtitle.id !== id) return subtitle;
+      if (language === 'tenglish') return { ...subtitle, tenglishText: nextText };
+      return { ...subtitle, text: nextText, tenglishText: language === 'te' ? undefined : subtitle.tenglishText };
     }));
+    editingSubtitleIdRef.current = null;
     setEditingSubtitleId(null);
   };
 
   const cancelInlineEdit = () => {
+    editingSubtitleIdRef.current = null;
     setEditingSubtitleId(null);
+    draftTextRef.current = '';
     setDraftText('');
   };
 
   const handleCanvasClick = (event: React.MouseEvent<HTMLCanvasElement>) => {
-    if (editingSubtitleId) return;
+    if (editingSubtitleId) saveInlineEdit();
     canvasAreaRef.current?.focus();
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -404,7 +433,7 @@ export const Workspace: React.FC<WorkspaceProps> = ({
   };
 
   const handleCanvasDoubleClick = (event: React.MouseEvent<HTMLCanvasElement>) => {
-    if (editingSubtitleId) return;
+    if (editingSubtitleId) saveInlineEdit();
     const canvas = canvasRef.current;
     if (!canvas) return;
     const rect = canvas.getBoundingClientRect();
@@ -445,24 +474,76 @@ export const Workspace: React.FC<WorkspaceProps> = ({
     const layout = getSubtitleCanvasLayout(ctx, canvas.width, canvas.height, currentTime, [subtitle], settings, language);
     if (!layout) return null;
     const canvasRect = canvas.getBoundingClientRect();
-    const areaRect = canvasAreaRef.current.getBoundingClientRect();
-    const scaleX = canvasRect.width / canvas.width;
-    const scaleY = canvasRect.height / canvas.height;
+    const frameRect = canvas.parentElement?.getBoundingClientRect() ?? canvasRect;
+    // clientWidth/clientHeight exclude the canvas border, matching the drawable
+    // coordinate space used by the renderer. This keeps the editor on the same
+    // rendered caption bounds at every preview scale.
+    const scaleX = canvas.clientWidth / canvas.width;
+    const scaleY = canvas.clientHeight / canvas.height;
+    const isTelugu = language === 'te' || /[\u0C00-\u0C7F]/.test(subtitle.text);
+    const fontFamily = isTelugu
+      ? "'Noto Sans Telugu', 'Inter', sans-serif"
+      : `${settings.fontFamily}, 'Noto Sans Telugu', sans-serif`;
+    const horizontalPadding = settings.style === 'box' || settings.textBackground ? 40 : settings.style === 'outline' ? 12 : 0;
+    const verticalPadding = settings.style === 'box' || settings.textBackground ? 20 : settings.style === 'outline' ? 12 : 0;
+    const renderedWidth = layout.width * scaleX;
+    const editorWidth = Math.min(canvas.clientWidth * 0.8, Math.max(renderedWidth, 180));
+    const renderedLeft = canvasRect.left - frameRect.left + canvas.clientLeft + layout.left * scaleX;
+    const left = settings.alignment === 'left'
+      ? renderedLeft
+      : settings.alignment === 'right'
+        ? renderedLeft + renderedWidth - editorWidth
+        : renderedLeft + (renderedWidth - editorWidth) / 2;
+    const sidePadding = horizontalPadding * scaleX;
     return {
       position: 'absolute',
-      left: canvasRect.left - areaRect.left + layout.left * scaleX,
-      top: canvasRect.top - areaRect.top + (layout.y - layout.height / 2) * scaleY,
-      width: Math.max(180, layout.width * scaleX),
-      minHeight: Math.max(48, layout.height * scaleY),
+      left,
+      top: canvasRect.top - frameRect.top + canvas.clientTop + (layout.y - layout.height / 2) * scaleY,
+      width: editorWidth,
+      height: Math.max(1, layout.height * scaleY),
+      minHeight: 0,
+      paddingTop: verticalPadding * scaleY / 2,
+      paddingBottom: verticalPadding * scaleY / 2,
+      paddingLeft: settings.alignment === 'left' ? 0 : sidePadding / 2,
+      paddingRight: settings.alignment === 'right' ? 0 : sidePadding / 2,
+      color: settings.textColor,
+      fontFamily,
+      fontSize: `${layout.fontSize * scaleY}px`,
+      lineHeight: `${layout.lineHeight * scaleY}px`,
+      textAlign: settings.alignment,
+      background: settings.style === 'box' || settings.textBackground ? settings.boxColor || 'rgba(0, 0, 0, 0.6)' : 'transparent',
+      borderRadius: settings.style === 'box' || settings.textBackground ? '10px' : 0,
       zIndex: 2,
     };
   }, [currentTime, editingSubtitleId, language, settings, subtitles]);
+
+  // A click on a non-editor surface (including non-focusable sidebar content)
+  // commits the draft. The capture listener runs before canvas/timeline clicks,
+  // so selecting another caption never leaves the previous draft open.
+  useEffect(() => {
+    if (!editingSubtitleId) return undefined;
+    const handleOutsidePointerDown = (event: PointerEvent) => {
+      const target = event.target;
+      if (target instanceof Node && inlineEditorRef.current?.contains(target)) return;
+      saveInlineEdit();
+    };
+    document.addEventListener('pointerdown', handleOutsidePointerDown, true);
+    return () => document.removeEventListener('pointerdown', handleOutsidePointerDown, true);
+  }, [editingSubtitleId]);
 
   useEffect(() => {
     const frameId = requestAnimationFrame(() => {
       setInlineEditorStyle(calculateInlineEditorStyle());
     });
-    return () => cancelAnimationFrame(frameId);
+    const canvas = canvasRef.current;
+    const resizeObserver = canvas && editingSubtitleId && typeof ResizeObserver !== 'undefined'
+      ? new ResizeObserver(() => setInlineEditorStyle(calculateInlineEditorStyle()))
+      : null;
+    if (canvas && resizeObserver) resizeObserver.observe(canvas);
+    return () => {
+      cancelAnimationFrame(frameId);
+      resizeObserver?.disconnect();
+    };
   }, [calculateInlineEditorStyle]);
 
   useEffect(() => {
@@ -580,7 +661,7 @@ export const Workspace: React.FC<WorkspaceProps> = ({
       return;
     }
 
-    // Probe best codec: VP9+Opus → VP8+Opus → MP4/AVC1 → generic WebM
+    // Probe best browser-native WebM codec: VP9+Opus → VP8+Opus → generic WebM.
     const mimeType = getPreferredMimeType(audioTracks.length > 0)
       ?? getSupportedWebmMimeType(audioTracks.length > 0);
     if (!mimeType) {
@@ -621,12 +702,17 @@ export const Workspace: React.FC<WorkspaceProps> = ({
     // -----------------------------------------------------------------------
     // 5. Determine download extension from mimeType
     // -----------------------------------------------------------------------
-    const fileExt = mimeType.startsWith('video/mp4') ? 'mp4' : 'webm';
-    const downloadMime = mimeType.startsWith('video/mp4') ? 'video/mp4' : 'video/webm';
+    const fileExt = 'webm';
+    const downloadMime = 'video/webm';
 
+    let exportEndedListener: (() => void) | null = null;
     const cleanupExport = (canvasStream: MediaStream, mediaStream: MediaStream | null) => {
       if (exportAnimRef.current) cancelAnimationFrame(exportAnimRef.current);
       exportAnimRef.current = undefined;
+      if (exportEndedListener) {
+        media.removeEventListener('ended', exportEndedListener);
+        exportEndedListener = null;
+      }
       offscreenCanvasRef.current = null;
       stopStreamTracks(canvasStream);
       stopStreamTracks(mediaStream);
@@ -715,6 +801,22 @@ export const Workspace: React.FC<WorkspaceProps> = ({
       }
     };
 
+    const handleExportEnded = () => {
+      if (exportCancelledRef.current || recorder.state === 'inactive') return;
+      // The ended event can arrive before the next rAF. Draw the terminal
+      // frame synchronously, then let MediaRecorder queue its final chunk.
+      renderExportFrame();
+      setExportProgress(100);
+      try {
+        recorder.stop();
+      } catch {
+        setExportError('The browser could not finish the export.');
+        cleanupExport(canvasStream, mediaStream);
+      }
+    };
+    exportEndedListener = handleExportEnded;
+    media.addEventListener('ended', handleExportEnded, { once: true });
+
     try {
       recorder.start();
     } catch (error) {
@@ -737,10 +839,179 @@ export const Workspace: React.FC<WorkspaceProps> = ({
 
   const handleTimelineClick = (event: React.MouseEvent<HTMLDivElement>) => {
     if (!mediaRef.current || !duration) return;
+    if (editingSubtitleId) saveInlineEdit();
     const rect = event.currentTarget.getBoundingClientRect();
     const nextTime = Math.max(0, Math.min(duration, ((event.clientX - rect.left) / rect.width) * duration));
     mediaRef.current.currentTime = nextTime;
     drawFrame();
+  };
+
+  const handleTimelineZoomWheel = (event: React.WheelEvent<HTMLDivElement>) => {
+    if (!event.deltaY && !event.deltaX) return;
+    event.preventDefault();
+    const delta = event.deltaY || event.deltaX;
+    setTimelineZoom(previous => clamp(previous + (delta < 0 ? 0.25 : -0.25), 1, 3));
+  };
+
+  const getDraggedTiming = (drag: TimelineDrag, clientX: number): TimelineTiming => {
+    const delta = (clientX - drag.startX) / drag.pixelsPerSecond;
+    const { start, end } = drag.original;
+    const minimum = Math.min(MIN_CAPTION_DURATION, duration);
+    if (drag.mode === 'move') {
+      const length = end - start;
+      const nextStart = clamp(start + delta, 0, duration - length);
+      return { start: nextStart, end: nextStart + length };
+    }
+    if (drag.mode === 'start') return { start: clamp(start + delta, 0, end - minimum), end };
+    return { start, end: clamp(end + delta, start + minimum, duration) };
+  };
+
+  const beginTimelineDrag = (event: React.PointerEvent<HTMLElement>, subtitle: Subtitle, mode: TimelineDragMode) => {
+    event.stopPropagation();
+    if (editingSubtitleId) saveInlineEdit();
+    if (event.pointerType === 'mouse' && event.button !== 0) return;
+    selectSubtitle(subtitle.id);
+    if (mediaRef.current) {
+      mediaRef.current.currentTime = subtitle.start;
+      drawFrame();
+    }
+    if (!setSubtitles || !duration) return;
+    if (timelineDragRef.current) return;
+    const trackWidth = captionTrackRef.current?.getBoundingClientRect().width;
+    if (!trackWidth) return;
+    event.preventDefault();
+    const minimum = Math.min(MIN_CAPTION_DURATION, duration);
+    const start = clamp(subtitle.start, 0, duration - minimum);
+    const end = clamp(subtitle.end, start + minimum, duration);
+    timelineDragRef.current = {
+      id: subtitle.id, mode, pointerId: event.pointerId, startX: event.clientX,
+      pixelsPerSecond: trackWidth / duration,
+      original: { start, end }, preview: { start, end },
+    };
+    event.currentTarget.setPointerCapture(event.pointerId);
+  };
+
+  const handleClipPointerMove = (event: React.PointerEvent<HTMLElement>) => {
+    const drag = timelineDragRef.current;
+    if (!drag || drag.pointerId !== event.pointerId) return;
+    drag.preview = getDraggedTiming(drag, event.clientX);
+    setTimelineTimingPreview({ id: drag.id, ...drag.preview });
+  };
+
+  const endTimelineDrag = (event: React.PointerEvent<HTMLElement>, cancelled = false) => {
+    const drag = timelineDragRef.current;
+    if (!drag || drag.pointerId !== event.pointerId) return;
+    timelineDragRef.current = null;
+    setTimelineTimingPreview(null);
+    if (cancelled) return;
+    const timing = getDraggedTiming(drag, event.clientX);
+    if (timing.start === drag.original.start && timing.end === drag.original.end) return;
+    setSubtitles?.(previous => previous.map(subtitle => {
+      if (subtitle.id !== drag.id) return subtitle;
+      const offset = timing.start - subtitle.start;
+      return {
+        ...subtitle,
+        ...timing,
+        words: drag.mode === 'move' && subtitle.words
+          ? subtitle.words.map(word => ({ ...word, start: word.start + offset, end: word.end + offset }))
+          : subtitle.words,
+      };
+    }));
+  };
+
+  const nudgeCaptionEdge = (event: React.KeyboardEvent<HTMLButtonElement>, subtitle: Subtitle, edge: 'start' | 'end') => {
+    if (event.key !== 'ArrowLeft' && event.key !== 'ArrowRight') return;
+    event.preventDefault();
+    event.stopPropagation();
+    if (!setSubtitles || !duration) return;
+    const delta = event.key === 'ArrowRight' ? 0.1 : -0.1;
+    const minimum = Math.min(MIN_CAPTION_DURATION, duration);
+    selectSubtitle(subtitle.id);
+    setSubtitles(previous => previous.map(item => {
+      if (item.id !== subtitle.id) return item;
+      const start = clamp(item.start, 0, duration - minimum);
+      const end = clamp(item.end, start + minimum, duration);
+      return edge === 'start'
+        ? { ...item, start: clamp(start + delta, 0, end - minimum), end }
+        : { ...item, start, end: clamp(end + delta, start + minimum, duration) };
+    }));
+  };
+
+  const duplicateSelectedCaption = () => {
+    if (!setSubtitles || !selectedSubtitleId || !duration) return;
+    const selectedIndex = subtitles.findIndex(item => item.id === selectedSubtitleId);
+    if (selectedIndex < 0) return;
+    const source = subtitles[selectedIndex];
+    const length = clamp(source.end - source.start, Math.min(MIN_CAPTION_DURATION, duration), duration);
+    const start = clamp(source.end + 0.1, 0, duration - length);
+    const end = start + length;
+    const duplicate: Subtitle = {
+      ...source,
+      id: `${source.id}-copy-${Date.now()}`,
+      start,
+      end,
+      words: source.words?.map(word => ({
+        ...word,
+        start: word.start + start - source.start,
+        end: word.end + start - source.start,
+      })),
+    };
+    setSubtitles(previous => previous.toSpliced(selectedIndex + 1, 0, duplicate));
+    selectSubtitle(duplicate.id);
+    if (mediaRef.current) mediaRef.current.currentTime = duplicate.start;
+  };
+
+  const deleteSelectedCaption = () => {
+    if (!setSubtitles || !selectedSubtitleId) return;
+    setSubtitles(previous => previous.filter(item => item.id !== selectedSubtitleId));
+    selectSubtitle(null);
+  };
+
+  const splitSelectedCaption = () => {
+    if (!setSubtitles || !selectedSubtitleId) return;
+    const index = subtitles.findIndex(item => item.id === selectedSubtitleId);
+    if (index < 0) return;
+    const source = subtitles[index];
+    if (source.end - source.start < 2 * MIN_CAPTION_DURATION) return;
+    const splitTime = clamp(currentTime, source.start + MIN_CAPTION_DURATION, source.end - MIN_CAPTION_DURATION);
+    if (splitTime <= source.start || splitTime >= source.end) return;
+    const visibleText = getCaptionText(source.text, language, source.tenglishText).trim();
+    const words = visibleText.split(/\s+/).filter(Boolean);
+    const splitPoint = Math.max(1, Math.ceil(words.length / 2));
+    const firstVisible = words.length > 1 ? words.slice(0, splitPoint).join(' ') : visibleText;
+    const secondVisible = words.length > 1 ? words.slice(splitPoint).join(' ') : visibleText;
+    const canonicalWords = source.text.trim().split(/\s+/).filter(Boolean);
+    const canonicalPoint = Math.min(canonicalWords.length, splitPoint);
+    const first: Subtitle = {
+      ...source,
+      end: splitTime,
+      text: canonicalWords.length > 1 ? canonicalWords.slice(0, canonicalPoint).join(' ') : source.text,
+      tenglishText: language === 'tenglish' ? firstVisible : source.tenglishText,
+    };
+    const second: Subtitle = {
+      ...source,
+      id: `${source.id}-split-${Date.now()}`,
+      start: splitTime,
+      text: canonicalWords.length > 1 ? canonicalWords.slice(canonicalPoint).join(' ') : source.text,
+      tenglishText: language === 'tenglish' ? secondVisible : source.tenglishText,
+    };
+    setSubtitles(previous => previous.toSpliced(index, 1, first, second));
+    selectSubtitle(second.id);
+  };
+
+  const addTimelineCaption = () => {
+    if (!setSubtitles || !duration) return;
+    const minimum = Math.min(MIN_CAPTION_DURATION, duration);
+    const start = clamp(currentTime, 0, duration - minimum);
+    const end = clamp(start + 2, start + minimum, duration);
+    const caption: Subtitle = {
+      id: `timeline-caption-${Date.now()}`,
+      start,
+      end,
+      text: 'New caption',
+    };
+    setSubtitles(previous => [...previous, caption].sort((left, right) => left.start - right.start));
+    selectSubtitle(caption.id);
   };
 
   const handleCustomImageFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -904,6 +1175,17 @@ export const Workspace: React.FC<WorkspaceProps> = ({
             </span>
           </div>
           <div className="workspace-header-actions">
+            <label className="ratio-select-wrap">
+              <span>Canvas</span>
+              <select
+                className="ratio-select"
+                value={settings.aspectRatio}
+                onChange={event => setSettings(previous => ({ ...previous, aspectRatio: event.target.value as CanvasSettings['aspectRatio'] }))}
+                aria-label="Canvas aspect ratio"
+              >
+                {ratioOptions.map(option => <option key={option.value} value={option.value}>{option.label} · {option.detail}</option>)}
+              </select>
+            </label>
             <button className="icon-button" onClick={onUndo} disabled={!canUndo} title="Undo (Ctrl/Cmd+Z)" aria-label="Undo"><Undo2 size={16} /></button>
             <button className="icon-button" onClick={onRedo} disabled={!canRedo} title="Redo (Shift+Ctrl/Cmd+Z)" aria-label="Redo"><Redo2 size={16} /></button>
             <button className="ghost-button workspace-back" onClick={onBackToUpload}>
@@ -927,22 +1209,6 @@ export const Workspace: React.FC<WorkspaceProps> = ({
           </div>
         </header>
 
-        <div className="ratio-toolbar">
-          <span className="toolbar-label">Canvas</span>
-          {ratioOptions.map(option => (
-            <button
-              key={option.value}
-              className={`ratio-button ${settings.aspectRatio === option.value ? 'active' : ''}`}
-              onClick={() => setSettings(previous => ({ ...previous, aspectRatio: option.value }))}
-            >
-              <strong>{option.label}</strong>
-              <small>{option.detail}</small>
-            </button>
-          ))}
-          <span className="toolbar-spacer" />
-          <span className="preview-hint">Click a caption to select · double-click to edit</span>
-        </div>
-
         <div className="preview-stage" ref={canvasAreaRef} tabIndex={0} onKeyDown={handleCanvasKeyDown}>
           <div className={`canvas-frame ratio-${settings.aspectRatio.replace(':', '-')}`}>
             <canvas
@@ -955,36 +1221,29 @@ export const Workspace: React.FC<WorkspaceProps> = ({
               className={editingSubtitleId ? 'editing' : ''}
             />
             {editingSubtitleId && inlineEditorStyle && (
-              <div
-                style={{
-                  ...inlineEditorStyle,
-                  display: 'flex',
-                  flexDirection: 'column',
-                  gap: '0.35rem',
-                  pointerEvents: 'auto',
+              <textarea
+                ref={inlineEditorRef}
+                className="caption-inline-editor"
+                style={inlineEditorStyle}
+                autoFocus
+                value={draftText}
+                onChange={event => {
+                  draftTextRef.current = event.target.value;
+                  setDraftText(event.target.value);
                 }}
-                onClick={event => event.stopPropagation()}
-              >
-                <textarea
-                  autoFocus
-                  value={draftText}
-                  onChange={event => setDraftText(event.target.value)}
-                  onKeyDown={event => {
-                    if (event.key === 'Escape') {
-                      event.preventDefault();
-                      cancelInlineEdit();
-                    } else if (event.key === 'Enter' && !event.shiftKey) {
-                      event.preventDefault();
-                      saveInlineEdit();
-                    }
-                  }}
-                  aria-label="Edit caption text"
-                />
-                <div className="inline-edit-actions">
-                  <button className="primary-action" onClick={saveInlineEdit}>Save</button>
-                  <button className="secondary-action" onClick={cancelInlineEdit}>Cancel</button>
-                </div>
-              </div>
+                onBlur={saveInlineEdit}
+                onKeyDown={event => {
+                  if (event.key === 'Escape') {
+                    event.preventDefault();
+                    event.stopPropagation();
+                    cancelInlineEdit();
+                  } else if (event.key === 'Enter' && (event.ctrlKey || event.metaKey)) {
+                    event.preventDefault();
+                    saveInlineEdit();
+                  }
+                }}
+                aria-label="Edit caption text"
+              />
             )}
           </div>
           {!videoFile && <div className="preview-empty">Upload media to start previewing</div>}
@@ -1012,39 +1271,6 @@ export const Workspace: React.FC<WorkspaceProps> = ({
         </div>
 
         <section className="player-panel">
-          <div className="timeline-header">
-            <span>Timeline</span>
-            <span>{subtitles.length} caption{subtitles.length === 1 ? '' : 's'}</span>
-          </div>
-          <div
-            className="preview-timeline"
-            onClick={handleTimelineClick}
-            role="slider"
-            aria-label="Media timeline"
-            aria-valuemin={0}
-            aria-valuemax={duration}
-            aria-valuenow={currentTime}
-            tabIndex={0}
-          >
-            {subtitles.map(subtitle => (
-              <span
-                key={subtitle.id}
-                className={`timeline-segment ${subtitle.id === selectedSubtitleId ? 'active' : ''}`}
-                style={{
-                  left: `${duration ? (subtitle.start / duration) * 100 : 0}%`,
-                  width: `${duration ? Math.max(0.6, ((subtitle.end - subtitle.start) / duration) * 100) : 0}%`,
-                }}
-              />
-            ))}
-            <span
-              className="timeline-progress"
-              style={{ width: `${duration ? (currentTime / duration) * 100 : 0}%` }}
-            />
-            <span
-              className="timeline-cursor"
-              style={{ left: `${duration ? (currentTime / duration) * 100 : 0}%` }}
-            />
-          </div>
           <div className="player-controls">
             <button
               className="play-button"
@@ -1102,6 +1328,89 @@ export const Workspace: React.FC<WorkspaceProps> = ({
               aria-label="Volume"
             />
           </div>
+          <div className="timeline-toolbar">
+            <div className="timeline-toolbar-title">
+              <span className="eyebrow accent-eyebrow">Edit timeline</span>
+              <strong>{subtitles.length} caption{subtitles.length === 1 ? '' : 's'}</strong>
+            </div>
+            <div className="timeline-edit-actions" role="toolbar" aria-label="Timeline editing tools">
+              <button className="timeline-tool-button" onClick={onUndo} disabled={!canUndo} title="Undo" aria-label="Undo"><Undo2 size={15} /></button>
+              <button className="timeline-tool-button" onClick={onRedo} disabled={!canRedo} title="Redo" aria-label="Redo"><Redo2 size={15} /></button>
+              <span className="timeline-tool-divider" />
+              <button className="timeline-tool-button" onClick={duplicateSelectedCaption} disabled={!selectedSubtitleId || !setSubtitles || !duration} title="Duplicate selected caption" aria-label="Duplicate selected caption"><Copy size={15} /></button>
+              <button className="timeline-tool-button" onClick={splitSelectedCaption} disabled={!selectedSubtitleId || !setSubtitles} title="Split selected caption at playhead" aria-label="Split selected caption"><Scissors size={15} /></button>
+              <button className="timeline-tool-button danger" onClick={deleteSelectedCaption} disabled={!selectedSubtitleId || !setSubtitles} title="Delete selected caption" aria-label="Delete selected caption"><Trash2 size={15} /></button>
+              <button className="timeline-add-button" onClick={addTimelineCaption} disabled={!setSubtitles || !duration}><span>+</span> Add caption</button>
+              <span className="timeline-tool-divider" />
+              <button className="timeline-tool-button" onClick={() => setTimelineZoom(previous => Math.max(1, previous - 0.25))} disabled={timelineZoom <= 1} title="Zoom out" aria-label="Zoom out timeline"><ZoomOut size={15} /></button>
+              <span className="timeline-zoom-value">{Math.round(timelineZoom * 100)}%</span>
+              <button className="timeline-tool-button" onClick={() => setTimelineZoom(previous => Math.min(3, previous + 0.25))} disabled={timelineZoom >= 3} title="Zoom in" aria-label="Zoom in timeline"><ZoomIn size={15} /></button>
+            </div>
+          </div>
+          <div
+            className="timeline-editor"
+            style={{ '--timeline-zoom': timelineZoom } as React.CSSProperties}
+            onWheel={handleTimelineZoomWheel}
+            aria-label="Timeline. Scroll to zoom. Pinch on a touchpad to zoom."
+          >
+            <div className="timeline-ruler" style={{ width: `${timelineZoom * 100}%` }} aria-hidden="true">
+              {Array.from({ length: Math.max(2, Math.ceil(duration / 5) + 1) }, (_, index) => {
+                const time = Math.min(duration, index * 5);
+                return <span key={time} style={{ left: `${duration ? (time / duration) * 100 : 0}%` }}>{formatDuration(time)}</span>;
+              })}
+            </div>
+            <div
+              className="timeline-track-row caption-track-row"
+              style={{ width: `${timelineZoom * 100}%` }}
+            >
+              <span className="timeline-track-label">Captions</span>
+              <div className="timeline-track-content" ref={captionTrackRef} onClick={handleTimelineClick}>
+                {subtitles.map(subtitle => {
+                  const timing = timelineTimingPreview?.id === subtitle.id ? timelineTimingPreview : subtitle;
+                  return (
+                    <div
+                    key={subtitle.id}
+                    className={`timeline-segment ${subtitle.id === selectedSubtitleId ? 'active' : ''}`}
+                    style={{
+                      left: `${duration ? (timing.start / duration) * 100 : 0}%`,
+                      width: `${duration ? ((timing.end - timing.start) / duration) * 100 : 0}%`,
+                    }}
+                    role="button"
+                    tabIndex={0}
+                    aria-label={`Caption ${getCaptionText(subtitle.text, language, subtitle.tenglishText)}, ${timing.start.toFixed(2)} to ${timing.end.toFixed(2)} seconds. Drag to move.`}
+                    onPointerDown={event => beginTimelineDrag(event, subtitle, 'move')}
+                    onPointerMove={handleClipPointerMove}
+                    onPointerUp={event => endTimelineDrag(event)}
+                    onPointerCancel={event => endTimelineDrag(event, true)}
+                    onLostPointerCapture={event => endTimelineDrag(event, true)}
+                    onClick={event => event.stopPropagation()}
+                    onKeyDown={event => {
+                      if (event.key === 'Enter' || event.key === ' ') {
+                        event.preventDefault();
+                        selectSubtitle(subtitle.id);
+                        if (mediaRef.current) mediaRef.current.currentTime = subtitle.start;
+                      }
+                    }}
+                    title={`${timing.start.toFixed(2)}s – ${timing.end.toFixed(2)}s · ${getCaptionText(subtitle.text, language, subtitle.tenglishText)}`}
+                  >
+                    <button type="button" className="timeline-resize-handle start" aria-label={`Resize start of caption ${getCaptionText(subtitle.text, language, subtitle.tenglishText)}`} onPointerDown={event => beginTimelineDrag(event, subtitle, 'start')} onKeyDown={event => nudgeCaptionEdge(event, subtitle, 'start')} onClick={event => event.stopPropagation()} />
+                    <span className="timeline-segment-text">{getCaptionText(subtitle.text, language, subtitle.tenglishText)}</span>
+                    <button type="button" className="timeline-resize-handle end" aria-label={`Resize end of caption ${getCaptionText(subtitle.text, language, subtitle.tenglishText)}`} onPointerDown={event => beginTimelineDrag(event, subtitle, 'end')} onKeyDown={event => nudgeCaptionEdge(event, subtitle, 'end')} onClick={event => event.stopPropagation()} />
+                    </div>
+                  );
+                })}
+                <span className="timeline-progress" style={{ width: `${duration ? (currentTime / duration) * 100 : 0}%` }} />
+                <span className="timeline-cursor" style={{ left: `${duration ? (currentTime / duration) * 100 : 0}%` }} />
+              </div>
+            </div>
+            <div className="timeline-track-row media-track-row" style={{ width: `${timelineZoom * 100}%` }}>
+              <span className="timeline-track-label">Media</span>
+              <div className="timeline-track-content" onClick={handleTimelineClick}>
+                <div className="media-timeline-clip" style={{ width: duration ? '100%' : '0%' }}><span>{videoFile?.name || 'Source media'}</span></div>
+                <span className="timeline-cursor" style={{ left: `${duration ? (currentTime / duration) * 100 : 0}%` }} />
+              </div>
+            </div>
+          </div>
         </section>
 
         {exportError && <div className="workspace-error" role="alert">{exportError}</div>}
@@ -1155,19 +1464,11 @@ export const Workspace: React.FC<WorkspaceProps> = ({
               <ImageIcon size={13} />
               <span>Backgrounds</span>
             </button>
-            <button
-              role="tab"
-              aria-selected={activeTab === 'advanced'}
-              className={`style-tab-button ${activeTab === 'advanced' ? 'active' : ''}`}
-              onClick={() => setActiveTab('advanced')}
-            >
-              <Sliders size={13} />
-              <span>Advanced</span>
-            </button>
           </div>
         </div>
 
-        <div className="style-sidebar-scroll">
+        <div className="style-panel-upper">
+          <div className="style-sidebar-scroll">
 
           {/* TAB 1: CAPTION TEMPLATES */}
           {activeTab === 'templates' && (
@@ -1341,9 +1642,18 @@ export const Workspace: React.FC<WorkspaceProps> = ({
             </div>
           )}
 
-          {/* TAB 3: ADVANCED STYLE SETTINGS */}
-          {activeTab === 'advanced' && (
-            <div className="advanced-tab-content">
+          </div>{/* end .style-sidebar-scroll */}
+
+          {/* ADVANCED STYLE SETTINGS — always visible in the lower panel */}
+          <div className="advanced-panel">
+            <div className="advanced-panel-header">
+              <div>
+                <span className="eyebrow accent-eyebrow">Advanced</span>
+                <strong>Fine-tune your design</strong>
+              </div>
+              <Sliders size={15} />
+            </div>
+            <div className="advanced-panel-scroll">
               <div className="section-subheading">
                 <span>Fine-Tune Typography</span>
                 <small>Custom overrides</small>
@@ -1621,8 +1931,8 @@ export const Workspace: React.FC<WorkspaceProps> = ({
                 <RotateCcw size={13} /> Reset styling
               </button>
             </div>
-          )}
-        </div>{/* end .style-sidebar-scroll */}
+            </div>
+          </div>
 
         {/* BOTTOM EXPORT SECTION — pinned footer, never scrolls */}
         <div className="style-sidebar-footer">

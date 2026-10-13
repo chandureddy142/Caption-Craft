@@ -4,7 +4,7 @@ export interface MediaRecorderSupport {
   isTypeSupported: (mimeType: string) => boolean;
 }
 
-/** @deprecated Use getPreferredMimeType() which also probes MP4. */
+/** @deprecated Use getPreferredMimeType() for the legacy WebM exporter. */
 export function getSupportedWebmMimeType(
   hasAudio: boolean,
   support?: MediaRecorderSupport,
@@ -14,29 +14,33 @@ export function getSupportedWebmMimeType(
   const candidates = hasAudio
     ? ['video/webm;codecs=vp9,opus', 'video/webm;codecs=vp8,opus', 'video/webm']
     : ['video/webm;codecs=vp9', 'video/webm;codecs=vp8', 'video/webm'];
-  return candidates.find(candidate => recorder.isTypeSupported(candidate)) ?? null;
+  return candidates.find(candidate => {
+    try {
+      return recorder.isTypeSupported(candidate);
+    } catch {
+      return false;
+    }
+  }) ?? null;
 }
 
 /**
- * Returns the best supported MIME type for MediaRecorder, prioritising:
- * VP9+Opus (WebM) → H.264+AAC (MP4) → generic WebM.
+ * Returns the best supported MIME type for the legacy WebM MediaRecorder
+ * exporter. The dedicated export page probes MP4 separately. Keeping MP4 out
+ * of this helper prevents the older modal path from silently claiming an
+ * explicit x264 export.
  */
 export function getPreferredMimeType(hasAudio: boolean): string | null {
   if (typeof MediaRecorder === 'undefined') return null;
   const candidates = hasAudio
-    ? [
-        'video/webm;codecs=vp9,opus',
-        'video/webm;codecs=vp8,opus',
-        'video/mp4;codecs=avc1,mp4a.40.2',
-        'video/webm',
-      ]
-    : [
-        'video/webm;codecs=vp9',
-        'video/webm;codecs=vp8',
-        'video/mp4;codecs=avc1',
-        'video/webm',
-      ];
-  return candidates.find(c => MediaRecorder.isTypeSupported(c)) ?? null;
+    ? ['video/webm;codecs=vp9,opus', 'video/webm;codecs=vp8,opus', 'video/webm']
+    : ['video/webm;codecs=vp9', 'video/webm;codecs=vp8', 'video/webm'];
+  return candidates.find(c => {
+    try {
+      return MediaRecorder.isTypeSupported(c);
+    } catch {
+      return false;
+    }
+  }) ?? null;
 }
 
 // ---------------------------------------------------------------------------

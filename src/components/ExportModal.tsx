@@ -210,7 +210,7 @@ export function ExportModal({
         {/* FOOTER */}
         <div className="modal-footer">
           <span>
-            High-resolution off-screen rendering · VP9/opus preferred · MP4 probed as fallback
+            High-resolution render · WebM capture or local FFmpeg.wasm H.264 export · first MP4/MKV/MOV export downloads the encoder
           </span>
           <button className="text-button" onClick={onClose} disabled={isExporting}>
             Close

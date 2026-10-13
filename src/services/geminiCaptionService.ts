@@ -81,21 +81,21 @@ export interface GeminiTranscriptionOptions {
 
 export class GeminiKeyMissingError extends Error {
   constructor() {
-    super('VITE_GEMINI_API_KEY is not set. Add it to your .env file to use Gemini transcription.');
+    super('CaptionCraft AI is not configured. Add the transcription provider key to your .env file to continue.');
     this.name = 'GeminiKeyMissingError';
   }
 }
 
 export class GeminiRateLimitError extends Error {
   constructor() {
-    super('Gemini API rate limit reached. Please wait a moment and try again.');
+    super('CaptionCraft AI rate limit reached. Please wait a moment and try again.');
     this.name = 'GeminiRateLimitError';
   }
 }
 
 export class GeminiPayloadError extends Error {
   constructor(message: string) {
-    super(`Gemini rejected the audio payload: ${message}`);
+    super(`CaptionCraft AI rejected the audio payload: ${message}`);
     this.name = 'GeminiPayloadError';
   }
 }
@@ -265,7 +265,7 @@ async function transcribeChunkWithGemini(
     });
   } catch (error) {
     if ((error as Error).name === 'AbortError') throw error;
-    throw new Error(`Network error calling Gemini API: ${(error as Error).message}`);
+    throw new Error(`Network error calling CaptionCraft AI: ${(error as Error).message}`);
   }
 
   if (response.status === 429) throw new GeminiRateLimitError();
@@ -275,7 +275,7 @@ async function transcribeChunkWithGemini(
   }
   if (!response.ok) {
     const body = await response.text().catch(() => '');
-    throw new Error(`Gemini API error ${response.status}: ${body || response.statusText}`);
+    throw new Error(`CaptionCraft AI error ${response.status}: ${body || response.statusText}`);
   }
 
   const json = (await response.json()) as {
@@ -285,7 +285,7 @@ async function transcribeChunkWithGemini(
     error?: { message: string };
   };
 
-  if (json.error) throw new Error(`Gemini API: ${json.error.message}`);
+  if (json.error) throw new Error(`CaptionCraft AI: ${json.error.message}`);
 
   const rawText = json.candidates?.[0]?.content?.parts?.[0]?.text ?? '';
   if (!rawText) return [];
@@ -383,7 +383,7 @@ export async function transcribeWithGemini(
   }
 
   if (!(audioBlob instanceof Blob) || audioBlob.size === 0) {
-    throw new Error('No audio blob provided for Gemini transcription.');
+    throw new Error('No audio blob provided for CaptionCraft AI transcription.');
   }
 
   const sourceLanguage = options.sourceLanguage ?? 'en';
@@ -422,7 +422,7 @@ export async function transcribeWithGemini(
       if ((error as Error).name === 'AbortError') throw error;
       const merged = mergeOverlappingSubtitles(allSubtitles);
       throw new GeminiTranscriptionError(
-        error instanceof Error ? error.message : 'Gemini transcription failed.',
+        error instanceof Error ? error.message : 'CaptionCraft AI transcription failed.',
         chunk.index,
         merged,
       );
@@ -465,6 +465,6 @@ export async function transcribeWithGemini(
 
 function throwIfAborted(signal: AbortSignal | undefined): void {
   if (signal?.aborted) {
-    throw new DOMException('Gemini transcription was cancelled.', 'AbortError');
+    throw new DOMException('CaptionCraft AI transcription was cancelled.', 'AbortError');
   }
 }
