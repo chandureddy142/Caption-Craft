@@ -30,7 +30,9 @@ export function getSubtitleCanvasLayout(
   if (!subtitle) return null;
 
   const isTelugu = language === 'te' || /[\u0C00-\u0C7F]/.test(subtitle.text);
-  const fontFamily = isTelugu ? "'Noto Sans Telugu', sans-serif" : settings.fontFamily;
+  const fontFamily = isTelugu
+    ? "'Noto Sans Telugu', 'Inter', sans-serif"
+    : `${settings.fontFamily}, 'Noto Sans Telugu', sans-serif`;
   const lineHeight = settings.fontSize * (isTelugu ? 1.35 : 1.2);
   const lines = getCaptionText(subtitle.text, language, subtitle.tenglishText).split('\n');
 
@@ -87,7 +89,9 @@ export function renderSubtitlesToCanvas(
   
   // Use Noto Sans Telugu for Telugu Lipi or whenever Telugu text is detected
   const isTelugu = language === 'te' || /[\u0C00-\u0C7F]/.test(activeSub.text);
-  const fontFamily = isTelugu ? "'Noto Sans Telugu', sans-serif" : settings.fontFamily;
+  const fontFamily = isTelugu
+    ? "'Noto Sans Telugu', 'Inter', sans-serif"
+    : `${settings.fontFamily}, 'Noto Sans Telugu', sans-serif`;
   ctx.font = `bold ${settings.fontSize}px ${fontFamily}`;
   
   const x = width / 2;
@@ -132,7 +136,6 @@ export function renderSubtitlesToCanvas(
       ctx.beginPath();
       ctx.roundRect(boxLeft, lineY - boxHeight / 2, boxWidth, boxHeight, 10);
       ctx.fill();
-
     }
 
     if (settings.style === 'box') {
@@ -148,8 +151,7 @@ export function renderSubtitlesToCanvas(
       ctx.fillText(transliteratedLine, textX, lineY);
     } else if (settings.style === 'kinetic') {
       if (activeWordObj) {
-        // Advanced word-level highlighting
-        // Break line into words to highlight the specific active word
+        // Word-level highlighting: active word in highlightColor, others in textColor
         const words = line.split(' ');
         let totalWidth = 0;
         const wordMetrics = words.map(w => {
@@ -169,12 +171,15 @@ export function renderSubtitlesToCanvas(
         
         words.forEach((w, i) => {
           const wObj = wordMetrics[i];
-           const isMatch = Boolean(activeWordText && (w === activeWordText || w.includes(activeWordText))); // Simple matcher
+          const isMatch = Boolean(activeWordText && (
+            w === activeWordText ||
+            w.replace(/[^\p{L}\p{N}]/gu, '') === activeWordText.replace(/[^\p{L}\p{N}]/gu, '')
+          ));
           
           if (isMatch) {
             ctx.fillStyle = settings.highlightColor;
-            ctx.shadowColor = 'rgba(0,0,0,0.8)';
-            ctx.shadowBlur = 10;
+            ctx.shadowColor = 'rgba(0,0,0,0.85)';
+            ctx.shadowBlur = 12;
           } else {
             ctx.fillStyle = settings.textColor;
             ctx.shadowColor = 'transparent';
@@ -185,11 +190,11 @@ export function renderSubtitlesToCanvas(
         });
         ctx.restore();
       } else {
-        // Fallback or highlight whole line if no specific word matches
-        ctx.shadowColor = 'rgba(0,0,0,0.8)';
-        ctx.shadowBlur = 10;
-        ctx.fillStyle = settings.highlightColor;
-         ctx.fillText(transliteratedLine, textX, lineY);
+        // If no word is currently active, render standard textColor with readability shadow
+        ctx.shadowColor = 'rgba(0,0,0,0.7)';
+        ctx.shadowBlur = 8;
+        ctx.fillStyle = settings.textColor;
+        ctx.fillText(transliteratedLine, textX, lineY);
         ctx.shadowColor = 'transparent';
       }
     } else if (settings.style === 'minimalist') {

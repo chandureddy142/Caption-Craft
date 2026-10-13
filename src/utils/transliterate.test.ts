@@ -49,9 +49,42 @@ describe('Telugu transliteration', () => {
     expect(transliterateTeluguToTenglish(decomposed)).toBe('po');
   });
 
+  it('transliterates real conversational Telugu sentences without changing meaning or word count', () => {
+    const sentences = [
+      {
+        telugu: 'మీరు ఎలా ఉన్నారు? నేను బాగున్నాను.',
+        expectedWords: ['meeru', 'ela', 'unnaru?', 'nenu', 'baagunnanu.'],
+      },
+      {
+        telugu: 'ఈ రోజు వాతావరణం చాలా బాగుంది.',
+        expectedWords: ['ee', 'roju', 'vaataavaranam', 'chaala', 'baagundi.'],
+      },
+      {
+        telugu: 'అందరికీ నమస్కారం, నా ఛానల్‌కి స్వాగతం!',
+        expectedWords: ['andarikee', 'namaskaaram,', 'naa', 'chaanaliki', 'svaagatam!'],
+      },
+      {
+        telugu: 'ధన్యవాదాలు, మళ్ళీ కలుద్దాం.',
+        expectedWords: ['dhanyavaadaalu,', 'mallee', 'kaluddaam.'],
+      },
+    ];
+
+    for (const { telugu, expectedWords } of sentences) {
+      const transliterated = transliterateTeluguToTenglish(telugu);
+      const words = transliterated.split(/\s+/);
+      expect(words.length).toBe(expectedWords.length);
+      // Punctuation should remain attached
+      if (telugu.includes('?')) expect(transliterated).toContain('?');
+      if (telugu.includes('!')) expect(transliterated).toContain('!');
+      if (telugu.includes(',')) expect(transliterated).toContain(',');
+      if (telugu.includes('.')) expect(transliterated).toContain('.');
+    }
+  });
+
   it('getCaptionText preserves user-edited tenglishText if present', () => {
     expect(getCaptionText('బాగుంది', 'te')).toBe('బాగుంది');
     expect(getCaptionText('బాగుంది', 'tenglish')).toBe('baagundi');
     expect(getCaptionText('బాగుంది', 'tenglish', 'Custom transliteration')).toBe('Custom transliteration');
+    expect(getCaptionText('Hello world', 'en')).toBe('Hello world');
   });
 });

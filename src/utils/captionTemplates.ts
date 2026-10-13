@@ -122,7 +122,7 @@ export const CAPTION_TEMPLATES: CaptionTemplateDefinition[] = [
   },
   {
     id: 'karaoke',
-    name: 'Karaoke',
+    name: 'Karaoke Highlight',
     description: 'High-contrast cyan active word tracking over slate box.',
     settings: {
       textColor: '#94a3b8',
@@ -231,6 +231,7 @@ export const CAPTION_TEMPLATES: CaptionTemplateDefinition[] = [
 ];
 
 export function getTemplateById(id: CaptionTemplateId): CaptionTemplateDefinition | undefined {
+  if (id === 'karaoke-highlight') return CAPTION_TEMPLATES.find(template => template.id === 'karaoke');
   return CAPTION_TEMPLATES.find(template => template.id === id);
 }
 

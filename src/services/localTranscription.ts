@@ -5,6 +5,7 @@ import {
   type AudioChunk,
 } from '../utils/audioExtractor';
 import { mergeOverlappingSubtitles } from '../utils/subtitleValidation';
+import { segmentIntoShortCaptions } from '../utils/captionSegmentation';
 
 export const LOCAL_WHISPER_MODEL_ID = 'onnx-community/whisper-tiny';
 export const LOCAL_WHISPER_BASE_MODEL_ID = 'onnx-community/whisper-base';
@@ -506,32 +507,52 @@ function mapChunkResult(result: TranscriptionResultMessage, chunk: AudioChunk): 
       typeof segment.text === 'string' && segment.text.trim().length > 0 &&
       Number.isFinite(segment.start) && Number.isFinite(segment.end) &&
       segment.end > segment.start && segment.start < chunkDuration
-    ))
-    .map((segment, segmentIndex) => {
+    ));
+
+  if (validSegments.length > 0) {
+    const segmented: TimestampedSubtitle[] = [];
+    let orderIndex = 0;
+    for (let segmentIndex = 0; segmentIndex < validSegments.length; segmentIndex += 1) {
+      const segment = validSegments[segmentIndex];
       const start = Math.max(0, segment.start);
       const end = Math.min(chunkDuration, Math.max(start, segment.end));
-      return {
-        id: `${chunk.index}:${segmentIndex}`,
-        start: chunk.start + start,
-        end: chunk.start + end,
-        text: segment.text.trim(),
-        sourceOrder: chunk.index * 1_000_000 + segmentIndex,
-      };
-    })
-    .filter(segment => segment.end > segment.start);
-  if (validSegments.length > 0) return validSegments;
+      const shortCaptions = segmentIntoShortCaptions(
+        segment.text.trim(),
+        start,
+        end,
+        {
+          chunkOffset: chunk.start,
+          idPrefix: `${chunk.index}:${segmentIndex}`,
+        },
+      );
 
-  // If Whisper did not return timestamped chunks, retain its recognized text
-  // as one source chunk. No word timestamps are inferred here.
+      for (const cap of shortCaptions) {
+        segmented.push({
+          ...cap,
+          sourceOrder: chunk.index * 1_000_000 + orderIndex,
+        });
+        orderIndex += 1;
+      }
+    }
+    if (segmented.length > 0) return segmented;
+  }
+
+  // If Whisper did not return timestamped chunks, segment recognized text
   const text = result.text.trim();
   if (!text) return [];
-  return [{
-    id: `${chunk.index}:text`,
-    start: chunk.start,
-    end: chunk.end,
+  const fallbackCaptions = segmentIntoShortCaptions(
     text,
-    sourceOrder: chunk.index * 1_000_000,
-  }];
+    0,
+    chunkDuration,
+    {
+      chunkOffset: chunk.start,
+      idPrefix: `${chunk.index}:text`,
+    },
+  );
+  return fallbackCaptions.map((cap, orderIndex) => ({
+    ...cap,
+    sourceOrder: chunk.index * 1_000_000 + orderIndex,
+  }));
 }
 
 function whisperLanguage(language: SourceLanguage): string {

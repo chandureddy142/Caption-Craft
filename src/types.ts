@@ -32,6 +32,7 @@ export type CaptionTemplateId =
   | 'minimal-clean'
   | 'cinematic'
   | 'karaoke'
+  | 'karaoke-highlight'
   | 'yellow-emphasis'
   | 'boxed-subtitle'
   | 'telugu-friendly'
@@ -48,7 +49,8 @@ export type BackgroundThemeId =
   | 'paper'
   | 'studio'
   | 'gradient'
-  | 'custom-image';
+  | 'custom-image'
+  | 'custom-video';
 
 export type BackgroundFitMode = 'cover' | 'contain';
 
@@ -57,6 +59,7 @@ export interface CanvasSettings {
   backgroundColor: string;
   backgroundTheme: BackgroundThemeId;
   customImageDataUrl?: string;
+  customVideoUrl?: string;
   backgroundOverlayOpacity: number; // 0 to 0.9 darkening overlay
   fitMode: BackgroundFitMode;
   selectedTemplateId?: CaptionTemplateId;
@@ -71,3 +74,24 @@ export interface CanvasSettings {
   textBackground: boolean;
 }
 
+/** The four export quality presets exposed in the Export Modal. */
+export type ExportResolutionPreset = '720p' | '1080p' | '2K' | '4K';
+
+/**
+ * Per-preset pixel dimensions and target bitrate for the MediaRecorder.
+ * widthLandscape / heightLandscape → 16:9 and 1:1/4:5 variants.
+ * widthVertical / heightVertical   → 9:16 variant.
+ */
+export interface ExportResolutionConfig {
+  label: string;
+  /** Width when aspect ratio is landscape (16:9) or square (1:1). */
+  widthLandscape: number;
+  /** Height when aspect ratio is landscape (16:9) or square (1:1). */
+  heightLandscape: number;
+  /** Width for vertical / portrait orientations (9:16, 4:5). */
+  widthVertical: number;
+  /** Height for vertical / portrait orientations (9:16, 4:5). */
+  heightVertical: number;
+  /** MediaRecorder.videoBitsPerSecond target. */
+  videoBitsPerSecond: number;
+}

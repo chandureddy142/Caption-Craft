@@ -22,7 +22,7 @@ const independentVowels: Readonly<Record<string, string>> = {
   'ఌ': 'lu',
   'ౡ': 'loo',
   'ఎ': 'e',
-  'ఏ': 'ee',
+  'ఏ': 'e',
   'ఐ': 'ai',
   'ఒ': 'o',
   'ఓ': 'o',
@@ -78,7 +78,7 @@ const vowelSigns: Readonly<Record<string, string>> = {
   'ృ': 'ru',
   'ౄ': 'roo',
   'ె': 'e',
-  'ే': 'ee',
+  'ే': 'e',
   'ై': 'ai',
   'ొ': 'o',
   'ో': 'o',
@@ -204,15 +204,17 @@ export function transliterateTeluguToTenglish(text: string): string {
 /**
  * Return the text that should be shown/exported for the selected caption mode.
  * `text` is deliberately kept as the canonical value so switching between
- * Telugu Lipi and Tenglish never destroys the source transcript. When a user
- * edits Tenglish directly, that edit is stored in `tenglishText` and reused
- * until the canonical Telugu text is edited again.
+ * Telugu Lipi, Tenglish, and English never destroys the source transcript.
+ * When a user edits Tenglish directly, that edit is stored in `tenglishText`
+ * and reused until the canonical Telugu text is edited again.
  */
 export function getCaptionText(
   text: string,
   language: CaptionLanguage,
   tenglishText?: string,
 ): string {
-  if (language !== 'tenglish') return text;
-  return tenglishText ?? transliterateTeluguToTenglish(text);
+  if (language === 'tenglish') {
+    return tenglishText ?? transliterateTeluguToTenglish(text);
+  }
+  return text;
 }

@@ -12,6 +12,11 @@ import {
   type LocalModelStatus,
   type LocalTranscriptionProgress,
 } from './services/localTranscription';
+import {
+  transcribeWithGemini,
+  GeminiTranscriptionError,
+  GeminiKeyMissingError,
+} from './services/geminiCaptionService';
 import { normalizeSubtitles } from './utils/subtitleValidation';
 import { validateMediaFile } from './utils/mediaValidation';
 import { TranscriptionSession } from './services/transcriptionSession';
@@ -30,6 +35,8 @@ function App() {
   const [sourceLanguage, setSourceLanguage] = useState<SourceLanguage>('en');
   const [language, setLanguage] = useState<CaptionLanguage>('en');
   const [whisperModel, setWhisperModel] = useState<'tiny' | 'base'>('tiny');
+  /** Active transcription backend: Gemini AI (cloud) or local Whisper (in-browser). */
+  const [transcriptionBackend, setTranscriptionBackend] = useState<'gemini' | 'local'>('gemini');
 
   const [isTranscribing, setIsTranscribing] = useState(false);
   const [transcriptionStatus, setTranscriptionStatus] = useState('');
@@ -85,6 +92,69 @@ function App() {
       `Transcribing chunk ${progress.completedChunks}/${progress.totalChunks} · ` +
       `${formatSeconds(progress.processedDuration)} / ${formatSeconds(progress.totalDuration)}`,
     );
+  };
+
+  const startGeminiTranscription = async (audioBlob: Blob) => {
+    const session = transcriptionSessionRef.current;
+    const jobId = session.start(audioBlob, sourceLanguage, 0);
+    if (jobId === null) return;
+
+    abortControllerRef.current?.abort();
+    const controller = new AbortController();
+    abortControllerRef.current = controller;
+    setIsTranscribing(true);
+    setTranscriptionError('');
+    setTranscriptionProgress(0);
+    setTranscriptionProcessedDuration(0);
+    setSubtitles([]);
+    setTranscriptionStatus('Sending audio to Gemini 2.0 Flash…');
+
+    try {
+      const result = await transcribeWithGemini(audioBlob, {
+        sourceLanguage,
+        captionLanguage: language,
+        signal: controller.signal,
+        onProgress: progress => {
+          if (!session.isCurrent(jobId)) return;
+          setTranscriptionProgress(progress.percent);
+          setTranscriptionProcessedDuration(progress.processedDuration);
+          setTranscriptionTotalDuration(progress.totalDuration);
+          setTranscriptionStatus(
+            `Gemini transcribing chunk ${progress.completedChunks}/${progress.totalChunks} · ` +
+            `${formatSeconds(progress.processedDuration)} / ${formatSeconds(progress.totalDuration)}`,
+          );
+        },
+        onPartialResult: (partial, progress) => {
+          if (!session.isCurrent(jobId)) return;
+          session.recordCompleted(jobId, progress.completedChunks);
+          updateSubtitles(partial);
+        },
+      });
+      if (!session.isCurrent(jobId)) return;
+      updateSubtitles(result);
+      setTranscriptionProgress(100);
+      setTranscriptionProcessedDuration(previous => Math.max(previous, mediaDuration));
+      setTranscriptionStatus(`Complete · ${result.length} caption segment${result.length === 1 ? '' : 's'}`);
+      setTranscriptionError('');
+      session.complete(jobId);
+    } catch (error) {
+      if (controller.signal.aborted || !session.isCurrent(jobId)) return;
+      if (error instanceof GeminiKeyMissingError) {
+        setTranscriptionError(error.message);
+      } else if (error instanceof GeminiTranscriptionError) {
+        session.recordCompleted(jobId, error.failedChunkIndex);
+        updateSubtitles(error.partialSubtitles);
+        setTranscriptionError(`${error.message} Completed segments were kept.`);
+      } else {
+        setTranscriptionError(error instanceof Error ? error.message : 'Gemini transcription failed.');
+      }
+      setTranscriptionStatus('Transcription failed');
+    } finally {
+      if (session.finish(jobId)) {
+        abortControllerRef.current = null;
+        setIsTranscribing(false);
+      }
+    }
   };
 
   const startTranscription = async (
@@ -223,7 +293,11 @@ function App() {
       return;
     }
     if (subtitles.length > 0 && !window.confirm('Regenerate captions and replace the current edited segments?')) return;
-    void startTranscription(audioBlob);
+    if (transcriptionBackend === 'gemini') {
+      void startGeminiTranscription(audioBlob);
+    } else {
+      void startTranscription(audioBlob);
+    }
   };
 
   const handleRetry = () => {
@@ -282,6 +356,9 @@ function App() {
     }
     setSourceLanguage(next);
     setLanguage(next === 'te' ? 'te' : 'en');
+    if (next === 'te') {
+      setWhisperModel('base');
+    }
   };
 
   useEffect(() => {
@@ -315,7 +392,11 @@ function App() {
             <div className="editor-step complete"><span>01</span> Upload Media</div>
             <div className="editor-step active"><span>02</span> Generate &amp; Edit</div>
             <div className="editor-step"><span>03</span> Preview &amp; Export</div>
-            <div className="editor-model-status">Local Whisper · {modelBackend ?? 'not loaded'}</div>
+            <div className="editor-model-status">
+              {transcriptionBackend === 'gemini'
+                ? 'Gemini 2.0 Flash · cloud'
+                : `Local Whisper · ${modelBackend ?? 'not loaded'}`}
+            </div>
           </div>
           <div className="editor-columns">
             <Sidebar
@@ -350,6 +431,20 @@ function App() {
               onSelectSubtitle={setSelectedSubtitleId}
               mediaFile={videoFile}
               onReplaceMedia={handleRemoveMedia}
+              transcriptionBackend={transcriptionBackend}
+              onSelectBackend={(backend) => {
+                if (transcriptionSessionRef.current.running) return;
+                setTranscriptionBackend(backend);
+                setTranscriptionError('');
+                setTranscriptionProgress(0);
+                setTranscriptionProcessedDuration(0);
+                setTranscriptionStatus(
+                  backend === 'gemini'
+                    ? 'Switched to Gemini AI · click Generate captions'
+                    : 'Switched to Local Whisper · click Generate captions',
+                );
+              }}
+              geminiKeyMissing={!import.meta.env.VITE_GEMINI_API_KEY || import.meta.env.VITE_GEMINI_API_KEY === 'your_gemini_api_key_here'}
             />
             <Workspace
               videoFile={videoFile}

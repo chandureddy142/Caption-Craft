@@ -42,11 +42,11 @@ class FakeWorker {
     this.terminated = true;
   }
 
-  private emit(data: WhisperWorkerResponse): void {
+  protected emit(data: WhisperWorkerResponse): void {
     this.onmessage?.({ data } as MessageEvent<WhisperWorkerResponse>);
   }
 
-  private emitModelReady(): void {
+  protected emitModelReady(): void {
     this.modelReady = true;
     queueMicrotask(() => this.emit({ type: 'model-status', status: 'loading', modelId: 'test' }));
     queueMicrotask(() => this.emit({ type: 'model-progress', modelId: 'test', status: 'progress', progress: 100 }));
@@ -182,5 +182,51 @@ describe('local transcription client', () => {
     expect(retryRevision).not.toBeNull();
     session.complete(retryRevision!);
     expect(session.resume(audio, 'en')).toBeNull();
+  });
+
+  it('segments longer sentences into 2-3 word captions with word-level timestamps and chunk offsets', async () => {
+    class CustomFakeWorker extends FakeWorker {
+      override postMessage(request: WhisperWorkerRequest): void {
+        if (request.type === 'transcribe-chunk') {
+          this.emitModelReady();
+          queueMicrotask(() => this.emit({
+            type: 'transcription-result',
+            jobId: request.jobId,
+            chunkIndex: request.chunkIndex,
+            text: 'నమస్కారం అండి అందరికీ స్వాగతం ఈ రోజు వీడియోకి',
+            segments: [
+              {
+                text: 'నమస్కారం అండి అందరికీ స్వాగతం ఈ రోజు వీడియోకి',
+                start: 0.2,
+                end: 3.8,
+              },
+            ],
+          }));
+          return;
+        }
+        super.postMessage(request);
+      }
+    }
+
+    const worker = new CustomFakeWorker();
+    const client = createLocalTranscriptionClient({ workerFactory: () => worker as unknown as Worker });
+    const subtitles = await client.transcribe(makeWav(5), {
+      sourceLanguage: 'te',
+      chunkDurationSeconds: 5,
+    });
+
+    expect(subtitles.length).toBeGreaterThanOrEqual(2);
+    // Check that every caption normally has 2-3 words
+    for (const sub of subtitles) {
+      const words = sub.text.trim().split(/\s+/);
+      expect(words.length).toBeGreaterThanOrEqual(1);
+      expect(words.length).toBeLessThanOrEqual(3);
+      expect(sub.words).toBeDefined();
+      expect(sub.words?.length).toBe(words.length);
+      expect(sub.end).toBeGreaterThan(sub.start);
+    }
+    // Verify first caption contains Telugu script
+    expect(subtitles[0].text).toContain('నమస్కారం');
+    client.cleanup();
   });
 });

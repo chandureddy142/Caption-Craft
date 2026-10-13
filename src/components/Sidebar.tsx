@@ -32,6 +32,12 @@ interface SidebarProps {
   onSelectSubtitle?: (id: string | null) => void;
   whisperModel?: 'tiny' | 'base';
   onSelectWhisperModel?: (model: 'tiny' | 'base') => void;
+  /** Active transcription backend. */
+  transcriptionBackend?: 'gemini' | 'local';
+  /** Switch between Gemini AI and local Whisper. */
+  onSelectBackend?: (backend: 'gemini' | 'local') => void;
+  /** True when VITE_GEMINI_API_KEY is absent/placeholder. */
+  geminiKeyMissing?: boolean;
 }
 
 function formatBytes(bytes: number): string {
@@ -75,6 +81,9 @@ export const Sidebar: React.FC<SidebarProps> = ({
   onSelectSubtitle,
   whisperModel = 'tiny',
   onSelectWhisperModel,
+  transcriptionBackend = 'gemini',
+  onSelectBackend,
+  geminiKeyMissing = false,
 }) => {
   const [localSelectedSubtitleId, setLocalSelectedSubtitleId] = useState<string | null>(null);
   const effectiveSelectedId = selectedSubtitleId ?? localSelectedSubtitleId;
@@ -230,43 +239,123 @@ export const Sidebar: React.FC<SidebarProps> = ({
       <section className="sidebar-section">
         <div className="section-heading"><div><span className="section-kicker">02</span><h2>Output format</h2></div></div>
         <div className="language-pills output-language-pills" role="group" aria-label="Caption output format">
-          <button className={language === (sourceLanguage === 'te' ? 'te' : 'en') ? 'active' : ''} onClick={() => setLanguage(sourceLanguage === 'te' ? 'te' : 'en')} disabled={isTranscribing}>{sourceLanguage === 'te' ? 'తెలుగు' : 'Original'}</button>
-          <button className={language === 'tenglish' ? 'active' : ''} onClick={() => setLanguage('tenglish')} disabled={isTranscribing || sourceLanguage !== 'te'} title={sourceLanguage === 'te' ? 'Show deterministic Telugu transliteration' : 'Tenglish is available for Telugu source audio'}>Tenglish</button>
+          <button
+            type="button"
+            className={language === 'te' ? 'active' : ''}
+            onClick={() => setLanguage('te')}
+            disabled={isTranscribing}
+            title="Display recognized speech in Telugu script"
+          >
+            తెలుగు
+          </button>
+          <button
+            type="button"
+            className={language === 'tenglish' ? 'active' : ''}
+            onClick={() => setLanguage('tenglish')}
+            disabled={isTranscribing}
+            title="Display natural Roman-script transliteration (Tenglish)"
+          >
+            Tenglish
+          </button>
+          <button
+            type="button"
+            className={language === 'en' ? 'active' : ''}
+            onClick={() => setLanguage('en')}
+            disabled={isTranscribing}
+            title="Display English speech in English"
+          >
+            English
+          </button>
         </div>
-        <p className="section-help">Tenglish is deterministic Telugu transliteration, not English translation.</p>
+        <p className="section-help">
+          {language === 'tenglish'
+            ? 'Tenglish displays natural Roman-script transliteration without translation.'
+            : language === 'te'
+              ? 'Telugu displays recognized speech in Telugu script.'
+              : 'English displays recognized English speech.'}
+        </p>
       </section>
 
       <section className="sidebar-section generate-section">
         <div className="section-heading"><div><span className="section-kicker">03</span><h2>Generate captions</h2></div><span className={`live-status ${isTranscribing ? 'working' : 'ready'}`}><i />{isTranscribing ? 'Working' : 'Ready'}</span></div>
-        <div className="language-pills model-choice-pills" role="group" aria-label="Whisper model accuracy">
+
+        {/* Backend switcher */}
+        <div className="language-pills backend-pills" role="group" aria-label="Transcription backend">
           <button
             type="button"
-            className={whisperModel === 'tiny' ? 'active' : ''}
-            onClick={() => onSelectWhisperModel?.('tiny')}
+            className={transcriptionBackend === 'gemini' ? 'active' : ''}
+            onClick={() => onSelectBackend?.('gemini')}
             disabled={isTranscribing}
-            title="Fast Whisper Tiny (~40 MB download, quickest inference)"
+            title="Use Gemini 2.0 Flash for cloud-based transcription (faster, more accurate, supports Telugu)"
           >
-            Fast (Tiny)
+            ⚡ Gemini AI
           </button>
           <button
             type="button"
-            className={whisperModel === 'base' ? 'active' : ''}
-            onClick={() => onSelectWhisperModel?.('base')}
+            className={transcriptionBackend === 'local' ? 'active' : ''}
+            onClick={() => onSelectBackend?.('local')}
             disabled={isTranscribing}
-            title="Balanced Whisper Base (~75 MB download, better Telugu & multilingual accuracy)"
+            title="Run Whisper locally in this browser — no cloud required"
           >
-            Balanced (Base)
+            🖥 Local Whisper
           </button>
         </div>
-        <p className="section-help" style={{ marginBottom: '9px' }}>
-          {whisperModel === 'base'
-            ? 'Balanced: ~75 MB download, higher Telugu accuracy.'
-            : 'Fast: ~40 MB download, quickest transcription.'}
-        </p>
-        <button className="primary-action" onClick={onGenerateCaptions} disabled={isTranscribing || !onGenerateCaptions}><RefreshCw size={16} className={isTranscribing || modelStatus === 'loading' ? 'spin' : ''} />{subtitles.length ? 'Regenerate captions' : 'Generate captions'}</button>
+
+        {/* Gemini backend info / key warning */}
+        {transcriptionBackend === 'gemini' && (
+          <>
+            {geminiKeyMissing ? (
+              <div className="inline-error compact-error gemini-key-warning">
+                <AlertCircle size={13} />
+                <span>
+                  <strong>API key missing.</strong> Set <code>VITE_GEMINI_API_KEY</code> in your{' '}
+                  <code>.env</code> file and restart the dev server.
+                </span>
+              </div>
+            ) : (
+              <p className="section-help" style={{ marginBottom: '9px' }}>
+                Powered by <strong>Gemini 2.0 Flash</strong> · Telugu, Tenglish &amp; English · precise timestamps.
+              </p>
+            )}
+          </>
+        )}
+
+        {/* Local Whisper model size choice */}
+        {transcriptionBackend === 'local' && (
+          <>
+            <div className="language-pills model-choice-pills" role="group" aria-label="Whisper model accuracy">
+              <button
+                type="button"
+                className={whisperModel === 'tiny' ? 'active' : ''}
+                onClick={() => onSelectWhisperModel?.('tiny')}
+                disabled={isTranscribing}
+                title="Fast Whisper Tiny (~40 MB download, quickest inference)"
+              >
+                Fast (Tiny)
+              </button>
+              <button
+                type="button"
+                className={whisperModel === 'base' ? 'active' : ''}
+                onClick={() => onSelectWhisperModel?.('base')}
+                disabled={isTranscribing}
+                title="Balanced Whisper Base (~75 MB download, better Telugu & multilingual accuracy)"
+              >
+                Balanced (Base)
+              </button>
+            </div>
+            <p className="section-help" style={{ marginBottom: '9px' }}>
+              {whisperModel === 'base'
+                ? 'Balanced: ~75 MB download, higher Telugu accuracy.'
+                : 'Fast: ~40 MB download, quickest transcription.'}
+            </p>
+          </>
+        )}
+
+        <button className="primary-action" onClick={onGenerateCaptions} disabled={isTranscribing || !onGenerateCaptions || (transcriptionBackend === 'gemini' && geminiKeyMissing)}><RefreshCw size={16} className={isTranscribing || modelStatus === 'loading' ? 'spin' : ''} />{subtitles.length ? 'Regenerate captions' : 'Generate captions'}</button>
         {isTranscribing && onCancelTranscription && <button className="secondary-action cancel-transcription" onClick={onCancelTranscription}>Cancel transcription</button>}
-        {modelStatus === 'loading' && <div className="model-download-status"><span>Downloading/loading local Whisper model</span><strong>{Math.round(modelProgress)}%</strong><div className="progress-track"><span style={{ width: `${Math.min(100, Math.max(0, modelProgress))}%` }} /></div></div>}
-        {modelStatus === 'ready' && <p className="section-help">Local Whisper ready{modelStatus === 'ready' ? ' · audio stays in this browser during transcription' : ''}.</p>}
+        {/* Load model button only for local backend */}
+        {transcriptionBackend === 'local' && modelStatus === 'loading' && <div className="model-download-status"><span>Downloading/loading local Whisper model</span><strong>{Math.round(modelProgress)}%</strong><div className="progress-track"><span style={{ width: `${Math.min(100, Math.max(0, modelProgress))}%` }} /></div></div>}
+        {transcriptionBackend === 'local' && modelStatus === 'ready' && <p className="section-help">Local Whisper ready · audio stays in this browser during transcription.</p>}
         {(isTranscribing || transcriptionProgress > 0 || transcriptionError) && (
           <div className={`transcription-card ${transcriptionError ? 'has-error' : ''}`}>
             <div className="transcription-status-row"><span>{transcriptionError ? 'Needs attention' : transcriptionStatus || 'Preparing transcription'}</span><strong>{Math.round(transcriptionProgress)}%</strong></div>

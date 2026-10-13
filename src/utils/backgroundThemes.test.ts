@@ -18,6 +18,7 @@ describe('Background Themes', () => {
     expect(ids).toContain('studio');
     expect(ids).toContain('gradient');
     expect(ids).toContain('custom-image');
+    expect(ids).toContain('custom-video');
   });
 
   it('retrieves theme definition by id', () => {

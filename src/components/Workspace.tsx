@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import type { CanvasSettings, Subtitle, CaptionLanguage } from '../types';
+import type { CanvasSettings, Subtitle, CaptionLanguage, ExportResolutionPreset } from '../types';
 import { getSubtitleCanvasLayout, renderSubtitlesToCanvas } from '../utils/SubtitleRenderer';
 import { getCaptionText } from '../utils/transliterate';
 import {
@@ -29,7 +29,11 @@ import {
 } from 'lucide-react';
 import { ExportModal } from './ExportModal';
 import { downloadStringAsFile, exportToSRT, exportToVTT } from '../utils/exporter';
-import { getSupportedWebmMimeType } from '../utils/exportCapabilities';
+import {
+  getPreferredMimeType,
+  getExportDimensions,
+  getSupportedWebmMimeType,
+} from '../utils/exportCapabilities';
 
 function formatDuration(seconds: number): string {
   if (!Number.isFinite(seconds) || seconds <= 0) return '0:00';
@@ -90,6 +94,7 @@ export const Workspace: React.FC<WorkspaceProps> = ({
   const mediaRef = useRef<HTMLVideoElement>(null);
   const canvasAreaRef = useRef<HTMLDivElement>(null);
   const customImageRef = useRef<HTMLImageElement | null>(null);
+  const customVideoRef = useRef<HTMLVideoElement | null>(null);
 
   const [activeTab, setActiveTab] = useState<StyleTab>('templates');
   const [isPlaying, setIsPlaying] = useState(false);
@@ -105,12 +110,20 @@ export const Workspace: React.FC<WorkspaceProps> = ({
   const [editingSubtitleId, setEditingSubtitleId] = useState<string | null>(null);
   const [draftText, setDraftText] = useState('');
   const [inlineEditorStyle, setInlineEditorStyle] = useState<React.CSSProperties | null>(null);
+  /** Export quality preset — drives off-screen canvas size and MediaRecorder bitrate. */
+  const [exportResolution, setExportResolution] = useState<ExportResolutionPreset>('1080p');
+  /** Current media time during an active export — fed to ExportModal progress bar. */
+  const [exportCurrentTime, setExportCurrentTime] = useState(0);
 
   const animationRef = useRef<number | undefined>(undefined);
   const drawFrameRef = useRef<() => void>(() => undefined);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
   const exportCancelledRef = useRef(false);
+  /** Off-screen canvas used exclusively during export to avoid blurry preview scaling. */
+  const offscreenCanvasRef = useRef<HTMLCanvasElement | null>(null);
+  /** rAF handle for the off-screen export render loop. */
+  const exportAnimRef = useRef<number | undefined>(undefined);
 
   const selectedSubtitleId = controlledSelectedSubtitleId === undefined
     ? localSelectedSubtitleId
@@ -137,13 +150,10 @@ export const Workspace: React.FC<WorkspaceProps> = ({
     videoFile.type.startsWith('video/') || /\.(mp4|mov|webm|mkv)$/i.test(videoFile.name)
   ));
 
-  const outputDimensions: Record<CanvasSettings['aspectRatio'], { width: number; height: number }> = {
-    '9:16': { width: 1080, height: 1920 },
-    '16:9': { width: 1920, height: 1080 },
-    '1:1': { width: 1080, height: 1080 },
-    '4:5': { width: 1080, height: 1350 },
-  };
-  const canExportWebm = getSupportedWebmMimeType(true) !== null || getSupportedWebmMimeType(false) !== null;
+  const canExportWebm =
+    getPreferredMimeType(true) !== null ||
+    getSupportedWebmMimeType(true) !== null ||
+    getSupportedWebmMimeType(false) !== null;
 
   // Custom image preloader
   useEffect(() => {
@@ -160,6 +170,15 @@ export const Workspace: React.FC<WorkspaceProps> = ({
     };
   }, [settings.customImageDataUrl]);
 
+  // Clean up custom background video object URLs
+  useEffect(() => {
+    return () => {
+      if (settings.customVideoUrl && settings.customVideoUrl.startsWith('blob:')) {
+        URL.revokeObjectURL(settings.customVideoUrl);
+      }
+    };
+  }, [settings.customVideoUrl]);
+
   const drawFrame = useCallback(() => {
     const canvas = canvasRef.current;
     const media = mediaRef.current;
@@ -170,7 +189,23 @@ export const Workspace: React.FC<WorkspaceProps> = ({
 
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-    // 1. Draw background theme or video frames
+    // Synchronize custom background video playback and looping
+    const customVideo = customVideoRef.current;
+    if (settings.backgroundTheme === 'custom-video' && customVideo) {
+      if (!media.paused && customVideo.paused) {
+        void customVideo.play().catch(() => undefined);
+      } else if (media.paused && !customVideo.paused) {
+        customVideo.pause();
+      }
+      if (customVideo.duration > 0) {
+        const loopTime = media.currentTime % customVideo.duration;
+        if (Math.abs(customVideo.currentTime - loopTime) > 0.25) {
+          customVideo.currentTime = loopTime;
+        }
+      }
+    }
+
+    // 1. Draw background theme, custom image, custom video, or video frames
     drawBackgroundToCanvas(ctx, {
       themeId: settings.backgroundTheme,
       width: canvas.width,
@@ -178,6 +213,7 @@ export const Workspace: React.FC<WorkspaceProps> = ({
       videoElement: media,
       isVideoMedia,
       customImage: customImageRef.current,
+      customVideoElement: customVideoRef.current,
       overlayOpacity: settings.backgroundOverlayOpacity,
       fitMode: settings.fitMode,
     });
@@ -234,6 +270,11 @@ export const Workspace: React.FC<WorkspaceProps> = ({
       const handleEnded = () => {
         setIsPlaying(false);
         if (isExporting && mediaRecorderRef.current) {
+          // Stop the export rAF loop before stopping the recorder
+          if (exportAnimRef.current) {
+            cancelAnimationFrame(exportAnimRef.current);
+            exportAnimRef.current = undefined;
+          }
           setExportProgress(100);
           mediaRecorderRef.current.stop();
         }
@@ -408,24 +449,51 @@ export const Workspace: React.FC<WorkspaceProps> = ({
   const cancelExport = () => {
     exportCancelledRef.current = true;
     mediaRef.current?.pause();
+    if (exportAnimRef.current) {
+      cancelAnimationFrame(exportAnimRef.current);
+      exportAnimRef.current = undefined;
+    }
     const recorder = mediaRecorderRef.current;
     if (recorder && recorder.state !== 'inactive') {
       recorder.stop();
     } else {
+      offscreenCanvasRef.current = null;
       setIsExporting(false);
       setExportError('Export cancelled.');
     }
   };
 
   const handleExportVideo = () => {
-    const canvas = canvasRef.current;
     const media = mediaRef.current;
-    if (!canvas || !media) {
+    if (!media) {
       setExportError('Preview is not ready for a video export.');
       return;
     }
-    if (!('MediaRecorder' in window) || typeof canvas.captureStream !== 'function') {
-      setExportError('This browser does not support WebM canvas recording.');
+    if (!('MediaRecorder' in window)) {
+      setExportError('This browser does not support canvas recording.');
+      return;
+    }
+
+    // -----------------------------------------------------------------------
+    // 1. Resolve target dimensions from the chosen resolution preset
+    // -----------------------------------------------------------------------
+    const { width: targetWidth, height: targetHeight, videoBitsPerSecond } =
+      getExportDimensions(exportResolution, settings.aspectRatio);
+
+    /** Preview canvas height (locked at 600 px). Typography is scaled proportionally. */
+    const BASE_PREVIEW_HEIGHT = 600;
+    const scaleFactor = targetHeight / BASE_PREVIEW_HEIGHT;
+
+    // -----------------------------------------------------------------------
+    // 2. Create off-screen render canvas sized to the target resolution
+    // -----------------------------------------------------------------------
+    const offscreen = document.createElement('canvas');
+    offscreen.width = targetWidth;
+    offscreen.height = targetHeight;
+    offscreenCanvasRef.current = offscreen;
+
+    if (typeof offscreen.captureStream !== 'function') {
+      setExportError('This browser does not support canvas capture streams.');
       return;
     }
 
@@ -433,38 +501,54 @@ export const Workspace: React.FC<WorkspaceProps> = ({
     setExportError('');
     setExportComplete(false);
     setExportProgress(0);
+    setExportCurrentTime(0);
     exportCancelledRef.current = false;
     chunksRef.current = [];
 
-    const canvasStream = canvas.captureStream(30);
+    // -----------------------------------------------------------------------
+    // 3. Stream setup
+    // -----------------------------------------------------------------------
+    const canvasStream = offscreen.captureStream(30);
     const mediaStream = getMediaCaptureStream(media);
     const audioTracks = mediaStream?.getAudioTracks() ?? [];
     const videoTracks = canvasStream.getVideoTracks();
+
     if (videoTracks.length === 0) {
       stopStreamTracks(canvasStream);
       setIsExporting(false);
-      setExportError('This browser did not provide a video track for WebM export.');
+      setExportError('This browser did not provide a video track for export.');
       return;
     }
-    const mimeType = getSupportedWebmMimeType(audioTracks.length > 0);
+
+    // Probe best codec: VP9+Opus → VP8+Opus → MP4/AVC1 → generic WebM
+    const mimeType = getPreferredMimeType(audioTracks.length > 0)
+      ?? getSupportedWebmMimeType(audioTracks.length > 0);
     if (!mimeType) {
       stopStreamTracks(canvasStream);
       stopStreamTracks(mediaStream);
       setIsExporting(false);
-      setExportError('No supported WebM export format is available in this browser.');
+      setExportError('No supported export codec is available in this browser.');
       return;
     }
+
     const combinedStream = new MediaStream([
       ...videoTracks,
+      // Only add audio tracks when they exist — prevents crashes on silent media
       ...(audioTracks.length > 0 ? audioTracks : []),
     ]);
 
+    // -----------------------------------------------------------------------
+    // 4. MediaRecorder with explicit high bitrate
+    // -----------------------------------------------------------------------
     let recorder: MediaRecorder;
     try {
-      recorder = new MediaRecorder(combinedStream, { mimeType });
+      recorder = new MediaRecorder(combinedStream, {
+        mimeType,
+        videoBitsPerSecond,
+      });
     } catch (error) {
       setIsExporting(false);
-      setExportError(error instanceof Error ? error.message : 'Unable to start WebM export.');
+      setExportError(error instanceof Error ? error.message : 'Unable to start video export.');
       stopStreamTracks(canvasStream);
       stopStreamTracks(mediaStream);
       return;
@@ -474,13 +558,29 @@ export const Workspace: React.FC<WorkspaceProps> = ({
       if (e.data.size > 0) chunksRef.current.push(e.data);
     };
 
+    // -----------------------------------------------------------------------
+    // 5. Determine download extension from mimeType
+    // -----------------------------------------------------------------------
+    const fileExt = mimeType.startsWith('video/mp4') ? 'mp4' : 'webm';
+    const downloadMime = mimeType.startsWith('video/mp4') ? 'video/mp4' : 'video/webm';
+
+    const cleanupExport = (canvasStream: MediaStream, mediaStream: MediaStream | null) => {
+      if (exportAnimRef.current) cancelAnimationFrame(exportAnimRef.current);
+      exportAnimRef.current = undefined;
+      offscreenCanvasRef.current = null;
+      stopStreamTracks(canvasStream);
+      stopStreamTracks(mediaStream);
+      mediaRecorderRef.current = null;
+      setIsExporting(false);
+    };
+
     recorder.onstop = () => {
       if (!exportCancelledRef.current) {
-        const blob = new Blob(chunksRef.current, { type: 'video/webm' });
+        const blob = new Blob(chunksRef.current, { type: downloadMime });
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        a.download = 'export.webm';
+        a.download = `export-${exportResolution}.${fileExt}`;
         a.click();
         setTimeout(() => URL.revokeObjectURL(url), 0);
         setExportComplete(true);
@@ -488,35 +588,85 @@ export const Workspace: React.FC<WorkspaceProps> = ({
       } else {
         setExportError('Export cancelled.');
       }
-      stopStreamTracks(canvasStream);
-      stopStreamTracks(mediaStream);
-      mediaRecorderRef.current = null;
-      setIsExporting(false);
+      cleanupExport(canvasStream, mediaStream);
     };
 
     recorder.onerror = () => {
-      setIsExporting(false);
-      setExportError('The browser stopped the WebM export unexpectedly.');
-      stopStreamTracks(canvasStream);
-      stopStreamTracks(mediaStream);
-      mediaRecorderRef.current = null;
+      setExportError('The browser stopped the export unexpectedly.');
+      cleanupExport(canvasStream, mediaStream);
     };
 
     mediaRecorderRef.current = recorder;
-
     media.currentTime = 0;
+
+    // -----------------------------------------------------------------------
+    // 6. Off-screen render loop — draws high-res frames to the offscreen canvas
+    // -----------------------------------------------------------------------
+    const scaledSettings: CanvasSettings = {
+      ...settings,
+      fontSize: Math.round(settings.fontSize * scaleFactor),
+    };
+
+    const renderExportFrame = () => {
+      const ctx = offscreen.getContext('2d');
+      if (!ctx || exportCancelledRef.current) return;
+
+      ctx.clearRect(0, 0, offscreen.width, offscreen.height);
+
+      // Sync custom background video
+      const customVideo = customVideoRef.current;
+      if (settings.backgroundTheme === 'custom-video' && customVideo && customVideo.duration > 0) {
+        const loopTime = media.currentTime % customVideo.duration;
+        if (Math.abs(customVideo.currentTime - loopTime) > 0.25) {
+          customVideo.currentTime = loopTime;
+        }
+      }
+
+      drawBackgroundToCanvas(ctx, {
+        themeId: settings.backgroundTheme,
+        width: offscreen.width,
+        height: offscreen.height,
+        videoElement: media,
+        isVideoMedia,
+        customImage: customImageRef.current,
+        customVideoElement: customVideoRef.current,
+        overlayOpacity: settings.backgroundOverlayOpacity,
+        fitMode: settings.fitMode,
+      });
+
+      renderSubtitlesToCanvas(
+        ctx,
+        offscreen.width,
+        offscreen.height,
+        media.currentTime,
+        subtitles,
+        scaledSettings,
+        language,
+        null, // no selection highlight during export
+      );
+
+      const t = media.currentTime;
+      const d = Number.isFinite(media.duration) ? media.duration : duration;
+      setExportCurrentTime(t);
+      if (d > 0) setExportProgress(Math.min(100, (t / d) * 100));
+
+      if (!media.paused && !media.ended && !exportCancelledRef.current) {
+        exportAnimRef.current = requestAnimationFrame(renderExportFrame);
+      }
+    };
+
     try {
       recorder.start();
     } catch (error) {
       setIsExporting(false);
-      setExportError(error instanceof Error ? error.message : 'Unable to start WebM recording.');
-      stopStreamTracks(canvasStream);
-      stopStreamTracks(mediaStream);
+      setExportError(error instanceof Error ? error.message : 'Unable to start recording.');
+      cleanupExport(canvasStream, mediaStream);
       return;
     }
+
     void media.play().then(() => {
       setIsPlaying(true);
-      drawFrame();
+      exportAnimRef.current = requestAnimationFrame(renderExportFrame);
     }).catch(error => {
       exportCancelledRef.current = true;
       recorder.stop();
@@ -548,6 +698,38 @@ export const Workspace: React.FC<WorkspaceProps> = ({
       }
     };
     reader.readAsDataURL(file);
+  };
+
+  const handleCustomVideoFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    event.target.value = '';
+    if (!file) return;
+    const isVideo = Boolean(file.type.startsWith('video/') || /\.(mp4|mov|webm|mkv)$/i.test(file.name));
+    if (!isVideo) {
+      setExportError('Please upload a valid background video (MP4, MOV, WebM, MKV).');
+      return;
+    }
+    setExportError('');
+    if (settings.customVideoUrl && settings.customVideoUrl.startsWith('blob:')) {
+      URL.revokeObjectURL(settings.customVideoUrl);
+    }
+    const url = URL.createObjectURL(file);
+    setSettings(prev => ({
+      ...prev,
+      backgroundTheme: 'custom-video',
+      customVideoUrl: url,
+    }));
+  };
+
+  const handleClearCustomVideo = () => {
+    if (settings.customVideoUrl && settings.customVideoUrl.startsWith('blob:')) {
+      URL.revokeObjectURL(settings.customVideoUrl);
+    }
+    setSettings(prev => ({
+      ...prev,
+      customVideoUrl: undefined,
+      backgroundTheme: isVideoMedia ? 'original-video' : 'midnight',
+    }));
   };
 
   const ratioOptions: Array<{ value: CanvasSettings['aspectRatio']; label: string; detail: string }> = [
@@ -586,6 +768,10 @@ export const Workspace: React.FC<WorkspaceProps> = ({
     const textColor = ts.textColor || '#ffffff';
     const highlightColor = ts.highlightColor || '#8b5cf6';
     const strokeColor = ts.boxColor || '#000000';
+    const isTeluguText = language === 'te' || /[\u0C00-\u0C7F]/.test(sample);
+    const fontStack = isTeluguText
+      ? "'Noto Sans Telugu', 'Inter', sans-serif"
+      : `${ts.fontFamily || "'Inter', sans-serif"}, 'Noto Sans Telugu', sans-serif`;
 
     const words = sample.split(' ');
     const firstWord = words[0];
@@ -595,7 +781,7 @@ export const Workspace: React.FC<WorkspaceProps> = ({
       <div
         className="template-card-preview"
         style={{
-          fontFamily: ts.fontFamily || "'Inter', sans-serif",
+          fontFamily: fontStack,
           backgroundColor: boxBg,
           padding: isBox ? '4px 8px' : '0',
           borderRadius: isBox ? '5px' : '0',
@@ -723,6 +909,19 @@ export const Workspace: React.FC<WorkspaceProps> = ({
             onLoadedData={drawFrame}
             onError={() => setExportError('The browser could not play this media format.')}
           />
+          {settings.customVideoUrl && (
+            <video
+              ref={customVideoRef}
+              src={settings.customVideoUrl}
+              className="media-source visually-hidden"
+              loop
+              muted
+              playsInline
+              preload="auto"
+              onLoadedData={drawFrame}
+              onError={() => setExportError('Unable to load the background video format.')}
+            />
+          )}
         </div>
 
         <section className="player-panel">
@@ -822,13 +1021,15 @@ export const Workspace: React.FC<WorkspaceProps> = ({
         <ExportModal
           open={isExportPanelOpen}
           aspectRatio={settings.aspectRatio}
-          outputWidth={outputDimensions[settings.aspectRatio].width}
-          outputHeight={outputDimensions[settings.aspectRatio].height}
           canExportWebm={canExportWebm}
           isExporting={isExporting}
           exportProgress={exportProgress}
           exportError={exportError}
           exportComplete={exportComplete}
+          exportResolution={exportResolution}
+          onChangeResolution={setExportResolution}
+          exportCurrentTime={exportCurrentTime}
+          exportTotalDuration={duration}
           onClose={() => setIsExportPanelOpen(false)}
           onCancel={cancelExport}
           onExportWebm={handleExportVideo}
@@ -840,302 +1041,330 @@ export const Workspace: React.FC<WorkspaceProps> = ({
 
       {/* RIGHT PANEL */}
       <aside className="style-sidebar">
-        <div className="style-sidebar-heading">
-          <span className="eyebrow accent-eyebrow">Design &amp; Delivery</span>
-          <h2>Captions &amp; Background</h2>
-          <p>Instant visual templates and synchronized background themes.</p>
-        </div>
+        <div className="style-sidebar-header">
+          <div className="style-sidebar-heading" style={{ marginBottom: '12px' }}>
+            <span className="eyebrow accent-eyebrow">Design &amp; Delivery</span>
+            <h2>Captions &amp; Background</h2>
+            <p>Instant visual templates and synchronized background themes.</p>
+          </div>
 
-        {/* SEGMENTED TAB SWITCHER */}
-        <div className="style-segmented-tabs" role="tablist" aria-label="Style panels">
-          <button
-            role="tab"
-            aria-selected={activeTab === 'templates'}
-            className={`style-tab-button ${activeTab === 'templates' ? 'active' : ''}`}
-            onClick={() => setActiveTab('templates')}
-          >
-            <LayoutTemplate size={13} />
-            <span>Templates</span>
-          </button>
-          <button
-            role="tab"
-            aria-selected={activeTab === 'backgrounds'}
-            className={`style-tab-button ${activeTab === 'backgrounds' ? 'active' : ''}`}
-            onClick={() => setActiveTab('backgrounds')}
-          >
-            <ImageIcon size={13} />
-            <span>Backgrounds</span>
-          </button>
-          <button
-            role="tab"
-            aria-selected={activeTab === 'advanced'}
-            className={`style-tab-button ${activeTab === 'advanced' ? 'active' : ''}`}
-            onClick={() => setActiveTab('advanced')}
-          >
-            <Sliders size={13} />
-            <span>Advanced</span>
-          </button>
-        </div>
-
-        {/* TAB 1: CAPTION TEMPLATES */}
-        {activeTab === 'templates' && (
-          <div className="templates-tab-content">
-            <div className="section-subheading">
-              <span>Ready-Made Templates</span>
-              <small>Click to apply style</small>
-            </div>
-            <div className="template-grid" role="group" aria-label="Caption templates">
-              {CAPTION_TEMPLATES.map(template => {
-                const isSelected = settings.selectedTemplateId === template.id;
-                return (
-                  <button
-                    key={template.id}
-                    type="button"
-                    className={`template-card ${isSelected ? 'selected' : ''}`}
-                    onClick={() => handleApplyTemplate(template.id)}
-                    title={template.description}
-                  >
-                    <div className="template-card-header">
-                      <strong>{template.name}</strong>
-                      {template.badge && <span className="template-badge">{template.badge}</span>}
-                      {isSelected && <span className="template-selected-icon"><Check size={12} /></span>}
-                    </div>
-                    {renderTemplateSampleText(template)}
-                    <span className="template-desc">{template.description}</span>
-                  </button>
-                );
-              })}
-            </div>
-            <button className="secondary-action style-reset" onClick={handleResetStyling}>
-              <RotateCcw size={13} /> Reset style to Classic White
+          {/* SEGMENTED TAB SWITCHER */}
+          <div className="style-segmented-tabs" role="tablist" aria-label="Style panels" style={{ marginBottom: '10px' }}>
+            <button
+              role="tab"
+              aria-selected={activeTab === 'templates'}
+              className={`style-tab-button ${activeTab === 'templates' ? 'active' : ''}`}
+              onClick={() => setActiveTab('templates')}
+            >
+              <LayoutTemplate size={13} />
+              <span>Templates</span>
+            </button>
+            <button
+              role="tab"
+              aria-selected={activeTab === 'backgrounds'}
+              className={`style-tab-button ${activeTab === 'backgrounds' ? 'active' : ''}`}
+              onClick={() => setActiveTab('backgrounds')}
+            >
+              <ImageIcon size={13} />
+              <span>Backgrounds</span>
+            </button>
+            <button
+              role="tab"
+              aria-selected={activeTab === 'advanced'}
+              className={`style-tab-button ${activeTab === 'advanced' ? 'active' : ''}`}
+              onClick={() => setActiveTab('advanced')}
+            >
+              <Sliders size={13} />
+              <span>Advanced</span>
             </button>
           </div>
-        )}
+        </div>
 
-        {/* TAB 2: BACKGROUND THEMES */}
-        {activeTab === 'backgrounds' && (
-          <div className="backgrounds-tab-content">
-            <div className="section-subheading">
-              <span>Background Theme</span>
-              <small>{isVideoMedia ? 'Original Video or Theme' : 'Visual themes for audio'}</small>
-            </div>
-            <div className="background-grid" role="group" aria-label="Background themes">
-              {BACKGROUND_THEMES.map(theme => {
-                const isSelected = settings.backgroundTheme === theme.id;
-                const isOriginalVideo = theme.id === 'original-video';
-                const isCustomImage = theme.id === 'custom-image';
-                const isDisabled = isOriginalVideo && !isVideoMedia;
+        <div className="style-sidebar-scroll">
 
-                return (
-                  <button
-                    key={theme.id}
-                    type="button"
-                    disabled={isDisabled}
-                    className={`background-card ${isSelected ? 'selected' : ''} ${isDisabled ? 'disabled' : ''}`}
-                    onClick={() => {
-                      if (!isDisabled) {
-                        setSettings(prev => ({ ...prev, backgroundTheme: theme.id }));
-                      }
-                    }}
-                    title={isDisabled ? 'Original video requires an uploaded video file' : theme.description}
-                  >
-                    <div
-                      className="background-card-preview"
-                      style={{
-                        background: isCustomImage && settings.customImageDataUrl
-                          ? `url(${settings.customImageDataUrl}) center/cover no-repeat`
-                          : theme.previewCss,
-                      }}
+          {/* TAB 1: CAPTION TEMPLATES */}
+          {activeTab === 'templates' && (
+            <div className="templates-tab-content">
+              <div className="section-subheading">
+                <span>Ready-Made Templates</span>
+                <small>Click to apply style</small>
+              </div>
+              <div className="template-grid" role="group" aria-label="Caption templates">
+                {CAPTION_TEMPLATES.map(template => {
+                  const isSelected = settings.selectedTemplateId === template.id;
+                  return (
+                    <button
+                      key={template.id}
+                      type="button"
+                      className={`template-card ${isSelected ? 'selected' : ''}`}
+                      onClick={() => handleApplyTemplate(template.id)}
+                      title={template.description}
                     >
-                      {isSelected && <span className="background-selected-icon"><Check size={12} /></span>}
-                      {isOriginalVideo && <span className="background-type-label">Video</span>}
-                    </div>
-                    <div className="background-card-info">
-                      <strong>{theme.name}</strong>
-                      <small>{isDisabled ? 'Video only' : theme.description}</small>
-                    </div>
-                  </button>
-                );
-              })}
+                      <div className="template-card-header">
+                        <strong>{template.name}</strong>
+                        {template.badge && <span className="template-badge">{template.badge}</span>}
+                        {isSelected && <span className="template-selected-icon"><Check size={12} /></span>}
+                      </div>
+                      {renderTemplateSampleText(template)}
+                      <span className="template-desc">{template.description}</span>
+                    </button>
+                  );
+                })}
+              </div>
+              <button className="secondary-action style-reset" onClick={handleResetStyling}>
+                <RotateCcw size={13} /> Reset style to Classic White
+              </button>
             </div>
+          )}
 
-            {/* CUSTOM IMAGE UPLOAD */}
-            <div className="custom-image-uploader">
-              <label htmlFor="custom-bg-input" className="secondary-action custom-upload-btn">
-                <Upload size={13} />
-                <span>Upload custom background image</span>
-              </label>
-              <input
-                id="custom-bg-input"
-                type="file"
-                accept="image/*"
-                className="visually-hidden"
-                onChange={handleCustomImageFileChange}
-              />
-              {settings.customImageDataUrl && (
-                <button
-                  type="button"
-                  className="ghost-button remove-custom-image"
-                  onClick={() => setSettings(prev => ({ ...prev, customImageDataUrl: undefined, backgroundTheme: isVideoMedia ? 'original-video' : 'midnight' }))}
-                >
-                  <X size={12} /> Clear custom image
-                </button>
-              )}
-            </div>
+          {/* TAB 2: BACKGROUND THEMES */}
+          {activeTab === 'backgrounds' && (
+            <div className="backgrounds-tab-content">
+              <div className="section-subheading">
+                <span>Background Theme</span>
+                <small>{isVideoMedia ? 'Original Video or Theme' : 'Visual themes for audio'}</small>
+              </div>
+              <div className="background-grid" role="group" aria-label="Background themes">
+                {BACKGROUND_THEMES.map(theme => {
+                  const isSelected = settings.backgroundTheme === theme.id;
+                  const isOriginalVideo = theme.id === 'original-video';
+                  const isCustomImage = theme.id === 'custom-image';
+                  const isCustomVideo = theme.id === 'custom-video';
+                  const isDisabled = (isOriginalVideo && !isVideoMedia) || (isCustomVideo && !settings.customVideoUrl);
 
-            {/* DARKENING OVERLAY & FIT MODE */}
-            <div className="background-adjustments">
-              <label className="adjustment-field">
-                <div className="adjustment-label">
-                  <span>Caption Readability Overlay</span>
-                  <strong>{Math.round((settings.backgroundOverlayOpacity ?? 0) * 100)}%</strong>
-                </div>
+                  return (
+                    <button
+                      key={theme.id}
+                      type="button"
+                      disabled={isDisabled}
+                      className={`background-card ${isSelected ? 'selected' : ''} ${isDisabled ? 'disabled' : ''}`}
+                      onClick={() => {
+                        if (!isDisabled) {
+                          setSettings(prev => ({ ...prev, backgroundTheme: theme.id }));
+                        }
+                      }}
+                      title={isDisabled ? (isOriginalVideo ? 'Original video requires an uploaded video file' : 'Custom video requires uploading a video below') : theme.description}
+                    >
+                      <div
+                        className="background-card-preview"
+                        style={{
+                          background: isCustomImage && settings.customImageDataUrl
+                            ? `url(${settings.customImageDataUrl}) center/cover no-repeat`
+                            : theme.previewCss,
+                        }}
+                      >
+                        {isSelected && <span className="background-selected-icon"><Check size={12} /></span>}
+                        {isOriginalVideo && <span className="background-type-label">Video</span>}
+                        {isCustomVideo && <span className="background-type-label">Video</span>}
+                      </div>
+                      <div className="background-card-info">
+                        <strong>{theme.name}</strong>
+                        <small>{isDisabled ? (isOriginalVideo ? 'Video only' : 'Upload video below') : theme.description}</small>
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+
+              {/* CUSTOM IMAGE & VIDEO UPLOADS */}
+              <div className="custom-image-uploader">
+                <label htmlFor="custom-bg-input" className="secondary-action custom-upload-btn">
+                  <Upload size={13} />
+                  <span>Upload custom background image</span>
+                </label>
                 <input
-                  type="range"
-                  min="0"
-                  max="0.85"
-                  step="0.05"
-                  value={settings.backgroundOverlayOpacity ?? 0}
-                  onChange={e => setAppearance('backgroundOverlayOpacity', Number(e.target.value))}
+                  id="custom-bg-input"
+                  type="file"
+                  accept="image/*"
+                  className="visually-hidden"
+                  onChange={handleCustomImageFileChange}
                 />
-              </label>
-
-              <label className="adjustment-field">
-                <div className="adjustment-label">
-                  <span>Background Fit Mode</span>
-                  <strong>{settings.fitMode === 'cover' ? 'Fill (Cover)' : 'Fit (Contain)'}</strong>
-                </div>
-                <div className="language-pills fit-mode-pills">
+                {settings.customImageDataUrl && (
                   <button
                     type="button"
-                    className={settings.fitMode === 'cover' ? 'active' : ''}
-                    onClick={() => setAppearance('fitMode', 'cover')}
+                    className="ghost-button remove-custom-image"
+                    onClick={() => setSettings(prev => ({ ...prev, customImageDataUrl: undefined, backgroundTheme: isVideoMedia ? 'original-video' : 'midnight' }))}
                   >
-                    Cover
+                    <X size={12} /> Clear custom image
                   </button>
+                )}
+
+                <label htmlFor="custom-video-bg-input" className="secondary-action custom-upload-btn" style={{ marginTop: '7px' }}>
+                  <Upload size={13} />
+                  <span>Upload custom background video</span>
+                </label>
+                <input
+                  id="custom-video-bg-input"
+                  type="file"
+                  accept="video/*,.mp4,.mov,.webm,.mkv"
+                  className="visually-hidden"
+                  onChange={handleCustomVideoFileChange}
+                />
+                {settings.customVideoUrl && (
                   <button
                     type="button"
-                    className={settings.fitMode === 'contain' ? 'active' : ''}
-                    onClick={() => setAppearance('fitMode', 'contain')}
+                    className="ghost-button remove-custom-image"
+                    onClick={handleClearCustomVideo}
                   >
-                    Contain
+                    <X size={12} /> Clear custom video
                   </button>
-                </div>
-              </label>
-            </div>
-          </div>
-        )}
+                )}
+              </div>
 
-        {/* TAB 3: ADVANCED STYLE SETTINGS */}
-        {activeTab === 'advanced' && (
-          <div className="advanced-tab-content">
-            <div className="section-subheading">
-              <span>Fine-Tune Typography</span>
-              <small>Custom overrides</small>
-            </div>
-            <div className="appearance-grid">
-              <label>
-                Style
-                <select
-                  value={settings.style}
-                  onChange={event => setAppearance('style', event.target.value as CanvasSettings['style'])}
-                >
-                  <option value="outline">Bold outline</option>
-                  <option value="kinetic">Word glow / highlight</option>
-                  <option value="box">Box card</option>
-                  <option value="minimalist">Minimal clean</option>
-                </select>
-              </label>
-              <label>
-                Font
-                <select
-                  value={settings.fontFamily}
-                  onChange={event => setAppearance('fontFamily', event.target.value)}
-                >
-                  <option value="'Inter', sans-serif">Inter</option>
-                  <option value="'Noto Sans Telugu', sans-serif">Noto Sans Telugu</option>
-                  <option value="Arial, sans-serif">Arial</option>
-                  <option value="Georgia, serif">Georgia</option>
-                  <option value="'Courier New', monospace">Mono</option>
-                </select>
-              </label>
-              <label>
-                Size
-                <div className="range-field">
+              {/* DARKENING OVERLAY & FIT MODE */}
+              <div className="background-adjustments">
+                <label className="adjustment-field">
+                  <div className="adjustment-label">
+                    <span>Caption Readability Overlay</span>
+                    <strong>{Math.round((settings.backgroundOverlayOpacity ?? 0) * 100)}%</strong>
+                  </div>
                   <input
                     type="range"
-                    min="24"
-                    max="100"
-                    step="1"
-                    value={settings.fontSize}
-                    onChange={event => setAppearance('fontSize', Number(event.target.value))}
+                    min="0"
+                    max="0.85"
+                    step="0.05"
+                    value={settings.backgroundOverlayOpacity ?? 0}
+                    onChange={e => setAppearance('backgroundOverlayOpacity', Number(e.target.value))}
                   />
-                  <output>{settings.fontSize}px</output>
-                </div>
-              </label>
-              <label>
-                Position
-                <select
-                  value={settings.verticalPosition}
-                  onChange={event => setAppearance('verticalPosition', Number(event.target.value))}
-                >
-                  <option value="0.2">Top</option>
-                  <option value="0.5">Center</option>
-                  <option value="0.78">Lower third</option>
-                  <option value="0.88">Cinematic bottom</option>
-                </select>
-              </label>
-              <label>
-                Alignment
-                <select
-                  value={settings.alignment}
-                  onChange={event => setAppearance('alignment', event.target.value as CanvasSettings['alignment'])}
-                >
-                  <option value="left">Left</option>
-                  <option value="center">Center</option>
-                  <option value="right">Right</option>
-                </select>
-              </label>
-              <label className="color-field">
-                Text color
-                <input
-                  type="color"
-                  value={settings.textColor.startsWith('#') ? settings.textColor : '#ffffff'}
-                  onChange={event => setAppearance('textColor', event.target.value)}
-                />
-              </label>
-              <label className="color-field">
-                Highlight
-                <input
-                  type="color"
-                  value={settings.highlightColor.startsWith('#') ? settings.highlightColor : '#8b5cf6'}
-                  onChange={event => setAppearance('highlightColor', event.target.value)}
-                />
-              </label>
-              <label className="color-field">
-                Text background
-                <input
-                  type="color"
-                  value={settings.boxColor.startsWith('#') ? settings.boxColor : '#000000'}
-                  onChange={event => setAppearance('boxColor', event.target.value)}
-                />
-              </label>
-              <label className="switch-row">
-                <input
-                  type="checkbox"
-                  checked={settings.textBackground}
-                  onChange={event => setAppearance('textBackground', event.target.checked)}
-                />
-                <span>Enable text background box</span>
-              </label>
-            </div>
-            <button className="secondary-action style-reset" onClick={handleResetStyling}>
-              <RotateCcw size={13} /> Reset styling
-            </button>
-          </div>
-        )}
+                </label>
 
-        {/* BOTTOM EXPORT SECTION */}
+                <label className="adjustment-field">
+                  <div className="adjustment-label">
+                    <span>Background Fit Mode</span>
+                    <strong>{settings.fitMode === 'cover' ? 'Fill (Cover)' : 'Fit (Contain)'}</strong>
+                  </div>
+                  <div className="language-pills fit-mode-pills">
+                    <button
+                      type="button"
+                      className={settings.fitMode === 'cover' ? 'active' : ''}
+                      onClick={() => setAppearance('fitMode', 'cover')}
+                    >
+                      Cover
+                    </button>
+                    <button
+                      type="button"
+                      className={settings.fitMode === 'contain' ? 'active' : ''}
+                      onClick={() => setAppearance('fitMode', 'contain')}
+                    >
+                      Contain
+                    </button>
+                  </div>
+                </label>
+              </div>
+            </div>
+          )}
+
+          {/* TAB 3: ADVANCED STYLE SETTINGS */}
+          {activeTab === 'advanced' && (
+            <div className="advanced-tab-content">
+              <div className="section-subheading">
+                <span>Fine-Tune Typography</span>
+                <small>Custom overrides</small>
+              </div>
+              <div className="appearance-grid">
+                <label>
+                  Style
+                  <select
+                    value={settings.style}
+                    onChange={event => setAppearance('style', event.target.value as CanvasSettings['style'])}
+                  >
+                    <option value="outline">Bold outline</option>
+                    <option value="kinetic">Word glow / highlight</option>
+                    <option value="box">Box card</option>
+                    <option value="minimalist">Minimal clean</option>
+                  </select>
+                </label>
+                <label>
+                  Font
+                  <select
+                    value={settings.fontFamily}
+                    onChange={event => setAppearance('fontFamily', event.target.value)}
+                  >
+                    <option value="'Inter', sans-serif">Inter</option>
+                    <option value="'Noto Sans Telugu', sans-serif">Noto Sans Telugu</option>
+                    <option value="Arial, sans-serif">Arial</option>
+                    <option value="Georgia, serif">Georgia</option>
+                    <option value="'Courier New', monospace">Mono</option>
+                  </select>
+                </label>
+                <label>
+                  Size
+                  <div className="range-field">
+                    <input
+                      type="range"
+                      min="24"
+                      max="100"
+                      step="1"
+                      value={settings.fontSize}
+                      onChange={event => setAppearance('fontSize', Number(event.target.value))}
+                    />
+                    <output>{settings.fontSize}px</output>
+                  </div>
+                </label>
+                <label>
+                  Position
+                  <select
+                    value={settings.verticalPosition}
+                    onChange={event => setAppearance('verticalPosition', Number(event.target.value))}
+                  >
+                    <option value="0.2">Top</option>
+                    <option value="0.5">Center</option>
+                    <option value="0.78">Lower third</option>
+                    <option value="0.88">Cinematic bottom</option>
+                  </select>
+                </label>
+                <label>
+                  Alignment
+                  <select
+                    value={settings.alignment}
+                    onChange={event => setAppearance('alignment', event.target.value as CanvasSettings['alignment'])}
+                  >
+                    <option value="left">Left</option>
+                    <option value="center">Center</option>
+                    <option value="right">Right</option>
+                  </select>
+                </label>
+                <label className="color-field">
+                  Text color
+                  <input
+                    type="color"
+                    value={settings.textColor.startsWith('#') ? settings.textColor : '#ffffff'}
+                    onChange={event => setAppearance('textColor', event.target.value)}
+                  />
+                </label>
+                <label className="color-field">
+                  Highlight
+                  <input
+                    type="color"
+                    value={settings.highlightColor.startsWith('#') ? settings.highlightColor : '#8b5cf6'}
+                    onChange={event => setAppearance('highlightColor', event.target.value)}
+                  />
+                </label>
+                <label className="color-field">
+                  Text background
+                  <input
+                    type="color"
+                    value={settings.boxColor.startsWith('#') ? settings.boxColor : '#000000'}
+                    onChange={event => setAppearance('boxColor', event.target.value)}
+                  />
+                </label>
+                <label className="switch-row">
+                  <input
+                    type="checkbox"
+                    checked={settings.textBackground}
+                    onChange={event => setAppearance('textBackground', event.target.checked)}
+                  />
+                  <span>Enable text background box</span>
+                </label>
+              </div>
+              <button className="secondary-action style-reset" onClick={handleResetStyling}>
+                <RotateCcw size={13} /> Reset styling
+              </button>
+            </div>
+          )}
+        </div>{/* end .style-sidebar-scroll */}
+
+        {/* BOTTOM EXPORT SECTION — pinned footer, never scrolls */}
         <div className="style-sidebar-footer">
           <button
             className="primary-action export-action-btn"

@@ -7,6 +7,7 @@ export interface BackgroundThemeDefinition {
   previewCss: string;
   requiresVideo?: boolean;
   requiresCustomImage?: boolean;
+  requiresCustomVideo?: boolean;
 }
 
 export const BACKGROUND_THEMES: BackgroundThemeDefinition[] = [
@@ -72,6 +73,13 @@ export const BACKGROUND_THEMES: BackgroundThemeDefinition[] = [
     previewCss: 'repeating-linear-gradient(45deg, #1e293b 0, #1e293b 10px, #0f172a 10px, #0f172a 20px)',
     requiresCustomImage: true,
   },
+  {
+    id: 'custom-video',
+    name: 'Custom Video',
+    description: 'User-provided background video or motion backdrop.',
+    previewCss: 'linear-gradient(135deg, #0f172a 0%, #1e1b4b 100%)',
+    requiresCustomVideo: true,
+  },
 ];
 
 export function getBackgroundTheme(id: BackgroundThemeId): BackgroundThemeDefinition | undefined {
@@ -85,6 +93,7 @@ export interface RenderBackgroundOptions {
   videoElement?: HTMLVideoElement | null;
   isVideoMedia?: boolean;
   customImage?: HTMLImageElement | null;
+  customVideoElement?: HTMLVideoElement | null;
   overlayOpacity?: number;
   fitMode?: BackgroundFitMode;
 }
@@ -100,6 +109,7 @@ export function drawBackgroundToCanvas(
     videoElement,
     isVideoMedia,
     customImage,
+    customVideoElement,
     overlayOpacity = 0,
     fitMode = 'cover',
   } = options;
@@ -125,6 +135,25 @@ export function drawBackgroundToCanvas(
     }
 
     ctx.drawImage(videoElement, 0, 0, vWidth, vHeight, destX, destY, destWidth, destHeight);
+  } else if (themeId === 'custom-video' && customVideoElement && customVideoElement.readyState >= 2) {
+    // Render custom background video frames
+    const vWidth = customVideoElement.videoWidth || width;
+    const vHeight = customVideoElement.videoHeight || height;
+    const hRatio = width / vWidth;
+    const vRatio = height / vHeight;
+    const ratio = fitMode === 'cover' ? Math.max(hRatio, vRatio) : Math.min(hRatio, vRatio);
+
+    const destWidth = vWidth * ratio;
+    const destHeight = vHeight * ratio;
+    const destX = (width - destWidth) / 2;
+    const destY = (height - destHeight) / 2;
+
+    if (fitMode === 'contain') {
+      ctx.fillStyle = '#000000';
+      ctx.fillRect(0, 0, width, height);
+    }
+
+    ctx.drawImage(customVideoElement, 0, 0, vWidth, vHeight, destX, destY, destWidth, destHeight);
   } else if (themeId === 'custom-image' && customImage && customImage.complete && customImage.naturalWidth > 0) {
     // Render custom image
     const imgWidth = customImage.naturalWidth;

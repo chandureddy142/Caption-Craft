@@ -156,4 +156,43 @@ describe('Composition, Templates & Background switching', () => {
       expect(template.settings.verticalPosition).toBeLessThan(1);
     }
   });
+
+  it('supports custom-video background switching and video canvas rendering', () => {
+    let settings = { ...defaultSettings };
+    settings = {
+      ...settings,
+      backgroundTheme: 'custom-video',
+      customVideoUrl: 'blob:http://localhost/mock-video',
+      backgroundOverlayOpacity: 0.35,
+    };
+    expect(settings.backgroundTheme).toBe('custom-video');
+    expect(settings.customVideoUrl).toBe('blob:http://localhost/mock-video');
+
+    const drawCalls: string[] = [];
+    const mockCtx = {
+      save: () => undefined,
+      restore: () => undefined,
+      createLinearGradient: () => ({ addColorStop: () => undefined }),
+      fillStyle: '',
+      fillRect: () => { drawCalls.push('fillRect'); },
+      drawImage: () => { drawCalls.push('drawImage'); },
+    } as unknown as CanvasRenderingContext2D;
+
+    const mockVideo = {
+      readyState: 4,
+      videoWidth: 1920,
+      videoHeight: 1080,
+    } as unknown as HTMLVideoElement;
+
+    drawBackgroundToCanvas(mockCtx, {
+      themeId: 'custom-video',
+      width: 1080,
+      height: 1920,
+      customVideoElement: mockVideo,
+      overlayOpacity: 0.35,
+    });
+
+    expect(drawCalls).toContain('drawImage');
+    expect(drawCalls).toContain('fillRect');
+  });
 });

@@ -316,7 +316,7 @@ function postReady(backend: 'webgpu' | 'wasm'): void {
     type: 'model-status',
     status: 'ready',
     backend,
-    modelId: LOCAL_WHISPER_MODEL_ID,
+    modelId: currentModelId,
   } satisfies ModelStatusMessage);
 }
 
@@ -325,7 +325,7 @@ function postModelError(error: unknown): void {
     type: 'model-status',
     status: 'error',
     backend: modelBackend,
-    modelId: LOCAL_WHISPER_MODEL_ID,
+    modelId: currentModelId,
     message: error instanceof Error ? error.message : 'Unable to load the local Whisper model.',
   } satisfies ModelStatusMessage);
 }
