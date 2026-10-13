@@ -239,33 +239,12 @@ export const Sidebar: React.FC<SidebarProps> = ({
       <section className="sidebar-section">
         <div className="section-heading"><div><span className="section-kicker">02</span><h2>Output format</h2></div></div>
         <div className="language-pills output-language-pills" role="group" aria-label="Caption output format">
-          <button
-            type="button"
-            className={language === 'te' ? 'active' : ''}
-            onClick={() => setLanguage('te')}
-            disabled={isTranscribing}
-            title="Display recognized speech in Telugu script"
-          >
-            తెలుగు
-          </button>
-          <button
-            type="button"
-            className={language === 'tenglish' ? 'active' : ''}
-            onClick={() => setLanguage('tenglish')}
-            disabled={isTranscribing}
-            title="Display natural Roman-script transliteration (Tenglish)"
-          >
-            Tenglish
-          </button>
-          <button
-            type="button"
-            className={language === 'en' ? 'active' : ''}
-            onClick={() => setLanguage('en')}
-            disabled={isTranscribing}
-            title="Display English speech in English"
-          >
-            English
-          </button>
+          {sourceLanguage === 'te' ? <>
+            <button type="button" className={language === 'te' ? 'active' : ''} onClick={() => setLanguage('te')} disabled={isTranscribing} title="Display recognized speech in Telugu script">తెలుగు</button>
+            <button type="button" className={language === 'tenglish' ? 'active' : ''} onClick={() => setLanguage('tenglish')} disabled={isTranscribing} title="Display natural Roman-script transliteration (Tenglish)">Tenglish</button>
+          </> : (
+            <button type="button" className={language === 'en' ? 'active' : ''} onClick={() => setLanguage('en')} disabled={isTranscribing} title="Display English speech in English">English</button>
+          )}
         </div>
         <p className="section-help">
           {language === 'tenglish'

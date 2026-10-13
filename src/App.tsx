@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { Sidebar } from './components/Sidebar';
 import { Workspace } from './components/Workspace';
 import { UploadDashboard } from './components/UploadDashboard';
@@ -20,6 +20,9 @@ import {
 import { normalizeSubtitles } from './utils/subtitleValidation';
 import { validateMediaFile } from './utils/mediaValidation';
 import { TranscriptionSession } from './services/transcriptionSession';
+import { useHistory } from './utils/history';
+import { ExportPage } from './components/ExportPage';
+import { renderProjectToBlob } from './utils/projectRenderer';
 
 function formatSeconds(seconds: number): string {
   if (!Number.isFinite(seconds) || seconds <= 0) return '0.0s';
@@ -31,7 +34,6 @@ function formatSeconds(seconds: number): string {
 function App() {
   const [videoFile, setVideoFile] = useState<File | null>(null);
   const [audioBlob, setAudioBlob] = useState<Blob | null>(null);
-  const [subtitles, setSubtitles] = useState<Subtitle[]>([]);
   const [sourceLanguage, setSourceLanguage] = useState<SourceLanguage>('en');
   const [language, setLanguage] = useState<CaptionLanguage>('en');
   const [whisperModel, setWhisperModel] = useState<'tiny' | 'base'>('tiny');
@@ -48,8 +50,10 @@ function App() {
   const [modelProgress, setModelProgress] = useState(0);
   const [modelBackend, setModelBackend] = useState<'webgpu' | 'wasm' | undefined>();
   const [audioReady, setAudioReady] = useState(false);
+  const [showExportPage, setShowExportPage] = useState(false);
+  const [projectTitle, setProjectTitle] = useState('Untitled Caption Project');
 
-  const [settings, setSettings] = useState<CanvasSettings>({
+  const initialSettings: CanvasSettings = {
     aspectRatio: '9:16',
     backgroundColor: '#000000',
     backgroundTheme: 'midnight',
@@ -65,7 +69,23 @@ function App() {
     verticalPosition: 0.82,
     alignment: 'center',
     textBackground: false,
-  });
+  };
+  const editorHistory = useHistory({ subtitles: [] as Subtitle[], settings: initialSettings });
+  const { undo, redo } = editorHistory;
+  const subtitles = editorHistory.value.subtitles;
+  const settings = editorHistory.value.settings;
+  const setSubtitles = useCallback<React.Dispatch<React.SetStateAction<Subtitle[]>>>((update) => {
+    editorHistory.setValue(current => ({
+      ...current,
+      subtitles: typeof update === 'function' ? update(current.subtitles) : update,
+    }));
+  }, [editorHistory.setValue]);
+  const setSettings = useCallback<React.Dispatch<React.SetStateAction<CanvasSettings>>>((update) => {
+    editorHistory.setValue(current => ({
+      ...current,
+      settings: typeof update === 'function' ? update(current.settings) : update,
+    }));
+  }, [editorHistory.setValue]);
 
   const [jumpTime, setJumpTime] = useState<number | null>(null);
   const [selectedSubtitleId, setSelectedSubtitleId] = useState<string | null>(null);
@@ -75,6 +95,25 @@ function App() {
   const abortControllerRef = useRef<AbortController | null>(null);
   const transcriptionSessionRef = useRef(new TranscriptionSession());
   const localTranscriptionRef = useRef(createLocalTranscriptionClient());
+
+  useEffect(() => {
+    const isTextInput = (target: EventTarget | null) => {
+      if (!(target instanceof HTMLElement)) return false;
+      if (target.isContentEditable || target.tagName === 'TEXTAREA') return true;
+      return target.tagName === 'INPUT';
+    };
+    const handleUndoRedo = (event: KeyboardEvent) => {
+      if (isTextInput(event.target) || (!event.ctrlKey && !event.metaKey) || event.key.toLowerCase() !== 'z') return;
+      event.preventDefault();
+      if (event.shiftKey) {
+        redo();
+      } else {
+        undo();
+      }
+    };
+    window.addEventListener('keydown', handleUndoRedo);
+    return () => window.removeEventListener('keydown', handleUndoRedo);
+  }, [redo, undo]);
 
   const updateSubtitles: React.Dispatch<React.SetStateAction<Subtitle[]>> = (update) => {
     setSubtitles(previous => {
@@ -242,6 +281,7 @@ function App() {
     audioBlobRef.current = null;
     setAudioBlob(null);
     setVideoFile(file);
+    setProjectTitle(file.name.replace(/\.[^.]+$/, '') || 'Untitled Caption Project');
     const isVideo = Boolean(file.type.startsWith('video/') || /\.(mp4|mov|webm|mkv)$/i.test(file.name));
     setSettings(prev => ({
       ...prev,
@@ -330,6 +370,7 @@ function App() {
     audioBlobRef.current = null;
     setAudioBlob(null);
     setVideoFile(null);
+    setShowExportPage(false);
     setSubtitles([]);
     setSelectedSubtitleId(null);
     setMediaDuration(0);
@@ -371,6 +412,22 @@ function App() {
       client.cleanup();
     };
   }, []);
+
+  if (showExportPage && videoFile && audioReady) {
+    return (
+      <div className="app-frame">
+        <ExportPage
+          aspectRatio={settings.aspectRatio}
+          subtitles={subtitles}
+          language={language}
+          duration={mediaDuration}
+          initialFilename={videoFile.name.replace(/\.[^.]+$/, '')}
+          onBack={() => setShowExportPage(false)}
+          renderExport={(options, onProgress, signal) => renderProjectToBlob(videoFile, subtitles, settings, language, options, onProgress, signal)}
+        />
+      </div>
+    );
+  }
 
   return (
     <div className="app-frame">
@@ -461,8 +518,15 @@ function App() {
                 setMediaDuration(duration);
                 setTranscriptionTotalDuration(previous => Math.max(previous, duration));
               }}
-              onBackToUpload={handleRemoveMedia}
-            />
+               onBackToUpload={handleRemoveMedia}
+               onOpenExport={() => setShowExportPage(true)}
+               projectTitle={projectTitle}
+               onProjectTitleChange={setProjectTitle}
+               canUndo={editorHistory.canUndo}
+               canRedo={editorHistory.canRedo}
+               onUndo={undo}
+               onRedo={redo}
+             />
           </div>
         </div>
       )}

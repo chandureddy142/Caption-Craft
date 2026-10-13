@@ -10,6 +10,29 @@ export interface SubtitleCanvasLayout {
   height: number;
   lineHeight: number;
   lines: string[];
+  fontSize: number;
+}
+
+function wrapCaption(ctx: CanvasRenderingContext2D, text: string, maxWidth: number, fontFamily: string, fontSize: number): { lines: string[]; fontSize: number } {
+  let size = fontSize;
+  const words = text.split(/\s+/).filter(Boolean);
+  while (size >= 18) {
+    ctx.font = `700 ${size}px ${fontFamily}`;
+    const lines: string[] = [];
+    let current = '';
+    for (const word of words) {
+      const candidate = current ? `${current} ${word}` : word;
+      if (current && ctx.measureText(candidate).width > maxWidth) {
+        lines.push(current);
+        current = word;
+      } else current = candidate;
+    }
+    if (current) lines.push(current);
+    if (lines.length <= 3 && lines.every(line => ctx.measureText(line).width <= maxWidth)) return { lines, fontSize: size };
+    size -= 2;
+  }
+  ctx.font = `700 18px ${fontFamily}`;
+  return { lines: [text], fontSize: 18 };
 }
 
 /**
@@ -33,28 +56,25 @@ export function getSubtitleCanvasLayout(
   const fontFamily = isTelugu
     ? "'Noto Sans Telugu', 'Inter', sans-serif"
     : `${settings.fontFamily}, 'Noto Sans Telugu', sans-serif`;
-  const lineHeight = settings.fontSize * (isTelugu ? 1.35 : 1.2);
-  const lines = getCaptionText(subtitle.text, language, subtitle.tenglishText).split('\n');
-
-  ctx.save();
-  ctx.font = `bold ${settings.fontSize}px ${fontFamily}`;
-  const lineWidths = lines.map(line => ctx.measureText(
-    line
-  ).width);
-  ctx.restore();
+  const safeWidth = width * 0.8;
+  const wrapped = wrapCaption(ctx, getCaptionText(subtitle.text, language, subtitle.tenglishText), safeWidth, fontFamily, settings.fontSize);
+  const lines = wrapped.lines;
+  const lineHeight = wrapped.fontSize * (isTelugu ? 1.35 : 1.2);
+  ctx.font = `700 ${wrapped.fontSize}px ${fontFamily}`;
+  const lineWidths = lines.map(line => ctx.measureText(line).width);
 
   const horizontalPadding = settings.style === 'box' || settings.textBackground ? 40 : settings.style === 'outline' ? 12 : 0;
   const verticalPadding = settings.style === 'box' || settings.textBackground ? 20 : settings.style === 'outline' ? 12 : 0;
   const maxLineWidth = Math.max(...lineWidths, 0);
   const renderedHeight = lines.length * lineHeight;
-  const blockLeft = width / 2 - maxLineWidth / 2;
+  const blockLeft = Math.max(width * 0.1, Math.min(width * 0.9 - maxLineWidth, width / 2 - maxLineWidth / 2));
   const textX = settings.alignment === 'left'
     ? blockLeft
     : settings.alignment === 'right'
       ? blockLeft + maxLineWidth
       : width / 2;
   const x = textX;
-  const y = height * settings.verticalPosition;
+  const y = Math.min(height * 0.9 - renderedHeight / 2, Math.max(height * 0.1 + renderedHeight / 2, height * settings.verticalPosition));
 
   return {
     subtitle,
@@ -64,7 +84,8 @@ export function getSubtitleCanvasLayout(
     width: maxLineWidth + horizontalPadding,
     height: renderedHeight + verticalPadding,
     lineHeight,
-    lines
+    lines,
+    fontSize: wrapped.fontSize,
   };
 }
 
@@ -92,10 +113,11 @@ export function renderSubtitlesToCanvas(
   const fontFamily = isTelugu
     ? "'Noto Sans Telugu', 'Inter', sans-serif"
     : `${settings.fontFamily}, 'Noto Sans Telugu', sans-serif`;
-  ctx.font = `bold ${settings.fontSize}px ${fontFamily}`;
-  
-  const x = width / 2;
-  const y = height * settings.verticalPosition;
+  const layout = getSubtitleCanvasLayout(ctx, width, height, currentTime, subtitles, settings, language);
+  if (!layout) return;
+  ctx.font = `700 ${layout.fontSize}px ${fontFamily}`;
+  const x = settings.alignment === 'left' ? layout.left : settings.alignment === 'right' ? layout.left + layout.width : width / 2;
+  const y = layout.y;
 
   let activeWordObj = null;
 
@@ -107,11 +129,11 @@ export function renderSubtitlesToCanvas(
     ? getCaptionText(activeWordObj.word, language)
     : undefined;
 
-  const lines = getCaptionText(activeSub.text, language, activeSub.tenglishText).split('\n');
-  const lineHeight = settings.fontSize * (isTelugu ? 1.35 : 1.2);
+  const lines = layout.lines;
+  const lineHeight = layout.lineHeight;
   const lineWidths = lines.map(line => ctx.measureText(line).width);
   const blockWidth = Math.max(...lineWidths, 0);
-  const blockLeft = x - blockWidth / 2;
+  const blockLeft = layout.left;
   const textX = settings.alignment === 'left'
     ? blockLeft
     : settings.alignment === 'right'
@@ -210,8 +232,6 @@ export function renderSubtitlesToCanvas(
   });
 
   if (selectedSubtitleId === activeSub.id) {
-    const layout = getSubtitleCanvasLayout(ctx, width, height, currentTime, subtitles, settings, language);
-    if (layout) {
       ctx.save();
       ctx.strokeStyle = settings.highlightColor;
       ctx.lineWidth = 3;
@@ -223,6 +243,5 @@ export function renderSubtitlesToCanvas(
         layout.height + 16,
       );
       ctx.restore();
-    }
   }
 }

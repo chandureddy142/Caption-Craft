@@ -23,6 +23,8 @@ import {
   RotateCcw,
   Sliders,
   Upload,
+  Undo2,
+  Redo2,
   Volume2,
   VolumeX,
   X,
@@ -73,6 +75,13 @@ interface WorkspaceProps {
   onSelectSubtitle?: (id: string | null) => void;
   onDurationChange?: (duration: number) => void;
   onBackToUpload?: () => void;
+  onOpenExport?: () => void;
+  projectTitle?: string;
+  onProjectTitleChange?: (title: string) => void;
+  canUndo?: boolean;
+  canRedo?: boolean;
+  onUndo?: () => void;
+  onRedo?: () => void;
 }
 
 type StyleTab = 'templates' | 'backgrounds' | 'advanced';
@@ -89,6 +98,13 @@ export const Workspace: React.FC<WorkspaceProps> = ({
   onSelectSubtitle,
   onDurationChange,
   onBackToUpload,
+  onOpenExport,
+  projectTitle,
+  onProjectTitleChange,
+  canUndo = false,
+  canRedo = false,
+  onUndo,
+  onRedo,
 }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const mediaRef = useRef<HTMLVideoElement>(null);
@@ -817,18 +833,29 @@ export const Workspace: React.FC<WorkspaceProps> = ({
         <header className="workspace-header">
           <div className="workspace-title">
             <span className="eyebrow accent-eyebrow">Live preview</span>
-            <h1>{videoFile?.name || 'Caption preview'}</h1>
+            <input
+              className="project-title-input"
+              value={projectTitle || videoFile?.name || 'Caption preview'}
+              onChange={event => onProjectTitleChange?.(event.target.value)}
+              aria-label="Project title"
+            />
             <span className="workspace-duration">
               {duration ? `${formatDuration(duration)} timeline` : 'Loading media metadata'}
             </span>
           </div>
           <div className="workspace-header-actions">
+            <button className="icon-button" onClick={onUndo} disabled={!canUndo} title="Undo (Ctrl/Cmd+Z)" aria-label="Undo"><Undo2 size={16} /></button>
+            <button className="icon-button" onClick={onRedo} disabled={!canRedo} title="Redo (Shift+Ctrl/Cmd+Z)" aria-label="Redo"><Redo2 size={16} /></button>
             <button className="ghost-button workspace-back" onClick={onBackToUpload}>
               <X size={15} /> Replace media
             </button>
             <button
               className="export-trigger"
               onClick={() => {
+                if (onOpenExport) {
+                  onOpenExport();
+                  return;
+                }
                 setExportError('');
                 setExportComplete(false);
                 setIsExportPanelOpen(true);
