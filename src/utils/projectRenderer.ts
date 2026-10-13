@@ -1,4 +1,4 @@
-import type { CanvasSettings, CaptionLanguage, ExportResolutionPreset, Subtitle } from '../types';
+import type { CanvasSettings, CaptionLanguage, Subtitle } from '../types';
 import { drawBackgroundToCanvas } from './backgroundThemes';
 import { renderSubtitlesToCanvas } from './SubtitleRenderer';
 import { getExportDimensions } from './exportCapabilities';

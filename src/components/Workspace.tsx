@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import type { CanvasSettings, Subtitle, CaptionLanguage, ExportResolutionPreset } from '../types';
 import { getSubtitleCanvasLayout, renderSubtitlesToCanvas } from '../utils/SubtitleRenderer';
+import { generateHookSuggestions, getPlatformSafeZone, isSafeZoneWarning } from '../utils/creatorTools';
 import { getCaptionText } from '../utils/transliterate';
 import {
   CAPTION_TEMPLATES,
@@ -233,6 +234,49 @@ export const Workspace: React.FC<WorkspaceProps> = ({
       overlayOpacity: settings.backgroundOverlayOpacity,
       fitMode: settings.fitMode,
     });
+
+    // 2. Render safe-zone guides and hook overlays when enabled.
+    if (settings.safeZones?.show) {
+      const zone = getPlatformSafeZone(settings.safeZones.platform, settings.aspectRatio);
+      const safeRect = { x: zone.safeArea.x * canvas.width, y: zone.safeArea.y * canvas.height, width: zone.safeArea.width * canvas.width, height: zone.safeArea.height * canvas.height };
+      ctx.save();
+      ctx.strokeStyle = 'rgba(255,255,255,0.7)';
+      ctx.lineWidth = 2;
+      ctx.setLineDash([8, 8]);
+      ctx.strokeRect(safeRect.x, safeRect.y, safeRect.width, safeRect.height);
+      ctx.setLineDash([]);
+      zone.blocked.forEach(region => {
+        ctx.fillStyle = 'rgba(15, 23, 42, 0.18)';
+        ctx.fillRect(region.x * canvas.width, region.y * canvas.height, region.width * canvas.width, region.height * canvas.height);
+        ctx.fillStyle = 'rgba(255,255,255,0.8)';
+        ctx.font = '12px sans-serif';
+        ctx.fillText(region.label, region.x * canvas.width + 8, region.y * canvas.height + 18);
+      });
+      ctx.restore();
+    }
+
+    if (settings.hookOverlay?.enabled && settings.hookOverlay.text.trim()) {
+      const hook = settings.hookOverlay;
+      const x = (hook.xPosition ?? 0.5) * canvas.width;
+      const y = (hook.yPosition ?? 0.14) * canvas.height;
+      ctx.save();
+      ctx.font = `700 ${hook.fontSize || 34}px ${hook.fontFamily || "'Inter', sans-serif"}`;
+      const textWidth = ctx.measureText(hook.text).width;
+      const boxWidth = textWidth + 24;
+      const boxHeight = (hook.fontSize || 34) + 18;
+      const boxX = hook.horizontalAlign === 'left' ? x : hook.horizontalAlign === 'right' ? x - boxWidth : x - boxWidth / 2;
+      const boxY = y - boxHeight / 2;
+      ctx.fillStyle = hook.backgroundColor || '#00000080';
+      ctx.fillRect(boxX, boxY, boxWidth, boxHeight);
+      ctx.strokeStyle = hook.outlineColor || '#000000';
+      ctx.lineWidth = hook.outlineWidth ?? 2;
+      ctx.strokeRect(boxX, boxY, boxWidth, boxHeight);
+      ctx.fillStyle = hook.color || '#ffffff';
+      ctx.textAlign = hook.horizontalAlign === 'left' ? 'left' : hook.horizontalAlign === 'right' ? 'right' : 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(hook.text, hook.horizontalAlign === 'left' ? boxX + 12 : hook.horizontalAlign === 'right' ? boxX + boxWidth - 12 : boxX + boxWidth / 2, boxY + boxHeight / 2);
+      ctx.restore();
+    }
 
     // 2. Render live subtitles over background
     renderSubtitlesToCanvas(
@@ -758,6 +802,22 @@ export const Workspace: React.FC<WorkspaceProps> = ({
   const setAppearance = <K extends keyof CanvasSettings>(key: K, value: CanvasSettings[K]) => {
     setSettings(previous => ({ ...previous, [key]: value }));
   };
+
+  const createDefaultHookOverlay = (text = '') => ({
+    id: 'generated-hook',
+    text,
+    enabled: Boolean(text),
+    fontFamily: "'Inter', sans-serif",
+    fontSize: 34,
+    color: '#ffffff',
+    backgroundColor: '#00000080',
+    outlineColor: '#000000',
+    outlineWidth: 2,
+    horizontalAlign: 'center' as const,
+    verticalPosition: 0.14,
+    xPosition: 0.5,
+    yPosition: 0.14,
+  });
 
   const handleApplyTemplate = (templateId: CanvasSettings['selectedTemplateId']) => {
     if (!templateId) return;
@@ -1384,6 +1444,179 @@ export const Workspace: React.FC<WorkspaceProps> = ({
                   <span>Enable text background box</span>
                 </label>
               </div>
+
+              <div className="section-subheading" style={{ marginTop: '16px' }}>
+                <span>Hook generator</span>
+                <small>3-5 project-aware options</small>
+              </div>
+              <div className="appearance-grid">
+                <label>
+                  Hook text
+                  <input
+                    value={settings.hookOverlay?.text ?? ''}
+                    onChange={event => setSettings(previous => ({
+                      ...previous,
+                      hookOverlay: {
+                        ...(previous.hookOverlay ?? createDefaultHookOverlay()),
+                        text: event.target.value,
+                        enabled: Boolean(event.target.value),
+                      },
+                    }))}
+                    placeholder="e.g. This AI trick saves hours"
+                  />
+                </label>
+                <label className="switch-row">
+                  <input
+                    type="checkbox"
+                    checked={!!settings.hookOverlay?.enabled}
+                    onChange={event => setSettings(previous => ({
+                      ...previous,
+                      hookOverlay: {
+                        ...(previous.hookOverlay ?? createDefaultHookOverlay()),
+                        text: previous.hookOverlay?.text ?? '',
+                        enabled: event.target.checked,
+                      },
+                    }))}
+                  />
+                  <span>Show hook overlay</span>
+                </label>
+                <button
+                  className="secondary-action"
+                  type="button"
+                  onClick={() => {
+                    const suggestions = generateHookSuggestions(subtitles, language);
+                    const next = suggestions[0];
+                    if (!next) return;
+                    setSettings(previous => ({
+                      ...previous,
+                      hookOverlay: {
+                        ...(previous.hookOverlay ?? createDefaultHookOverlay()),
+                        text: next.title,
+                        enabled: true,
+                      },
+                    }));
+                  }}
+                >
+                  Generate hook ideas
+                </button>
+              </div>
+
+              <div className="section-subheading" style={{ marginTop: '16px' }}>
+                <span>Safe zones</span>
+                <small>Instagram / YouTube / TikTok guides</small>
+              </div>
+              <div className="appearance-grid">
+                <label>
+                  Platform
+                  <select
+                    value={settings.safeZones?.platform ?? 'instagram'}
+                    onChange={event => setSettings(previous => ({
+                      ...previous,
+                      safeZones: { platform: event.target.value as 'instagram' | 'youtube' | 'tiktok', show: previous.safeZones?.show ?? false },
+                    }))}
+                  >
+                    <option value="instagram">Instagram Reels</option>
+                    <option value="youtube">YouTube Shorts</option>
+                    <option value="tiktok">TikTok</option>
+                  </select>
+                </label>
+                <label className="switch-row">
+                  <input
+                    type="checkbox"
+                    checked={!!settings.safeZones?.show}
+                    onChange={event => setSettings(previous => ({
+                      ...previous,
+                      safeZones: { ...(previous.safeZones ?? { platform: 'instagram' }), show: event.target.checked },
+                    }))}
+                  />
+                  <span>Show safe zones</span>
+                </label>
+                <div className="section-help" style={{ marginTop: '-4px' }}>
+                  {settings.safeZones?.show && isSafeZoneWarning({ x: 0.14, y: 0.18, width: 0.72, height: 0.3 }, settings.safeZones.platform, settings.aspectRatio)
+                    ? 'Warning: caption placement overlaps an interface region for this platform.'
+                    : 'Caption and hook placement remains inside the safe area.'}
+                </div>
+              </div>
+
+              <div className="section-subheading" style={{ marginTop: '16px' }}>
+                <span>Background music</span>
+                <small>Simple ducking control</small>
+              </div>
+              <div className="appearance-grid">
+                <label className="switch-row">
+                  <input
+                    type="checkbox"
+                    checked={!!settings.backgroundMusic?.enabled}
+                    onChange={event => setSettings(previous => ({
+                      ...previous,
+                      backgroundMusic: {
+                        enabled: event.target.checked,
+                        volume: previous.backgroundMusic?.volume ?? 0.45,
+                        muted: previous.backgroundMusic?.muted ?? false,
+                        fadeIn: previous.backgroundMusic?.fadeIn ?? 0.6,
+                        fadeOut: previous.backgroundMusic?.fadeOut ?? 0.7,
+                        startOffset: previous.backgroundMusic?.startOffset ?? 0,
+                        looping: previous.backgroundMusic?.looping ?? true,
+                        duckingEnabled: previous.backgroundMusic?.duckingEnabled ?? true,
+                        duckingRatio: previous.backgroundMusic?.duckingRatio ?? 0.3,
+                        attack: previous.backgroundMusic?.attack ?? 0.12,
+                        release: previous.backgroundMusic?.release ?? 0.18,
+                      },
+                    }))}
+                  />
+                  <span>Enable background music</span>
+                </label>
+                <label>
+                  Music level
+                  <input
+                    type="range"
+                    min="0"
+                    max="1"
+                    step="0.05"
+                    value={settings.backgroundMusic?.volume ?? 0.45}
+                    onChange={event => setSettings(previous => ({
+                      ...previous,
+                      backgroundMusic: {
+                        enabled: previous.backgroundMusic?.enabled ?? false,
+                        volume: Number(event.target.value),
+                        muted: previous.backgroundMusic?.muted ?? false,
+                        fadeIn: previous.backgroundMusic?.fadeIn ?? 0.6,
+                        fadeOut: previous.backgroundMusic?.fadeOut ?? 0.7,
+                        startOffset: previous.backgroundMusic?.startOffset ?? 0,
+                        looping: previous.backgroundMusic?.looping ?? true,
+                        duckingEnabled: previous.backgroundMusic?.duckingEnabled ?? true,
+                        duckingRatio: previous.backgroundMusic?.duckingRatio ?? 0.3,
+                        attack: previous.backgroundMusic?.attack ?? 0.12,
+                        release: previous.backgroundMusic?.release ?? 0.18,
+                      },
+                    }))}
+                  />
+                </label>
+                <label className="switch-row">
+                  <input
+                    type="checkbox"
+                    checked={!!settings.backgroundMusic?.duckingEnabled}
+                    onChange={event => setSettings(previous => ({
+                      ...previous,
+                      backgroundMusic: {
+                        enabled: previous.backgroundMusic?.enabled ?? false,
+                        volume: previous.backgroundMusic?.volume ?? 0.45,
+                        muted: previous.backgroundMusic?.muted ?? false,
+                        fadeIn: previous.backgroundMusic?.fadeIn ?? 0.6,
+                        fadeOut: previous.backgroundMusic?.fadeOut ?? 0.7,
+                        startOffset: previous.backgroundMusic?.startOffset ?? 0,
+                        looping: previous.backgroundMusic?.looping ?? true,
+                        duckingEnabled: event.target.checked,
+                        duckingRatio: previous.backgroundMusic?.duckingRatio ?? 0.3,
+                        attack: previous.backgroundMusic?.attack ?? 0.12,
+                        release: previous.backgroundMusic?.release ?? 0.18,
+                      },
+                    }))}
+                  />
+                  <span>Speech-aware ducking</span>
+                </label>
+              </div>
+
               <button className="secondary-action style-reset" onClick={handleResetStyling}>
                 <RotateCcw size={13} /> Reset styling
               </button>

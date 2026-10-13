@@ -54,6 +54,90 @@ export type BackgroundThemeId =
 
 export type BackgroundFitMode = 'cover' | 'contain';
 
+export type SafeZonePlatform = 'instagram' | 'youtube' | 'tiktok';
+
+export interface HookOverlay {
+  id: string;
+  text: string;
+  enabled: boolean;
+  fontFamily: string;
+  fontSize: number;
+  color: string;
+  backgroundColor: string;
+  outlineColor?: string;
+  outlineWidth?: number;
+  horizontalAlign: 'left' | 'center' | 'right';
+  verticalPosition: number; // 0 = top, 1 = bottom
+  xPosition?: number; // 0..1 normalized
+  yPosition?: number; // 0..1 normalized
+}
+
+export interface SafeZoneSettings {
+  platform: SafeZonePlatform;
+  show: boolean;
+}
+
+export interface BackgroundMusicSettings {
+  enabled: boolean;
+  volume: number; // 0..1
+  muted: boolean;
+  fadeIn: number;
+  fadeOut: number;
+  startOffset: number;
+  looping: boolean;
+  duckingEnabled: boolean;
+  duckingRatio: number; // target ducked volume ratio, default 0.3
+  attack: number;
+  release: number;
+}
+
+export interface ImportedFontAsset {
+  id: string;
+  fileName: string;
+  fontFamily: string;
+  format: 'ttf' | 'otf';
+  dataUrl?: string;
+  sizeBytes: number;
+}
+
+export interface BrandKit {
+  id: string;
+  name: string;
+  fontFamily: string;
+  fontSize: number;
+  textColor: string;
+  highlightColor: string;
+  outlineColor: string;
+  captionBackground: string;
+  defaultPosition: number;
+  hookFontFamily: string;
+  hookTextColor: string;
+  watermarkEnabled: boolean;
+  watermarkOpacity: number;
+  logoUrl?: string;
+}
+
+export interface CaptionAnimationSettings {
+  style: 'karaoke' | 'word-bounce' | 'bold-creator' | 'yellow-emphasis' | 'minimal' | 'subtle';
+  wordHighlightEnabled: boolean;
+  emojiEnhancement: boolean;
+}
+
+export interface AudioCut {
+  id: string;
+  start: number;
+  end: number;
+  selected: boolean;
+  reason: 'silence';
+}
+
+export interface ProjectExportPreferences {
+  subtitleFormat: 'srt' | 'vtt' | 'ass';
+  includeHookOverlay: boolean;
+  includeWatermark: boolean;
+  audioExportFormat?: 'wav' | 'mp3';
+}
+
 export interface CanvasSettings {
   aspectRatio: AspectRatio;
   backgroundColor: string;
@@ -72,6 +156,17 @@ export interface CanvasSettings {
   verticalPosition: number; // 0 (top) to 1 (bottom)
   alignment: CaptionAlignment;
   textBackground: boolean;
+  hookOverlay?: HookOverlay;
+  safeZones?: SafeZoneSettings;
+  backgroundMusic?: BackgroundMusicSettings;
+  importedFonts?: ImportedFontAsset[];
+  brandKitId?: string;
+  animationSettings?: CaptionAnimationSettings;
+  audioCuts?: AudioCut[];
+  exportPreferences?: ProjectExportPreferences;
+  watermarkEnabled?: boolean;
+  watermarkOpacity?: number;
+  watermarkPosition?: 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right' | 'custom';
 }
 
 /** The four export quality presets exposed in the Export Modal. */
