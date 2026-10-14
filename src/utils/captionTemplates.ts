@@ -1,17 +1,6 @@
-import type { CanvasSettings, CaptionTemplateId } from '../types';
+import type { CanvasSettings, CaptionTemplateDefinition, CaptionTemplateId } from '../types';
 
-export interface CaptionTemplateDefinition {
-  id: CaptionTemplateId;
-  name: string;
-  description: string;
-  badge?: string;
-  settings: Partial<CanvasSettings>;
-  previewSample: {
-    en: string;
-    te: string;
-    tenglish: string;
-  };
-}
+export type { CaptionTemplateDefinition, TemplatePreviewSample } from '../types';
 
 export const CAPTION_TEMPLATES: CaptionTemplateDefinition[] = [
   {

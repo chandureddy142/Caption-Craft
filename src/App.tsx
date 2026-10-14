@@ -168,12 +168,12 @@ function App() {
     });
   };
 
-  const applyProgress = (progress: LocalTranscriptionProgress) => {
+const applyProgress = (progress: LocalTranscriptionProgress) => {
     setTranscriptionProgress(progress.percent);
     setTranscriptionProcessedDuration(progress.processedDuration);
     setTranscriptionTotalDuration(progress.totalDuration);
     setTranscriptionStatus(
-      `Transcribing chunk ${progress.completedChunks}/${progress.totalChunks} · ` +
+      `Processing audio ${progress.completedChunks}/${progress.totalChunks} · ` +
       `${formatSeconds(progress.processedDuration)} / ${formatSeconds(progress.totalDuration)}`,
     );
   };
@@ -439,6 +439,7 @@ function App() {
     }
     setSourceLanguage(next);
     setLanguage(next === 'te' ? 'te' : 'en');
+    setTranscriptionBackend(next === 'te' ? 'gemini' : 'local');
     if (next === 'te') {
       setWhisperModel('base');
     }
@@ -454,6 +455,72 @@ function App() {
       client.cleanup();
     };
   }, []);
+
+  const duplicateSelectedCaption = () => {
+    if (!selectedSubtitleId || !mediaDuration) return;
+    const selectedIndex = subtitles.findIndex(item => item.id === selectedSubtitleId);
+    if (selectedIndex < 0) return;
+    const source = subtitles[selectedIndex];
+    const length = Math.max(0.05, Math.min(source.end - source.start, mediaDuration));
+    const start = Math.max(0, Math.min(source.end + 0.1, mediaDuration - length));
+    const end = start + length;
+    const duplicate: Subtitle = {
+      ...source,
+      id: `${source.id}-copy-${Date.now()}`,
+      start,
+      end,
+      words: source.words?.map(word => ({
+        ...word,
+        start: word.start + start - source.start,
+        end: word.end + start - source.start,
+      })),
+    };
+    updateSubtitles(previous => previous.toSpliced(selectedIndex + 1, 0, duplicate));
+    setSelectedSubtitleId(duplicate.id);
+  };
+
+  const deleteSelectedCaption = () => {
+    if (!selectedSubtitleId) return;
+    updateSubtitles(previous => previous.filter(item => item.id !== selectedSubtitleId));
+    setSelectedSubtitleId(null);
+  };
+
+  const splitSelectedCaption = () => {
+    if (!selectedSubtitleId) return;
+    const index = subtitles.findIndex(item => item.id === selectedSubtitleId);
+    if (index < 0) return;
+    const source = subtitles[index];
+    if (source.end - source.start < 0.1) return;
+    const splitPointTime = (source.start + source.end) / 2;
+    const words = source.text.trim().split(/s+/).filter(Boolean);
+    const mid = Math.max(1, Math.ceil(words.length / 2));
+    const first: Subtitle = {
+      ...source,
+      end: splitPointTime,
+      text: words.slice(0, mid).join(" "),
+    };
+    const second: Subtitle = {
+      ...source,
+      id: `${source.id}-split-${Date.now()}`,
+      start: splitPointTime,
+      text: words.slice(mid).join(" "),
+    };
+    updateSubtitles(previous => previous.toSpliced(index, 1, first, second));
+    setSelectedSubtitleId(second.id);
+  };
+
+  const addTimelineCaption = () => {
+    const start = Math.max(0, Math.min(jumpTime || 0, Math.max(0, mediaDuration - 2)));
+    const end = Math.min(start + 2, mediaDuration || start + 2);
+    const caption: Subtitle = {
+      id: `caption-${Date.now()}`,
+      start,
+      end,
+      text: "New caption",
+    };
+    updateSubtitles(previous => [...previous, caption].sort((a, b) => a.start - b.start));
+    setSelectedSubtitleId(caption.id);
+  };
 
   if (showExportPage && videoFile && audioReady) {
     return (
@@ -511,24 +578,33 @@ function App() {
               onSelectWhisperModel={setWhisperModel}
               onJumpToTime={setJumpTime}
               mediaDuration={mediaDuration}
-              selectedSubtitleId={selectedSubtitleId}
-              onSelectSubtitle={setSelectedSubtitleId}
               mediaFile={videoFile}
               onReplaceMedia={handleRemoveMedia}
               transcriptionBackend={transcriptionBackend}
               onSelectBackend={(backend) => {
                 if (transcriptionSessionRef.current.running) return;
-                setTranscriptionBackend(backend);
+                const forceBackend = sourceLanguage === 'te' ? 'gemini' : 'local';
+                if (backend !== forceBackend) return;
+                setTranscriptionBackend(forceBackend);
                 setTranscriptionError('');
                 setTranscriptionProgress(0);
                 setTranscriptionProcessedDuration(0);
                 setTranscriptionStatus(
-                  backend === 'gemini'
-                     ? 'Switched to CaptionCraft AI · click Generate captions'
+                  forceBackend === 'gemini'
+                    ? 'Switched to CaptionCraft AI · click Generate captions'
                     : 'Switched to Local Whisper · click Generate captions',
                 );
               }}
               geminiKeyMissing={!import.meta.env.VITE_GEMINI_API_KEY || import.meta.env.VITE_GEMINI_API_KEY === 'your_gemini_api_key_here'}
+              canUndo={editorHistory.canUndo}
+              canRedo={editorHistory.canRedo}
+              onUndo={undo}
+              onRedo={redo}
+              onDuplicateSubtitle={duplicateSelectedCaption}
+              onSplitSubtitle={splitSelectedCaption}
+              onDeleteSubtitle={deleteSelectedCaption}
+              onAddSubtitle={addTimelineCaption}
+              hasSelectedSubtitle={Boolean(selectedSubtitleId)}
             />
             <Workspace
               videoFile={videoFile}

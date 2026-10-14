@@ -139,6 +139,12 @@ export interface ProjectExportPreferences {
 }
 
 export interface CanvasSettings {
+  wordPatterns?: any[];
+  animation?: string;
+  shadowColor?: string;
+  shadowOffsetX?: number;
+  shadowOffsetY?: number;
+  shadowBlur?: number;
   aspectRatio: AspectRatio;
   backgroundColor: string;
   backgroundTheme: BackgroundThemeId;
@@ -189,4 +195,41 @@ export interface ExportResolutionConfig {
   heightVertical: number;
   /** MediaRecorder.videoBitsPerSecond target. */
   videoBitsPerSecond: number;
+}
+
+export type CaptionCategory = 'social' | 'minimal' | 'bold' | 'classic' | 'gaming' | 'custom' | string;
+
+export interface WordStyleRule {
+  color?: string;
+  textColor?: string;
+  highlightColor?: string;
+  backgroundColor?: string;
+  outlineColor?: string;
+  outlineWidth?: number;
+  scale?: number;
+  fontSizeMultiplier?: number;
+  fontFamily?: string;
+  uppercase?: boolean;
+}
+
+export interface TemplatePreviewSample {
+  en: string;
+  te: string;
+  tenglish: string;
+  [key: string]: string | undefined;
+}
+
+export interface CaptionTemplateDefinition {
+  id: CaptionTemplateId;
+  name: string;
+  category?: CaptionCategory;
+  description?: string;
+  badge?: string;
+  previewUrl?: string;
+  previewSample?: string | TemplatePreviewSample;
+  settings: Partial<CanvasSettings>;
+  canvasSettings?: Partial<CanvasSettings>;
+  wordPatterns?: WordStyleRule[];
+  styleRules?: WordStyleRule[];
+  isCustom?: boolean;
 }
