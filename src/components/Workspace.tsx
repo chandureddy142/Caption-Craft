@@ -19,14 +19,10 @@ import {
   LayoutTemplate,
   Maximize2,
   Minimize2,
-  Pause,
-  Pencil,
-  Play,
-  RotateCcw,
+    Pencil,
+    RotateCcw,
   Share2,
-  Volume2,
-  VolumeX,
-  X,
+      X,
   Trash2,
 } from "lucide-react";
 import { ExportModal } from "./ExportModal";
@@ -89,6 +85,7 @@ function stopStreamTracks(stream: MediaStream | null): void {
 }
 
 interface WorkspaceProps {
+  captionSearchQuery?: string;
   mediaDuration?: number;
   videoFile: File | null;
   audioBlob?: Blob | null;
@@ -109,9 +106,11 @@ interface WorkspaceProps {
   canRedo?: boolean;
   onUndo?: () => void;
   onRedo?: () => void;
+  onPlaybackStateChange?: (state: any) => void;
 }
 
 export const Workspace: React.FC<WorkspaceProps> = ({
+  captionSearchQuery = "",
   videoFile,
   subtitles,
   language,
@@ -127,6 +126,7 @@ export const Workspace: React.FC<WorkspaceProps> = ({
   projectTitle,
   onProjectTitleChange,
   mediaDuration = 0,
+  onPlaybackStateChange,
 }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const mediaRef = useRef<HTMLVideoElement>(null);
@@ -137,13 +137,47 @@ export const Workspace: React.FC<WorkspaceProps> = ({
   const [songDuration, setSongDuration] = useState(0);
   const [selectedLayer, setSelectedLayer] = useState<"audio" | "background" | "caption" | "music" | null>("caption");
   const [songVolume, setSongVolume] = useState(0.8);
+
+  const updateSongVolume = useCallback((v: number) => {
+    setSongVolume(v);
+    if (songMediaRef.current) {
+      songMediaRef.current.volume = v;
+      songMediaRef.current.muted = v === 0;
+    }
+  }, []);
+
   const [bgSegments, setBgSegments] = useState<Array<{ id: string; start: number; end: number }>>([
     { id: "bg-default", start: 0, end: 0 }
   ]);
   const [songSegments, setSongSegments] = useState<Array<{ id: string; start: number; end: number }>>([
     { id: "song-default", start: 0, end: 0 }
   ]);
-  const [selectedSegmentId, setSelectedSegmentId] = useState<string | null>(null);
+  
+  const normalizeCaption = (str: string) =>
+    str.toLowerCase().replace(/[.,/#!$%^&*;:{}=-_~()?]/g, "").trim();
+
+    const isCaptionSearched = (captionText: string, query: string) => {
+    const q = normalizeCaption(query);
+    if (!q) return true;
+    const text = normalizeCaption(captionText);
+    if (text.includes(q)) return true;
+    const qWords = q.split(/s+/).filter(Boolean);
+    const textWords = text.split(/s+/).filter(Boolean);
+    return qWords.some(qw => textWords.some(tw => tw.includes(qw) || qw.includes(tw)));
+  };
+const [selectedSegmentId, setSelectedSegmentId] = useState<string | null>(null);
+  /* read captionSearchQuery */
+  const activeSearchTerm = captionSearchQuery ? captionSearchQuery.trim().toLowerCase() : "";
+  useEffect(() => {
+    if (activeSearchTerm && timelineContainerRef.current) {
+      const match = subtitles.find(s => s.text.toLowerCase().includes(activeSearchTerm));
+      if (match) {
+        const pps = 80;
+        const targetLeft = match.start * pps - timelineContainerRef.current.clientWidth / 2;
+        timelineContainerRef.current.scrollTo({ left: Math.max(0, targetLeft), behavior: "smooth" });
+      }
+    }
+  }, [activeSearchTerm, subtitles]);
   const [timelineZoom, setTimelineZoom] = useState(1);
   const timelineViewportRef = useRef<HTMLDivElement>(null);
   const timelineContainerRef = useRef<HTMLDivElement>(null);
@@ -152,6 +186,7 @@ export const Workspace: React.FC<WorkspaceProps> = ({
   const [isZoom100, setIsZoom100] = useState(false);
   const titleInputRef = useRef<HTMLInputElement>(null);
   const [isPlaying, setIsPlaying] = useState(false);
+  const isPlayingRef = useRef(false);
   const [isExporting, setIsExporting] = useState(false);
   const [exportError, setExportError] = useState("");
   const [exportProgress, setExportProgress] = useState(0);
@@ -176,6 +211,129 @@ export const Workspace: React.FC<WorkspaceProps> = ({
   const [exportCurrentTime, setExportCurrentTime] = useState(0);
   const [localSongUrl, setLocalSongUrl] = useState<string | null>(null);
   const [localSongName, setLocalSongName] = useState<string | null>(null);
+  const [isScrubbing, setIsScrubbing] = useState(false);
+
+  const seekToTime = useCallback((targetTime: number) => {
+    const clamped = Math.max(0, Math.min(effectiveDuration, targetTime));
+    setCurrentTime(clamped);
+
+    const media = mediaRef.current;
+    if (media) {
+      if (clamped <= (media.duration || 0)) {
+        media.currentTime = clamped;
+      } else {
+        media.pause();
+      }
+    }
+
+    const song = songMediaRef.current;
+    if (song && localSongUrl) {
+      if (clamped <= (song.duration || 0)) {
+        song.currentTime = clamped;
+      } else {
+        song.pause();
+      }
+    }
+  }, [effectiveDuration, localSongUrl]);
+
+  const handleNeedlePointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
+    e.stopPropagation();
+    e.preventDefault();
+    setIsScrubbing(true);
+    const target = e.currentTarget;
+    target.setPointerCapture(e.pointerId);
+
+    const wasPlaying = isPlaying;
+    if (wasPlaying) {
+      setIsPlaying(false);
+      if (mediaRef.current) mediaRef.current.pause();
+      if (songMediaRef.current) songMediaRef.current.pause();
+    }
+
+    const updateTimeFromPointer = (clientX: number) => {
+      const scroller = timelineViewportRef.current;
+      if (!scroller) return;
+      const rect = scroller.getBoundingClientRect();
+      const clickX = clientX - rect.left + scroller.scrollLeft;
+      const canvasWidth = scroller.scrollWidth;
+      if (canvasWidth <= 0) return;
+      const rawTime = (clickX / canvasWidth) * totalTimelineDuration;
+      seekToTime(rawTime);
+    };
+
+    const handlePointerMove = (ev: PointerEvent) => {
+      updateTimeFromPointer(ev.clientX);
+    };
+
+    const handlePointerUp = (ev: PointerEvent) => {
+      setIsScrubbing(false);
+      try {
+        target.releasePointerCapture(ev.pointerId);
+      } catch {
+        // no-op
+      }
+      window.removeEventListener("pointermove", handlePointerMove);
+      window.removeEventListener("pointerup", handlePointerUp);
+      window.removeEventListener("pointercancel", handlePointerUp);
+    };
+
+    window.addEventListener("pointermove", handlePointerMove);
+    window.addEventListener("pointerup", handlePointerUp);
+    window.addEventListener("pointercancel", handlePointerUp);
+  };
+
+  const splitCaptionAtPlayhead = useCallback(() => {
+    if (!setSubtitles) return;
+    setSubtitles(prev => {
+      if (!prev || !Array.isArray(prev)) return prev;
+      const targetIndex = prev.findIndex(
+        s => currentTime > s.start + 0.15 && currentTime < (s.end || effectiveDuration) - 0.15
+      );
+      if (targetIndex === -1) return prev;
+
+      const seg = prev[targetIndex];
+      const segEnd = seg.end || effectiveDuration;
+      const firstHalfDuration = currentTime - seg.start;
+      const totalDuration = segEnd - seg.start;
+      const ratio = firstHalfDuration / totalDuration;
+
+      const words = (seg.text || "").trim().split(/s+/);
+      const splitPoint = Math.max(1, Math.min(words.length - 1, Math.round(words.length * ratio)));
+
+      const firstText = words.slice(0, splitPoint).join(" ") || seg.text;
+      const secondText = words.slice(splitPoint).join(" ") || "...";
+
+      const firstSegment = {
+        ...seg,
+        end: currentTime,
+        text: firstText,
+      };
+
+      const secondSegment = {
+        ...seg,
+        id: crypto.randomUUID ? crypto.randomUUID() : "split_" + Date.now() + "_" + Math.random().toString(36).slice(2, 6),
+        start: currentTime,
+        end: segEnd,
+        text: secondText,
+      };
+
+      const updated = [...prev];
+      updated.splice(targetIndex, 1, firstSegment, secondSegment);
+      return updated;
+    });
+  }, [currentTime, effectiveDuration, setSubtitles]);
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
+      if (e.key === "s" || e.key === "S") {
+        e.preventDefault();
+        splitCaptionAtPlayhead();
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [splitCaptionAtPlayhead]);
   const [timelineTimingPreview, setTimelineTimingPreview] = useState<(TimelineTiming & { id: string }) | null>(null);
   const timelineDragRef = useRef<TimelineDrag | null>(null);
   const captionTrackRef = useRef<HTMLDivElement>(null);
@@ -208,6 +366,21 @@ export const Workspace: React.FC<WorkspaceProps> = ({
     }
   };
 
+  
+  useEffect(() => {
+    if (songMediaRef.current) {
+      songMediaRef.current.volume = songVolume;
+      songMediaRef.current.muted = songVolume === 0;
+    }
+  }, [songVolume]);
+
+  useEffect(() => {
+    if (mediaRef.current) {
+      mediaRef.current.volume = volume;
+      mediaRef.current.muted = volume === 0;
+    }
+  }, [volume]);
+
   const dims = getCanvasDimensions();
   const isVideoMedia = Boolean(videoFile && (
     videoFile.type.startsWith("video/") || /\.(mp4|mov|webm|mkv)$/i.test(videoFile.name)
@@ -239,6 +412,8 @@ export const Workspace: React.FC<WorkspaceProps> = ({
       }
     };
   }, [settings.customVideoUrl]);
+
+
 
   const drawFrame = useCallback(() => {
     const canvas = canvasRef.current;
@@ -325,24 +500,32 @@ export const Workspace: React.FC<WorkspaceProps> = ({
     let lastTime = performance.now();
 
     const masterClockLoop = (now: number) => {
+      if (!isPlayingRef.current) return;
       const delta = (now - lastTime) / 1000;
       lastTime = now;
 
       setCurrentTime(prev => {
         const next = prev + delta;
         if (next >= effectiveDuration) {
+          isPlayingRef.current = false;
           setIsPlaying(false);
           if (mediaRef.current) mediaRef.current.pause();
           if (songMediaRef.current) songMediaRef.current.pause();
+
+          if (timelineViewportRef.current) {
+            const scroller = timelineViewportRef.current;
+            const scrollableWidth = scroller.scrollWidth - scroller.clientWidth;
+            if (scrollableWidth > 0) {
+              scroller.scrollLeft = (effectiveDuration / totalTimelineDuration) * scrollableWidth;
+            }
+          }
           return effectiveDuration;
         }
 
         const media = mediaRef.current;
         if (media) {
           if (next < (media.duration || 0)) {
-            if (media.paused && !media.ended) {
-              void media.play().catch(() => undefined);
-            }
+            if (media.paused && !media.ended) void media.play().catch(() => undefined);
           } else {
             if (!media.paused) media.pause();
           }
@@ -351,9 +534,7 @@ export const Workspace: React.FC<WorkspaceProps> = ({
         const song = songMediaRef.current;
         if (song && localSongUrl) {
           if (next < (song.duration || 0)) {
-            if (song.paused && !song.ended) {
-              void song.play().catch(() => undefined);
-            }
+            if (song.paused && !song.ended) void song.play().catch(() => undefined);
           } else {
             if (!song.paused) song.pause();
           }
@@ -361,15 +542,9 @@ export const Workspace: React.FC<WorkspaceProps> = ({
 
         if (timelineViewportRef.current) {
           const scroller = timelineViewportRef.current;
-          const totalScrollable = scroller.scrollWidth - scroller.clientWidth;
-          if (totalScrollable > 0 && effectiveDuration > 0) {
-            const targetX = (next / totalTimelineDuration) * scroller.scrollWidth;
-          const halfView = scroller.clientWidth / 2;
-          if (targetX > halfView) {
-            scroller.scrollLeft = targetX - halfView;
-          } else {
-            scroller.scrollLeft = 0;
-          }
+          const scrollableWidth = scroller.scrollWidth - scroller.clientWidth;
+          if (scrollableWidth > 0) {
+            scroller.scrollLeft = (next / totalTimelineDuration) * scrollableWidth;
           }
         }
 
@@ -377,7 +552,9 @@ export const Workspace: React.FC<WorkspaceProps> = ({
       });
 
       drawFrame();
-      animationRef.current = requestAnimationFrame(masterClockLoop);
+      if (isPlayingRef.current) {
+        animationRef.current = requestAnimationFrame(masterClockLoop);
+      }
     };
 
     animationRef.current = requestAnimationFrame(masterClockLoop);
@@ -394,10 +571,25 @@ export const Workspace: React.FC<WorkspaceProps> = ({
     const onWheel = (e: WheelEvent) => {
       if (e.ctrlKey || e.metaKey) {
         e.preventDefault();
-        const factor = e.deltaY < 0 ? 1.15 : 0.85;
-        setTimelineZoom(z => Math.max(0.5, Math.min(6, z * factor)));
+        const rect = scroller.getBoundingClientRect();
+        const cursorX = e.clientX - rect.left;
+        const prevScrollLeft = scroller.scrollLeft;
+        const prevScrollWidth = scroller.scrollWidth;
+        const factor = e.deltaY < 0 ? 1.15 : 0.87;
+
+        setTimelineZoom(prev => {
+          const nextZoom = Math.max(0.5, Math.min(6, Number((prev * factor).toFixed(2))));
+          requestAnimationFrame(() => {
+            if (timelineViewportRef.current && prevScrollWidth > 0) {
+              const newScrollWidth = timelineViewportRef.current.scrollWidth;
+              const contentPoint = prevScrollLeft + cursorX;
+              const newContentPoint = contentPoint * (newScrollWidth / prevScrollWidth);
+              timelineViewportRef.current.scrollLeft = newContentPoint - cursorX;
+            }
+          });
+          return nextZoom;
+        });
       } else {
-        // Two-finger horizontal or vertical swipe scrolls the tracks container horizontally
         const delta = Math.abs(e.deltaX) >= Math.abs(e.deltaY) ? e.deltaX : (e.shiftKey ? e.deltaY : 0);
         if (delta !== 0) {
           e.preventDefault();
@@ -413,6 +605,47 @@ export const Workspace: React.FC<WorkspaceProps> = ({
   useEffect(() => {
     drawFrameRef.current = drawFrame;
   }, [drawFrame]);
+
+  
+  
+  useEffect(() => {
+    onPlaybackStateChange?.({
+      isPlaying,
+      currentTime,
+      duration: effectiveDuration,
+      volume,
+      songVolume,
+      hasSong: Boolean(localSongUrl),
+      togglePlay,
+      seek: (t: number) => {
+        seekToTime(t);
+        drawFrame();
+      },
+      setVolume: (v: number) => {
+        setVolume(v);
+        if (mediaRef.current) {
+          mediaRef.current.volume = v;
+          mediaRef.current.muted = v === 0;
+        }
+      },
+      setSongVolume: updateSongVolume,
+      splitActiveLayer: handleSplitActiveLayer,
+      deleteActiveLayer: handleDeleteActiveLayer,
+    });
+  }, [isPlaying, currentTime, effectiveDuration, volume, songVolume, localSongUrl, selectedLayer, selectedSegmentId, onPlaybackStateChange, seekToTime, drawFrame]);
+
+
+
+
+  
+  
+
+
+
+  
+  
+
+
 
   useEffect(() => {
     if (videoFile && mediaRef.current) {
@@ -449,6 +682,7 @@ export const Workspace: React.FC<WorkspaceProps> = ({
   }, [drawFrame, jumpTime]);
 
   const pausePlayback = () => {
+    isPlayingRef.current = false;
     const media = mediaRef.current;
     if (!media) return;
     media.pause();
@@ -632,11 +866,12 @@ export const Workspace: React.FC<WorkspaceProps> = ({
     const song = songMediaRef.current;
     if (isExporting) return;
 
-    if (!isPlaying) {
+    if (!isPlayingRef.current) {
       if (currentTime >= effectiveDuration) {
         setCurrentTime(0);
         if (media) media.currentTime = 0;
         if (song) song.currentTime = 0;
+        if (timelineViewportRef.current) timelineViewportRef.current.scrollLeft = 0;
       }
       if (media && currentTime < (media.duration || 0)) {
         media.currentTime = currentTime;
@@ -646,15 +881,26 @@ export const Workspace: React.FC<WorkspaceProps> = ({
         song.currentTime = currentTime;
         void song.play().catch(() => undefined);
       }
+      if (timelineViewportRef.current) {
+        const scroller = timelineViewportRef.current;
+        const trackScrollableWidth = scroller.scrollWidth - scroller.clientWidth;
+        if (trackScrollableWidth > 0) {
+          scroller.scrollLeft = (currentTime / effectiveDuration) * trackScrollableWidth;
+        }
+      }
+      isPlayingRef.current = true;
       setIsPlaying(true);
     } else {
+      isPlayingRef.current = false;
+      setIsPlaying(false);
       if (media) media.pause();
       if (song) song.pause();
-      setIsPlaying(false);
-      if (animationRef.current) cancelAnimationFrame(animationRef.current);
+      if (animationRef.current) {
+        cancelAnimationFrame(animationRef.current);
+        animationRef.current = undefined;
+      }
     }
-  }
-  ;
+  };
 
   const handleExportFrame = () => {
     if (!canvasRef.current) {
@@ -916,52 +1162,117 @@ export const Workspace: React.FC<WorkspaceProps> = ({
   }, [currentTime, isPlaying, effectiveDuration]); // Auto-scroll timeline scroller to follow playback
 
   
+  // @ts-ignore
   const handleSplitActiveLayer = () => {
     if (selectedLayer === "background") {
       setBgSegments(prev => {
         const seg = (prev.find(s => s.id === selectedSegmentId) || prev.find(s => currentTime > s.start && currentTime < (s.end || effectiveDuration)));
         if (!seg) return prev;
         const actualEnd = seg.end || effectiveDuration;
-        if (currentTime <= seg.start + 0.1 || currentTime >= actualEnd - 0.1) return prev;
+        if (currentTime <= seg.start + 0.05 || currentTime >= actualEnd - 0.05) return prev;
         const newSeg1 = { id: seg.id, start: seg.start, end: currentTime };
         const newSeg2 = { id: "bg-" + Date.now(), start: currentTime, end: actualEnd };
         return prev.map(s => s.id === seg.id ? newSeg1 : s).concat(newSeg2).sort((a,b) => a.start - b.start);
       });
     } else if (selectedLayer === "music") {
       setSongSegments(prev => {
-        const seg = (prev.find(s => s.id === selectedSegmentId) || prev.find(s => currentTime > s.start && currentTime < (s.end || effectiveDuration)));
+        const actualEnd = songDuration || 7;
+        const seg = (prev.find(s => s.id === selectedSegmentId) || prev.find(s => currentTime > s.start && currentTime < (s.end || actualEnd)));
         if (!seg) return prev;
-        const actualEnd = seg.end || effectiveDuration;
-        if (currentTime <= seg.start + 0.1 || currentTime >= actualEnd - 0.1) return prev;
+        const segEnd = seg.end || actualEnd;
+        if (currentTime <= seg.start + 0.05 || currentTime >= segEnd - 0.05) return prev;
         const newSeg1 = { id: seg.id, start: seg.start, end: currentTime };
-        const newSeg2 = { id: "song-" + Date.now(), start: currentTime, end: actualEnd };
+        const newSeg2 = { id: "song-" + Date.now(), start: currentTime, end: segEnd };
         return prev.map(s => s.id === seg.id ? newSeg1 : s).concat(newSeg2).sort((a,b) => a.start - b.start);
       });
     }
   };
 
+  const handleDeleteActiveLayer = () => {
+    if (selectedLayer === "background") {
+      if (bgSegments.length > 1 && selectedSegmentId) {
+        setBgSegments(prev => prev.filter(s => s.id !== selectedSegmentId));
+        setSelectedSegmentId(null);
+      }
+    } else if (selectedLayer === "music") {
+      if (songSegments.length > 1 && selectedSegmentId) {
+        setSongSegments(prev => prev.filter(s => s.id !== selectedSegmentId));
+        setSelectedSegmentId(null);
+      } else {
+        if (localSongUrl && localSongUrl.startsWith("blob:")) URL.revokeObjectURL(localSongUrl);
+        setLocalSongUrl(null);
+        setLocalSongName(null);
+        setSongDuration(0);
+        setSongSegments([{ id: "song-default", start: 0, end: 0 }]);
+        setSelectedSegmentId(null);
+      }
+    }
+  };
+
   const handleTimelineClick = (event: React.MouseEvent<HTMLDivElement>) => {
+    if (isPlayingRef.current) {
+      isPlayingRef.current = false;
+      setIsPlaying(false);
+      if (mediaRef.current) mediaRef.current.pause();
+      if (songMediaRef.current) songMediaRef.current.pause();
+      if (animationRef.current) {
+        cancelAnimationFrame(animationRef.current);
+        animationRef.current = undefined;
+      }
+    }
+
     if (editingSubtitleId) saveInlineEdit();
-    const rect = event.currentTarget.getBoundingClientRect();
-    const clickX = event.clientX - rect.left;
-    const nextTime = Math.max(0, Math.min(effectiveDuration, (clickX / rect.width) * effectiveDuration));
-    setCurrentTime(nextTime);
-    if (mediaRef.current) mediaRef.current.currentTime = Math.min(nextTime, mediaRef.current.duration || nextTime);
-    if (songMediaRef.current) songMediaRef.current.currentTime = Math.min(nextTime, songMediaRef.current.duration || nextTime);
+    const scroller = timelineViewportRef.current;
+    if (!scroller) return;
+
+    const rect = scroller.getBoundingClientRect();
+    const scrollableWidth = scroller.scrollWidth - scroller.clientWidth;
+    if (scrollableWidth <= 0) return;
+
+    const needleScreenOffset = scroller.clientWidth * 0.25;
+    const rawScroll = event.clientX - rect.left + scroller.scrollLeft - needleScreenOffset;
+    const clampedScroll = Math.max(0, Math.min(scrollableWidth, rawScroll));
+    const nextTime = Math.max(0, Math.min(effectiveDuration, (clampedScroll / scrollableWidth) * totalTimelineDuration));
+
+    scroller.scrollLeft = clampedScroll;
+    seekToTime(nextTime);
     drawFrame();
   };
 
   const getDraggedTiming = (drag: TimelineDrag, clientX: number): TimelineTiming => {
     const delta = (clientX - drag.startX) / drag.pixelsPerSecond;
     const { start, end } = drag.original;
-    const minimum = Math.min(MIN_CAPTION_DURATION, duration);
+    const audioLimit = duration || mediaDuration || 0;
+    const minimum = Math.min(MIN_CAPTION_DURATION, audioLimit || effectiveDuration);
+    const snapThreshold = 0.15;
+
     if (drag.mode === "move") {
       const length = end - start;
-      const nextStart = clamp(start + delta, 0, duration - length);
-      return { start: nextStart, end: nextStart + length };
+      let nextStart = clamp(start + delta, 0, Math.max(0, audioLimit - length));
+      let nextEnd = nextStart + length;
+      if (Math.abs(nextStart - currentTime) < snapThreshold) {
+        nextStart = currentTime;
+        nextEnd = Math.min(audioLimit, nextStart + length);
+      } else if (Math.abs(nextEnd - currentTime) < snapThreshold) {
+        nextEnd = Math.min(audioLimit, currentTime);
+        nextStart = Math.max(0, nextEnd - length);
+      }
+      return { start: nextStart, end: nextEnd };
     }
-    if (drag.mode === "start") return { start: clamp(start + delta, 0, end - minimum), end };
-    return { start, end: clamp(end + delta, start + minimum, duration) };
+
+    if (drag.mode === "start") {
+      let nextStart = clamp(start + delta, 0, end - minimum);
+      if (Math.abs(nextStart - currentTime) < snapThreshold && currentTime < end - minimum) {
+        nextStart = currentTime;
+      }
+      return { start: nextStart, end };
+    }
+
+    let nextEnd = clamp(end + delta, start + minimum, audioLimit);
+    if (Math.abs(nextEnd - currentTime) < snapThreshold && currentTime > start + minimum) {
+      nextEnd = Math.min(audioLimit, currentTime);
+    }
+    return { start, end: nextEnd };
   };
 
   const beginTimelineDrag = (event: React.PointerEvent<HTMLElement>, subtitle: Subtitle, mode: TimelineDragMode) => {
@@ -978,9 +1289,10 @@ export const Workspace: React.FC<WorkspaceProps> = ({
     const trackWidth = captionTrackRef.current?.getBoundingClientRect().width;
     if (!trackWidth) return;
     event.preventDefault();
-    const minimum = Math.min(MIN_CAPTION_DURATION, duration);
-    const start = clamp(subtitle.start, 0, duration - minimum);
-    const end = clamp(subtitle.end, start + minimum, duration);
+    const audioLimit = duration || mediaDuration || 0;
+    const minimum = Math.min(MIN_CAPTION_DURATION, audioLimit);
+    const start = clamp(subtitle.start, 0, Math.max(0, audioLimit - minimum));
+    const end = clamp(subtitle.end, start + minimum, audioLimit);
     timelineDragRef.current = {
       id: subtitle.id,
       mode,
@@ -1274,115 +1586,13 @@ export const Workspace: React.FC<WorkspaceProps> = ({
           className="player-panel"
           onClick={e => {
             const target = e.target as HTMLElement;
-            if (!target.closest(".timeline-unified-row") && !target.closest(".caption-segment-pill")) {
+            if (!target.closest(".track-lane-clip") && !target.closest(".caption-segment-pill") && !target.closest(".track-name-tag") && !target.closest(".track-add-song-slot")) {
               setSelectedLayer(null);
               selectSubtitle(null);
               setSelectedSegmentId(null);
             }
           }}
         >
-          {/* PLAY CONTROLS & TIMECODE */}
-          <div className="player-controls">
-            <button
-              type="button"
-              className="studio-play-btn"
-              onClick={togglePlay}
-              disabled={isExporting}
-              aria-label={isPlaying ? "Pause" : "Play"}
-            >
-              {isPlaying ? <Pause size={15} fill="currentColor" /> : <Play size={15} fill="currentColor" />}
-            </button>
-
-            <span className="studio-time-display current">{formatDuration(currentTime)}</span>
-
-            <div className="studio-seek-bar-wrap">
-              <div
-                className="studio-seek-progress"
-                style={{ width: `${(currentTime / effectiveDuration) * 100}%` }}
-              />
-              <input
-                className="studio-seek-slider"
-                type="range"
-                min="0"
-                max={effectiveDuration}
-                step="0.01"
-                value={Math.min(currentTime, effectiveDuration)}
-                onChange={event => {
-                  const targetTime = Number(event.target.value);
-                  setCurrentTime(targetTime);
-                  if (mediaRef.current) mediaRef.current.currentTime = Math.min(targetTime, mediaRef.current.duration || targetTime);
-                  if (songMediaRef.current) songMediaRef.current.currentTime = Math.min(targetTime, songMediaRef.current.duration || targetTime);
-                  drawFrame();
-                }}
-                disabled={!effectiveDuration}
-                aria-label="Seek media"
-              />
-            </div>
-
-            <span className="studio-time-display total">{formatDuration(effectiveDuration)}</span>
-
-            {/* SPLIT BUTTON */}
-            {(selectedLayer === "background" || selectedLayer === "music") && (
-              <button
-                type="button"
-                className="studio-split-btn"
-                onClick={handleSplitActiveLayer}
-                title="Split selected layer at needle"
-              >
-                Split
-              </button>
-            )}
-
-            <span className="volume-context-pill">
-              {selectedLayer === "music" && localSongUrl ? "Song Vol" : "Main Vol"}
-            </span>
-            <button
-              type="button"
-              className="studio-volume-btn"
-              onClick={() => {
-                if (selectedLayer === "music" && songMediaRef.current) {
-                  songMediaRef.current.muted = !songMediaRef.current.muted;
-                  setSongVolume(songMediaRef.current.muted ? 0 : 0.8);
-                } else if (mediaRef.current) {
-                  mediaRef.current.muted = !mediaRef.current.muted;
-                  setVolume(mediaRef.current.muted ? 0 : 1);
-                }
-              }}
-              aria-label="Toggle mute"
-            >
-              {(selectedLayer === "music" ? songVolume === 0 : volume === 0) ? (
-                <VolumeX size={15} />
-              ) : (
-                <Volume2 size={15} />
-              )}
-            </button>
-            <input
-              className="studio-volume-slider"
-              type="range"
-              min="0"
-              max="1"
-              step="0.05"
-              value={selectedLayer === "music" ? songVolume : volume}
-              onChange={event => {
-                const next = Number(event.target.value);
-                if (selectedLayer === "music") {
-                  setSongVolume(next);
-                  if (songMediaRef.current) {
-                    songMediaRef.current.volume = next;
-                    songMediaRef.current.muted = next === 0;
-                  }
-                } else {
-                  setVolume(next);
-                  if (mediaRef.current) {
-                    mediaRef.current.volume = next;
-                    mediaRef.current.muted = next === 0;
-                  }
-                }
-              }}
-              aria-label="Volume"
-            />
-          </div>
-
           {/* TIMELINE EDITOR */}
           <div className="timeline-editor" aria-label="Timeline" ref={timelineContainerRef} style={{ display: "flex", width: "100%", overflow: "hidden", position: "relative" }}>
             {/* 100% FIXED LEFT LABELS COLUMN */}
@@ -1401,7 +1611,7 @@ export const Workspace: React.FC<WorkspaceProps> = ({
               }}
             >
               <div style={{ height: "26px", borderBottom: "1px solid #1a2230", background: "#090c12" }} />
-              <div style={{ display: "flex", flexDirection: "column", gap: "6px", paddingTop: "6px" }}>
+              <div style={{ display: "flex", flexDirection: "column", gap: "6px", paddingTop: "6px", paddingBottom: "14px" }}>
                 <div
                   className={`track-name-tag ${selectedLayer === "audio" ? "is-selected" : ""}`}
                   style={{ height: "34px", display: "flex", alignItems: "center", padding: "0 12px", fontSize: "0.65rem", fontWeight: 800, letterSpacing: "0.05em", color: "#38bdf8", cursor: "pointer" }}
@@ -1469,219 +1679,151 @@ export const Workspace: React.FC<WorkspaceProps> = ({
             </div>
 
             {/* HORIZONTALLY SCROLLABLE TRACK LANES */}
-            <div className="timeline-viewport-scroller" ref={timelineViewportRef} style={{ flex: 1, minWidth: 0, overflowX: "auto", overflowY: "hidden", position: "relative" }}>
+            <div style={{ flex: 1, minWidth: 0, position: "relative", overflow: "hidden", display: "flex" }}>
+              {/* FIXED CENTER-LEFT PLAYHEAD NEEDLE (LOCKED AT 25%) */}
               <div
-                className="timeline-virtual-canvas"
                 style={{
-                  width: `${Math.max(100, (totalTimelineDuration / 20) * 100 * timelineZoom)}%`,
-                  position: "relative",
-                  minWidth: "100%"
+                  position: "absolute",
+                  left: "25%",
+                  top: 0,
+                  bottom: 0,
+                  width: "2px",
+                  background: "#ffffff",
+                  boxShadow: "0 0 8px rgba(255, 255, 255, 0.95)",
+                  zIndex: 35,
+                  pointerEvents: "none",
+                  transform: "translateX(-50%)"
                 }}
               >
-                {/* RULER */}
-                <div className="timeline-ruler" aria-hidden="true" onClick={handleTimelineClick} style={{ height: "26px", position: "relative" }}>
-                  {(() => {
-                    const step = timelineZoom > 2 ? 0.25 : timelineZoom > 1 ? 0.5 : 1.0;
-                    const ticks = [];
-                    for (let t = 0; t <= totalTimelineDuration; t += step) {
-                      const isMajor = Math.abs(t % 1) < 0.001;
-                      ticks.push(
-                        <div
-                          key={t}
-                          className={`ruler-tick ${isMajor ? "major" : "minor"}`}
-                          style={{ left: `${(t / totalTimelineDuration) * 100}%` }}
-                        >
-                          <span className="ruler-tick-label">
-                            {formatPrecisionTime(t)}
-                          </span>
-                        </div>
-                      );
-                    }
-                    return ticks;
-                  })()}
-                </div>
+                <div
+                  style={{
+                    position: "absolute",
+                    top: "-2px",
+                    left: "50%",
+                    transform: "translateX(-50%)",
+                    width: "12px",
+                    height: "12px",
+                    borderRadius: "50%",
+                    background: "#ffffff",
+                    boxShadow: "0 0 10px #ffffff",
+                    cursor: isScrubbing ? "grabbing" : "grab",
+                    pointerEvents: "auto",
+                    touchAction: "none"
+                  }}
+                  onPointerDown={handleNeedlePointerDown}
+                />
+              </div>
 
-                {/* TRACK LANES */}
-                <div className={`timeline-tracks-stack ${selectedLayer ? "has-layer-selected" : "all-layers-active"}`} style={{ width: "100%", minWidth: "100%", display: "flex", flexDirection: "column", gap: "6px", paddingTop: "6px" }}>
-                  {/* TRACK 1: AUDIO */}
-                  <div
-                    className={`timeline-unified-row row-audio ${selectedLayer === "audio" ? "is-selected" : selectedLayer ? "is-dimmed" : "is-active"}`}
-                    style={{ height: "34px", display: "block" }}
-                    onClick={e => {
-                      e.stopPropagation();
-                      setSelectedLayer("audio");
-                      selectSubtitle(null);
-                    }}
-                  >
-                    <div className="track-lane" onClick={handleTimelineClick} style={{ height: "100%", width: "100%", position: "relative" }}>
-                      <div
-                        className="track-lane-clip clip-audio-fill"
-                        style={{
-                          width: `${((duration || mediaDuration || 7) / effectiveDuration) * 100}%`,
-                          height: "100%"
-                        }}
-                      >
-                        <span className="clip-label-text">{videoFile?.name || "Uploaded audio track"}</span>
+              <div
+                className="timeline-viewport-scroller"
+                ref={timelineViewportRef}
+                style={{
+                  flex: 1,
+                  minWidth: 0,
+                  overflowX: "auto",
+                  overflowY: "hidden",
+                  position: "relative"
+                }}
+                onScroll={e => {
+                  if (isPlayingRef.current) return;
+                  const scroller = e.currentTarget;
+                  const scrollableWidth = scroller.scrollWidth - scroller.clientWidth;
+                  if (scrollableWidth > 0) {
+                    const newTime = Math.max(0, Math.min(effectiveDuration, (scroller.scrollLeft / scrollableWidth) * totalTimelineDuration));
+                    setCurrentTime(newTime);
+                    const media = mediaRef.current;
+                    if (media && newTime <= (media.duration || 0)) {
+                      media.currentTime = newTime;
+                    }
+                    const song = songMediaRef.current;
+                    if (song && localSongUrl && newTime <= (song.duration || 0)) {
+                      song.currentTime = newTime;
+                    }
+                    drawFrame();
+                  }
+                }}
+              >
+                <div
+                  className="timeline-virtual-canvas"
+                  style={{
+                    width: `${Math.max(100, (totalTimelineDuration / 20) * 100 * timelineZoom)}%`,
+                    position: "relative",
+                    minWidth: "100%",
+                    paddingLeft: "25%",
+                    paddingRight: "75%",
+                    boxSizing: "content-box"
+                  }}
+                >
+                  {/* TIME RULER EXTENDING +30s BEYOND THE LONGEST TRACK */}
+                  <div className="timeline-ruler" aria-hidden="true" onClick={handleTimelineClick} style={{ height: "26px", position: "relative" }}>
+                    {(() => {
+                      const step = timelineZoom > 2 ? 0.25 : timelineZoom > 1 ? 0.5 : 1.0;
+                      const ticks = [];
+                      for (let t = 0; t <= totalTimelineDuration; t += step) {
+                        const isMajor = Math.abs(t % 1) < 0.001;
+                        ticks.push(
+                          <div
+                            key={t}
+                            className={`ruler-tick ${isMajor ? "major" : "minor"}`}
+                            style={{ left: `${(t / totalTimelineDuration) * 100}%` }}
+                          >
+                            <span className="ruler-tick-label">
+                              {formatPrecisionTime(t)}
+                            </span>
+                          </div>
+                        );
+                      }
+                      return ticks;
+                    })()}
+                  </div>
+
+                  {/* TRACK LANES WITH FULL-WIDTH SHADOW BASE */}
+                  <div className={`timeline-tracks-stack ${selectedLayer ? "has-layer-selected" : "all-layers-active"}`} style={{ width: "100%", minWidth: "100%", display: "flex", flexDirection: "column", gap: "6px", paddingTop: "6px", paddingBottom: "14px" }}>
+                    {/* TRACK 1: AUDIO */}
+                    <div
+                      className={`timeline-unified-row row-audio ${selectedLayer === "audio" ? "is-selected" : selectedLayer ? "is-dimmed" : "is-active"}`}
+                      style={{ height: "34px", display: "block", background: "rgba(12, 16, 23, 0.45)", borderRadius: "4px", overflow: "hidden" }}
+                      onClick={e => {
+                        e.stopPropagation();
+                        setSelectedLayer("audio");
+                        selectSubtitle(null);
+                      }}
+                    >
+                      <div className="track-lane" onClick={handleTimelineClick} style={{ height: "100%", width: "100%", position: "relative" }}>
+                        <div
+                          className="track-lane-clip clip-audio-fill"
+                          style={{
+                            width: `${Math.min(100, ((duration || mediaDuration || 0) / totalTimelineDuration) * 100)}%`,
+                            height: "100%"
+                          }}
+                        >
+                          <span className="clip-label-text">{videoFile?.name || "Uploaded audio track"}</span>
+                        </div>
                       </div>
                     </div>
-                  </div>
 
-                  {/* TRACK 2: BACKGROUND */}
-                  <div
-                    className={`timeline-unified-row row-bg ${selectedLayer === "background" ? "is-selected" : selectedLayer ? "is-dimmed" : "is-active"}`}
-                    style={{ height: "34px", display: "block" }}
-                    onClick={e => {
-                      e.stopPropagation();
-                      setSelectedLayer("background");
-                      selectSubtitle(null);
-                    }}
-                  >
-                    <div className="track-lane" onClick={handleTimelineClick} style={{ height: "100%", width: "100%", position: "relative" }}>
-                      {bgSegments.map((seg, idx) => {
-                        const start = seg.start;
-                        const end = seg.end || effectiveDuration;
-                        const leftPct = (start / totalTimelineDuration) * 100;
-                        const widthPct = Math.max(0.5, ((end - start) / totalTimelineDuration) * 100);
-                        const isSegSelected = selectedSegmentId === seg.id;
-                        return (
-                          <div
-                            key={seg.id}
-                            className={`track-lane-clip clip-bg-fill ${isSegSelected ? "is-segment-active" : ""}`}
-                            style={{
-                              left: `${leftPct}%`,
-                              width: `${widthPct}%`,
-                              height: "100%"
-                            }}
-                            onClick={ev => {
-                              ev.stopPropagation();
-                              setSelectedLayer("background");
-                              setSelectedSegmentId(seg.id);
-                            }}
-                          >
-                            <span className="clip-label-text">
-                              {settings.backgroundTheme === "custom-image"
-                                ? "Custom photo backdrop"
-                                : settings.backgroundTheme === "custom-video"
-                                  ? "Custom video backdrop"
-                                  : `Theme: ${settings.backgroundTheme ? settings.backgroundTheme.toUpperCase() : "MIDNIGHT"}`}
-                              {bgSegments.length > 1 ? ` (${idx + 1})` : ""}
-                            </span>
-                            {bgSegments.length > 1 && (
-                              <button
-                                type="button"
-                                className="track-song-remove-btn"
-                                onClick={ev => {
-                                  ev.stopPropagation();
-                                  setBgSegments(prev => prev.filter(s => s.id !== seg.id));
-                                }}
-                                title="Delete background segment"
-                              >
-                                <X size={11} />
-                              </button>
-                            )}
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </div>
-
-                  {/* TRACK 3: CAPTION */}
-                  <div
-                    className={`timeline-unified-row row-caption track-row-captions ${selectedLayer === "caption" ? "is-selected" : selectedLayer ? "is-dimmed" : "is-active"}`}
-                    style={{ height: "40px", display: "block" }}
-                    onClick={e => {
-                      e.stopPropagation();
-                      setSelectedLayer("caption");
-                    }}
-                  >
-                    <div className="track-lane captions-lane" ref={captionTrackRef} onClick={handleTimelineClick} style={{ height: "100%", width: "100%", position: "relative" }}>
-                      {subtitles.map(subtitle => {
-                        const timing = timelineTimingPreview?.id === subtitle.id ? timelineTimingPreview : subtitle;
-                        const startPercent = Math.max(0, Math.min(100, (timing.start / totalTimelineDuration) * 100));
-                        const widthPercent = Math.max(0.5, ((timing.end - timing.start) / totalTimelineDuration) * 100);
-                        const isSelected = subtitle.id === selectedSubtitleId;
-
-                        return (
-                          <div
-                            key={subtitle.id}
-                            className={`caption-segment-pill ${isSelected ? "is-selected" : selectedSubtitleId ? "is-caption-dimmed" : ""}`}
-                            style={{
-                              left: `${startPercent}%`,
-                              width: `${widthPercent}%`,
-                            }}
-                            onPointerDown={event => {
-                              event.stopPropagation();
-                              setSelectedLayer("caption");
-                              selectSubtitle(subtitle.id);
-                              beginTimelineDrag(event, subtitle, "move");
-                            }}
-                            onPointerMove={handleClipPointerMove}
-                            onPointerUp={event => endTimelineDrag(event)}
-                            onDoubleClick={e => {
-                              e.stopPropagation();
-                              startEditing(subtitle);
-                            }}
-                            onClick={e => {
-                              e.stopPropagation();
-                              setSelectedLayer("caption");
-                              selectSubtitle(subtitle.id);
-                            }}
-                          >
-                            <button
-                              type="button"
-                              className="caption-trim-handle start"
-                              aria-label="Trim start"
-                              onPointerDown={event => {
-                                event.stopPropagation();
-                                beginTimelineDrag(event, subtitle, "start");
-                              }}
-                              onKeyDown={event => nudgeCaptionEdge(event, subtitle, "start")}
-                              onClick={e => e.stopPropagation()}
-                            />
-                            
-                            <span className="caption-text-preview">
-                              {getCaptionText(subtitle.text, language, subtitle.tenglishText)}
-                            </span>
-
-                            <button
-                              type="button"
-                              className="caption-trim-handle end"
-                              aria-label="Trim end"
-                              onPointerDown={event => {
-                                event.stopPropagation();
-                                beginTimelineDrag(event, subtitle, "end");
-                              }}
-                              onKeyDown={event => nudgeCaptionEdge(event, subtitle, "end")}
-                              onClick={e => e.stopPropagation()}
-                            />
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </div>
-
-                  {/* TRACK 4: MUSIC */}
-                  <div
-                    className={`timeline-unified-row row-music ${selectedLayer === "music" ? "is-selected" : selectedLayer ? "is-dimmed" : "is-active"}`}
-                    style={{ height: "34px", display: "block" }}
-                    onClick={e => {
-                      e.stopPropagation();
-                      setSelectedLayer("music");
-                      selectSubtitle(null);
-                    }}
-                  >
-                    <div className="track-lane" onClick={handleTimelineClick} style={{ height: "100%", width: "100%", position: "relative" }}>
-                      {localSongUrl ? (
-                        songSegments.map((seg, idx) => {
+                    {/* TRACK 2: BACKGROUND */}
+                    <div
+                      className={`timeline-unified-row row-bg ${selectedLayer === "background" ? "is-selected" : selectedLayer ? "is-dimmed" : "is-active"}`}
+                      style={{ height: "34px", display: "block", background: "rgba(12, 16, 23, 0.45)", borderRadius: "4px" }}
+                      onClick={e => {
+                        e.stopPropagation();
+                        setSelectedLayer("background");
+                        selectSubtitle(null);
+                      }}
+                    >
+                      <div className="track-lane" onClick={handleTimelineClick} style={{ height: "100%", width: "100%", position: "relative" }}>
+                        {bgSegments.map((seg, idx) => {
                           const start = seg.start;
-                          const end = seg.end || effectiveDuration;
+                          const audioEnd = (duration || mediaDuration || 0);
+   const end = seg.end ? Math.min(seg.end, audioEnd) : audioEnd;
                           const leftPct = (start / totalTimelineDuration) * 100;
                           const widthPct = Math.max(0.5, ((end - start) / totalTimelineDuration) * 100);
                           const isSegSelected = selectedSegmentId === seg.id;
                           return (
                             <div
                               key={seg.id}
-                              className={`track-lane-clip clip-music-fill ${isSegSelected ? "is-segment-active" : ""}`}
+                              className={`track-lane-clip clip-bg-fill ${isSegSelected ? "is-segment-active" : ""}`}
                               style={{
                                 left: `${leftPct}%`,
                                 width: `${widthPct}%`,
@@ -1689,98 +1831,220 @@ export const Workspace: React.FC<WorkspaceProps> = ({
                               }}
                               onClick={ev => {
                                 ev.stopPropagation();
-                                setSelectedLayer("music");
+                                setSelectedLayer("background");
                                 setSelectedSegmentId(seg.id);
                               }}
                             >
                               <span className="clip-label-text">
-                                {localSongName || "Custom song track"}
-                                {songSegments.length > 1 ? ` (${idx + 1})` : ""}
+                                {settings.backgroundTheme === "custom-image"
+                                  ? "Custom photo backdrop"
+                                  : settings.backgroundTheme === "custom-video"
+                                    ? "Custom video backdrop"
+                                    : `Theme: ${settings.backgroundTheme ? settings.backgroundTheme.toUpperCase() : "MIDNIGHT"}`}
+                                {bgSegments.length > 1 ? ` (${idx + 1})` : ""}
                               </span>
-                              {songSegments.length > 1 && (
+                              {bgSegments.length > 1 && (
                                 <button
                                   type="button"
                                   className="track-song-remove-btn"
                                   onClick={ev => {
                                     ev.stopPropagation();
-                                    setSongSegments(prev => prev.filter(s => s.id !== seg.id));
+                                    setBgSegments(prev => prev.filter(s => s.id !== seg.id));
                                   }}
-                                  title="Delete segment"
+                                  title="Delete background segment"
                                 >
                                   <X size={11} />
                                 </button>
                               )}
                             </div>
                           );
-                        })
-                      ) : (
-                        <label className="track-add-song-slot" onClick={e => e.stopPropagation()}>
-                          <span>+ Select song from local device</span>
-                          <input
-                            type="file"
-                            accept="audio/*,.mp3,.wav,.aac,.ogg,.m4a"
-                            className="visually-hidden"
-                            onChange={e => {
-                              const file = e.target.files?.[0];
-                              if (file) {
-                                if (localSongUrl && localSongUrl.startsWith("blob:")) URL.revokeObjectURL(localSongUrl);
-                                const url = URL.createObjectURL(file);
-                                setLocalSongUrl(url);
-                                setLocalSongName(file.name);
-                                setSelectedLayer("music");
-                              }
-                              e.target.value = "";
+                        })}
+                      </div>
+                    </div>
+
+                    {/* TRACK 3: CAPTION */}
+                    <div
+                      className={`timeline-unified-row row-caption track-row-captions ${selectedLayer === "caption" ? "is-selected" : selectedLayer ? "is-dimmed" : "is-active"}`}
+                      style={{ height: "40px", display: "block", background: "rgba(12, 16, 23, 0.45)", borderRadius: "4px" }}
+                      onClick={e => {
+                        e.stopPropagation();
+                        setSelectedLayer("caption");
+                      }}
+                    >
+                      <div className="track-lane captions-lane" ref={captionTrackRef} onClick={handleTimelineClick} style={{ height: "100%", width: "100%", position: "relative" }}>
+                        {subtitles.map(subtitle => {
+                          const isSearchHit = captionSearchQuery && captionSearchQuery.trim()
+                            ? isCaptionSearched(subtitle.text, captionSearchQuery)
+                            : true;
+                          const timing = timelineTimingPreview?.id === subtitle.id ? timelineTimingPreview : subtitle;
+                          const startPercent = Math.max(0, Math.min(100, (timing.start / totalTimelineDuration) * 100));
+                          const widthPercent = Math.max(0.5, ((timing.end - timing.start) / totalTimelineDuration) * 100);
+                          const isSelected = subtitle.id === selectedSubtitleId;
+
+                          return (
+                            <div
+                              key={subtitle.id}
+                              className={`caption-segment-pill ${isSelected ? "is-selected" : selectedSubtitleId ? "is-caption-dimmed" : ""}`}
+                              style={{
+                                left: `${startPercent}%`,
+                                width: `${widthPercent}%`,
+                                filter: captionSearchQuery && captionSearchQuery.trim()
+                                  ? (isSearchHit
+                                      ? "brightness(1.3) contrast(1.1) drop-shadow(0 0 8px rgba(168, 85, 247, 0.95))"
+                                      : "grayscale(100%) opacity(0.2)")
+                                  : undefined,
+                                transform: captionSearchQuery && captionSearchQuery.trim() && isSearchHit ? "scale(1.02)" : undefined,
+                                transition: "all 0.18s cubic-bezier(0.4, 0, 0.2, 1)",
+                              }}
+                              onPointerDown={event => {
+                                event.stopPropagation();
+                                setSelectedLayer("caption");
+                                selectSubtitle(subtitle.id);
+                                beginTimelineDrag(event, subtitle, "move");
+                              }}
+                              onPointerMove={handleClipPointerMove}
+                              onPointerUp={event => endTimelineDrag(event)}
+                              onDoubleClick={e => {
+                                e.stopPropagation();
+                                startEditing(subtitle);
+                              }}
+                              onClick={e => {
+                                e.stopPropagation();
+                                setSelectedLayer("caption");
+                                selectSubtitle(subtitle.id);
+                              }}
+                            >
+                              <button
+                                type="button"
+                                className="caption-trim-handle start"
+                                aria-label="Trim start"
+                                onPointerDown={event => {
+                                  event.stopPropagation();
+                                  beginTimelineDrag(event, subtitle, "start");
+                                }}
+                                onKeyDown={event => nudgeCaptionEdge(event, subtitle, "start")}
+                                onClick={e => e.stopPropagation()}
+                              />
+                              
+                              <span className="caption-text-preview">
+                                {getCaptionText(subtitle.text, language, subtitle.tenglishText)}
+                              </span>
+
+                              <button
+                                type="button"
+                                className="caption-trim-handle end"
+                                aria-label="Trim end"
+                                onPointerDown={event => {
+                                  event.stopPropagation();
+                                  beginTimelineDrag(event, subtitle, "end");
+                                }}
+                                onKeyDown={event => nudgeCaptionEdge(event, subtitle, "end")}
+                                onClick={e => e.stopPropagation()}
+                              />
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+
+                    {/* TRACK 4: MUSIC */}
+                    <div
+                      className={`timeline-unified-row row-music ${selectedLayer === "music" ? "is-selected" : selectedLayer ? "is-dimmed" : "is-active"}`}
+                      style={{ height: "34px", display: "block", background: "rgba(12, 16, 23, 0.45)", borderRadius: "4px" }}
+                      onClick={e => {
+                        e.stopPropagation();
+                        setSelectedLayer("music");
+                        selectSubtitle(null);
+                      }}
+                    >
+                      <div className="track-lane" onClick={handleTimelineClick} style={{ height: "100%", width: "100%", position: "relative" }}>
+                        {localSongUrl ? (
+                          songSegments.map((seg, idx) => {
+                            const start = seg.start;
+                            const actualEnd = seg.end || songDuration || 7;
+                            const leftPct = (start / totalTimelineDuration) * 100;
+                            const widthPct = Math.max(0.5, ((actualEnd - start) / totalTimelineDuration) * 100);
+                            const isSegSelected = selectedSegmentId === seg.id;
+                            return (
+                              <div
+                                key={seg.id}
+                                className={`track-lane-clip clip-music-fill ${isSegSelected ? "is-segment-active" : ""}`}
+                                style={{
+                                  left: `${leftPct}%`,
+                                  width: `${widthPct}%`,
+                                  height: "100%"
+                                }}
+                                onClick={ev => {
+                                  ev.stopPropagation();
+                                  setSelectedLayer("music");
+                                  setSelectedSegmentId(seg.id);
+                                }}
+                              >
+                                <span className="clip-label-text">
+                                  {localSongName || "Custom song track"}
+                                  {songSegments.length > 1 ? ` (${idx + 1})` : ""}
+                                </span>
+                                {songSegments.length > 1 && (
+                                  <button
+                                    type="button"
+                                    className="track-song-remove-btn"
+                                    onClick={ev => {
+                                      ev.stopPropagation();
+                                      setSongSegments(prev => prev.filter(s => s.id !== seg.id));
+                                    }}
+                                    title="Delete segment"
+                                  >
+                                    <X size={11} />
+                                  </button>
+                                )}
+                              </div>
+                            );
+                          })
+                        ) : (
+                          <label
+                            className="track-add-song-slot"
+                            onClick={e => e.stopPropagation()}
+                            style={{
+                              position: "absolute",
+                              left: 0,
+                              top: 0,
+                              bottom: 0,
+                              display: "flex",
+                              alignItems: "center",
+                              justifyContent: "flex-start",
+                              paddingLeft: "14px",
+                              cursor: "pointer",
+                              zIndex: 10,
+                              whiteSpace: "nowrap"
                             }}
-                          />
-                        </label>
-                      )}
+                          >
+                            <span style={{ textAlign: "left" }}>+ Select song from local device</span>
+                            <input
+                              type="file"
+                              accept="audio/*,.mp3,.wav,.aac,.ogg,.m4a"
+                              className="visually-hidden"
+                              onChange={e => {
+                                const file = e.target.files?.[0];
+                                if (file) {
+                                  if (localSongUrl && localSongUrl.startsWith("blob:")) URL.revokeObjectURL(localSongUrl);
+                                  const url = URL.createObjectURL(file);
+                                  setLocalSongUrl(url);
+                                  setLocalSongName(file.name);
+                                  setSelectedLayer("music");
+                                }
+                                e.target.value = "";
+                              }}
+                            />
+                          </label>
+                        )}
+                      </div>
                     </div>
                   </div>
-
-                  {/* NATIVE WHITE TIMELINE NEEDLE LINE */}
-                  <div
-                    className="timeline-native-needle"
-                    style={{
-                      position: "absolute",
-                      left: `${Math.min(100, Math.max(0, (currentTime / totalTimelineDuration) * 100))}%`,
-                      top: 0,
-                      bottom: 0,
-                      width: "1.5px",
-                      zIndex: 32,
-                      pointerEvents: "none"
-                    }}
-                  >
-                    <div
-                      className="needle-head-marker"
-                      style={{
-                        position: "absolute",
-                        top: "-2px",
-                        left: "-5px",
-                        width: "11px",
-                        height: "11px",
-                        borderRadius: "50%",
-                        background: "#ffffff",
-                        boxShadow: "0 0 8px rgba(255, 255, 255, 0.9)"
-                      }}
-                    />
-                    <div
-                      className="needle-vertical-line"
-                      style={{
-                        position: "absolute",
-                        top: "9px",
-                        bottom: 0,
-                        left: "0px",
-                        width: "1.5px",
-                        background: "#ffffff",
-                        boxShadow: "0 0 6px rgba(255, 255, 255, 0.75)"
-                      }}
-                    />
                 </div>
               </div>
             </div>
-          </div>
 
-          {/* DIRECT CAPTION EDIT POPUP */}
+            {/* DIRECT CAPTION EDIT POPUP */}
             {editingSubtitleId && (
               <div
                 className="timeline-modal-backdrop"
@@ -1864,7 +2128,13 @@ export const Workspace: React.FC<WorkspaceProps> = ({
                 const songLen = e.currentTarget.duration;
                 if (Number.isFinite(songLen) && songLen > 0) {
                   setSongDuration(songLen);
-                  }
+                  setSongSegments(prev => {
+                    if (prev.length <= 1 && (prev[0]?.id === "song-default" || !prev[0]?.end)) {
+                      return [{ id: "song-default", start: 0, end: songLen }];
+                    }
+                    return prev;
+                  });
+                }
               }}
               onEnded={() => {
                 if (mediaRef.current && mediaRef.current.paused) {

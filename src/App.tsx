@@ -32,6 +32,7 @@ function formatSeconds(seconds: number): string {
 }
 
 function App() {
+  const [captionSearchQuery, setCaptionSearchQuery] = useState<string>("");
   const [videoFile, setVideoFile] = useState<File | null>(null);
   const [audioBlob, setAudioBlob] = useState<Blob | null>(null);
   const [sourceLanguage, setSourceLanguage] = useState<SourceLanguage>('en');
@@ -51,6 +52,35 @@ function App() {
   const [audioReady, setAudioReady] = useState(false);
   const [showExportPage, setShowExportPage] = useState(false);
   const [projectTitle, setProjectTitle] = useState('Untitled Caption Project');
+  const [copiedCaption, setCopiedCaption] = useState<Subtitle | null>(null);
+
+  const [playbackState, setPlaybackState] = useState<{
+    isPlaying: boolean;
+    currentTime: number;
+    duration: number;
+    volume: number;
+    songVolume?: number;
+    selectedLayer?: "audio" | "background" | "caption" | "music" | null;
+    selectedSegmentId?: string | null;
+    splitActiveLayer?: () => void;
+    deleteActiveLayer?: () => void;
+    togglePlay: () => void;
+    seek: (t: number) => void;
+    setVolume: (v: number) => void;
+    setSongVolume?: (v: number) => void;
+  }>({
+    isPlaying: false,
+    currentTime: 0,
+    duration: 0,
+    volume: 1,
+    songVolume: 0.8,
+    selectedLayer: "caption",
+    selectedSegmentId: null,
+    togglePlay: () => {},
+    seek: () => {},
+    setVolume: () => {},
+  });
+
 
   const initialSettings: CanvasSettings = {
     aspectRatio: '9:16',
@@ -462,64 +492,102 @@ const applyProgress = (progress: LocalTranscriptionProgress) => {
     };
   }, []);
 
-  const duplicateSelectedCaption = () => {
-    if (!selectedSubtitleId || !mediaDuration) return;
-    const selectedIndex = subtitles.findIndex(item => item.id === selectedSubtitleId);
-    if (selectedIndex < 0) return;
-    const source = subtitles[selectedIndex];
-    const length = Math.max(0.05, Math.min(source.end - source.start, mediaDuration));
-    const start = Math.max(0, Math.min(source.end + 0.1, mediaDuration - length));
-    const end = start + length;
-    const duplicate: Subtitle = {
-      ...source,
-      id: `${source.id}-copy-${Date.now()}`,
-      start,
-      end,
-      words: source.words?.map(word => ({
-        ...word,
-        start: word.start + start - source.start,
-        end: word.end + start - source.start,
-      })),
-    };
-    updateSubtitles(previous => previous.toSpliced(selectedIndex + 1, 0, duplicate));
-    setSelectedSubtitleId(duplicate.id);
-  };
-
   const deleteSelectedCaption = () => {
     if (!selectedSubtitleId) return;
     updateSubtitles(previous => previous.filter(item => item.id !== selectedSubtitleId));
     setSelectedSubtitleId(null);
   };
 
-  const splitSelectedCaption = () => {
-    if (!selectedSubtitleId) return;
-    const index = subtitles.findIndex(item => item.id === selectedSubtitleId);
-    if (index < 0) return;
-    const source = subtitles[index];
-    if (source.end - source.start < 0.1) return;
-    const splitPointTime = (source.start + source.end) / 2;
-    const words = source.text.trim().split(/s+/).filter(Boolean);
-    const mid = Math.max(1, Math.ceil(words.length / 2));
-    const first: Subtitle = {
-      ...source,
-      end: splitPointTime,
-      text: words.slice(0, mid).join(" "),
-    };
-    const second: Subtitle = {
-      ...source,
-      id: `${source.id}-split-${Date.now()}`,
-      start: splitPointTime,
-      text: words.slice(mid).join(" "),
-    };
-    updateSubtitles(previous => previous.toSpliced(index, 1, first, second));
-    setSelectedSubtitleId(second.id);
+  const handleUnifiedSplit = () => {
+    const currentLayer = playbackState.selectedLayer || "caption";
+    if (currentLayer === "audio") return;
+    if (currentLayer === "caption") {
+      const needle = playbackState.currentTime;
+      // Split target caption where needle is located
+      setSubtitles(prev => {
+        const targetIdx = prev.findIndex(s => 
+          (selectedSubtitleId && s.id === selectedSubtitleId && needle > s.start + 0.05 && needle < s.end - 0.05) ||
+          (!selectedSubtitleId && needle > s.start + 0.05 && needle < s.end - 0.05)
+        );
+        if (targetIdx === -1) return prev;
+        const target = prev[targetIdx];
+        const words = target.text.trim().split(/s+/).filter(Boolean);
+        const ratio = (needle - target.start) / (target.end - target.start);
+        const mid = Math.max(1, Math.min(words.length - 1, Math.round(words.length * ratio)));
+
+        const first: Subtitle = {
+          ...target,
+          end: needle,
+          text: words.slice(0, mid).join(" ") || target.text,
+        };
+        const second: Subtitle = {
+          ...target,
+          id: `${target.id}-split-${Date.now()}`,
+          start: needle,
+          text: words.slice(mid).join(" ") || "...",
+        };
+        const next = [...prev];
+        next.splice(targetIdx, 1, first, second);
+        return next;
+      });
+    } else {
+      playbackState.splitActiveLayer?.();
+    }
+  };
+
+  const handleUnifiedDelete = () => {
+    const currentLayer = playbackState.selectedLayer || "caption";
+    if (currentLayer === "audio") return;
+    if (currentLayer === "caption") {
+      deleteSelectedCaption();
+    } else {
+      playbackState.deleteActiveLayer?.();
+    }
+  };
+
+  const handleCopyOrPaste = () => {
+    const audioLimit = mediaDuration || playbackState.duration || 0;
+    if (copiedCaption) {
+      const needle = playbackState.currentTime || 0;
+      if (needle >= audioLimit - 0.05) return; // Cannot paste outside background
+
+      const origLen = Math.max(0.1, copiedCaption.end - copiedCaption.start);
+      const start = Math.max(0, needle);
+      const end = Math.min(start + origLen, audioLimit);
+
+      if (end - start < 0.05) return;
+
+      const pasted: Subtitle = {
+        ...copiedCaption,
+        id: "caption-pasted-" + Date.now(),
+        start,
+        end,
+      };
+      updateSubtitles(prev => [...prev, pasted].sort((a, b) => a.start - b.start));
+      setSelectedSubtitleId(pasted.id);
+      setCopiedCaption(null);
+    } else if (selectedSubtitleId) {
+      const selected = subtitles.find(s => s.id === selectedSubtitleId);
+      if (selected) {
+        setCopiedCaption(selected);
+      }
+    }
   };
 
   const addTimelineCaption = () => {
-    const start = Math.max(0, Math.min(jumpTime || 0, Math.max(0, mediaDuration - 2)));
-    const end = Math.min(start + 2, mediaDuration || start + 2);
+    const audioLimit = mediaDuration || playbackState.duration || 0;
+    if (audioLimit <= 0) return;
+
+    const playhead = playbackState.currentTime || 0;
+    if (playhead >= audioLimit - 0.05) return; // Cannot add outside background
+
+    const start = Math.max(0, playhead);
+    const end = Math.min(start + 2, audioLimit);
+
+    if (end - start < 0.05) return;
+
     const caption: Subtitle = {
-      id: `caption-${Date.now()}`,
+      id: "caption-" + Date.now(),
       start,
       end,
       text: "New caption",
@@ -561,6 +629,7 @@ const applyProgress = (progress: LocalTranscriptionProgress) => {
         <div className="editor-shell">
           <div className="editor-columns">
             <Sidebar
+            onSearchQueryChange={setCaptionSearchQuery}
               onFileUpload={handleFileUpload}
               onBackToUpload={handleRemoveMedia}
               isTranscribing={isTranscribing}
@@ -606,13 +675,35 @@ const applyProgress = (progress: LocalTranscriptionProgress) => {
               canRedo={editorHistory.canRedo}
               onUndo={undo}
               onRedo={redo}
-              onDuplicateSubtitle={duplicateSelectedCaption}
-              onSplitSubtitle={splitSelectedCaption}
-              onDeleteSubtitle={deleteSelectedCaption}
+              onDuplicateSubtitle={handleCopyOrPaste}
+              onSplitSubtitle={handleUnifiedSplit}
+              onDeleteSubtitle={handleUnifiedDelete}
+              selectedLayer={playbackState.selectedLayer ?? null}
+              copiedCaption={copiedCaption}
+              onCopyOrPaste={handleCopyOrPaste}
               onAddSubtitle={addTimelineCaption}
               hasSelectedSubtitle={Boolean(selectedSubtitleId)}
+              isPlaying={playbackState.isPlaying}
+              onTogglePlay={playbackState.togglePlay}
+              currentTime={playbackState.currentTime}
+              duration={playbackState.duration || mediaDuration}
+              onSeek={playbackState.seek}
+              volume={playbackState.volume}
+              songVolume={playbackState.songVolume ?? 0.8}
+              onVolumeChange={(val) => {
+                setPlaybackState(prev => ({ ...prev, volume: val }));
+                const fn = (playbackState as any).setVolume;
+                if (typeof fn === "function") fn(val);
+              }}
+              onSongVolumeChange={(val) => {
+                setPlaybackState(prev => ({ ...prev, songVolume: val }));
+                const fn = (playbackState as any).setSongVolume;
+                if (typeof fn === "function") fn(val);
+              }}
             />
             <Workspace
+            captionSearchQuery={captionSearchQuery}
+              onPlaybackStateChange={(st) => setPlaybackState(prev => ({ ...prev, ...st }))}
               videoFile={videoFile}
               audioBlob={audioBlob}
               subtitles={subtitles}
