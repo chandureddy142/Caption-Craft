@@ -61,16 +61,16 @@ function formatDuration(seconds: number): string {
 export const Sidebar: React.FC<SidebarProps> = ({
   onFileUpload,
   isTranscribing,
-  transcriptionStatus,
-  transcriptionProgress,
-  transcriptionProcessedDuration = 0,
-  transcriptionTotalDuration = 0,
-  transcriptionError = '',
-  modelStatus = 'idle',
-  modelProgress = 0,
+  transcriptionStatus: _transcriptionStatus,
+  transcriptionProgress: _transcriptionProgress,
+  transcriptionProcessedDuration: _transcriptionProcessedDuration = 0,
+  transcriptionTotalDuration: _transcriptionTotalDuration = 0,
+  transcriptionError: _transcriptionError = "",
+  modelStatus = "idle",
+  modelProgress: _modelProgress = 0,
   onGenerateCaptions,
-  onRetryTranscription,
-  onCancelTranscription,
+  onRetryTranscription: _onRetryTranscription,
+  onCancelTranscription: _onCancelTranscription,
   subtitles,
   sourceLanguage,
   setSourceLanguage,
@@ -162,14 +162,14 @@ export const Sidebar: React.FC<SidebarProps> = ({
       </section>
 
       <section className="sidebar-section generate-section">
-        <div className="section-heading"><div><h2>Generate captions</h2></div><span className={`live-status ${isTranscribing ? 'working' : 'ready'}`}><i />{isTranscribing ? 'Working' : 'Ready'}</span></div>
+        <div className="section-heading"><div><h2>Generate captions</h2></div><span className={`live-status ${isTranscribing ? "working" : "ready"}`}><i />{isTranscribing ? "Working" : "Ready"}</span></div>
 
-        <div className="language-pills backend-pills" role="group" aria-label="Transcription backend" style={{ gridTemplateColumns: '1fr' }}>
+        <div className="language-pills backend-pills" role="group" aria-label="Transcription backend" style={{ gridTemplateColumns: "1fr" }}>
           {backendButton}
         </div>
 
-        {sourceLanguage === 'te' && geminiKeyMissing && (
-          <div className="inline-error compact-error gemini-key-warning" style={{ margin: '8px 0' }}>
+        {sourceLanguage === "te" && geminiKeyMissing && (
+          <div className="inline-error compact-error gemini-key-warning" style={{ margin: "8px 0" }}>
             <AlertCircle size={13} />
             <span>
               <strong>API key missing.</strong> Set <code>VITE_GEMINI_API_KEY</code> in your <code>.env</code> file.
@@ -177,20 +177,20 @@ export const Sidebar: React.FC<SidebarProps> = ({
           </div>
         )}
 
-        {sourceLanguage === 'en' && (
-          <div className="language-pills model-choice-pills" role="group" aria-label="Whisper model accuracy" style={{ margin: '8px 0' }}>
+        {sourceLanguage === "en" && (
+          <div className="language-pills model-choice-pills" role="group" aria-label="Whisper model accuracy" style={{ margin: "8px 0" }}>
             <button
               type="button"
-              className={whisperModel === 'tiny' ? 'active' : ''}
-              onClick={() => onSelectWhisperModel?.('tiny')}
+              className={whisperModel === "tiny" ? "active" : ""}
+              onClick={() => onSelectWhisperModel?.("tiny")}
               disabled={isTranscribing}
             >
               Standard
             </button>
             <button
               type="button"
-              className={whisperModel === 'base' ? 'active' : ''}
-              onClick={() => onSelectWhisperModel?.('base')}
+              className={whisperModel === "base" ? "active" : ""}
+              onClick={() => onSelectWhisperModel?.("base")}
               disabled={isTranscribing}
             >
               High Accuracy
@@ -199,45 +199,17 @@ export const Sidebar: React.FC<SidebarProps> = ({
         )}
 
         <button
+          type="button"
           className="primary-action"
           onClick={onGenerateCaptions}
-          disabled={isTranscribing || !onGenerateCaptions || (sourceLanguage === 'te' && geminiKeyMissing)}
-          style={{ marginTop: '8px' }}
+          disabled={isTranscribing || !onGenerateCaptions || (sourceLanguage === "te" && geminiKeyMissing)}
+          style={{ marginTop: "8px" }}
         >
-          <RefreshCw size={16} className={isTranscribing || modelStatus === 'loading' ? 'spin' : ''} />
-          {subtitles.length ? 'Regenerate captions' : 'Generate captions'}
+          <RefreshCw size={16} className={isTranscribing || modelStatus === "loading" ? "spin" : ""} />
+          {subtitles.length ? "Regenerate captions" : "Generate captions"}
         </button>
-
-        {isTranscribing && onCancelTranscription && (
-          <button className="secondary-action cancel-transcription" onClick={onCancelTranscription}>Cancel transcription</button>
-        )}
-
-        {sourceLanguage === 'en' && modelStatus === 'loading' && (
-          <div className="model-download-status">
-            <span>Initializing speech model</span>
-            <strong>{Math.round(modelProgress)}%</strong>
-            <div className="progress-track">
-              <span style={{ width: `${Math.min(100, Math.max(0, modelProgress))}%` }} />
-            </div>
-          </div>
-        )}
-
-        {(isTranscribing || transcriptionProgress > 0 || transcriptionError) && (
-          <div className={`transcription-card ${transcriptionError ? 'has-error' : ''}`}>
-            <div className="transcription-status-row">
-              <span>{transcriptionError ? 'Needs attention' : transcriptionStatus || 'Preparing transcription'}</span>
-              <strong>{Math.round(transcriptionProgress)}%</strong>
-            </div>
-            <div className="progress-track">
-              <span style={{ width: `${Math.min(100, transcriptionProgress)}%` }} />
-            </div>
-            <span className="progress-detail">{transcriptionProcessedDuration.toFixed(1)}s / {transcriptionTotalDuration.toFixed(1)}s processed</span>
-            {transcriptionError && <div className="inline-error compact-error"><AlertCircle size={14} /><span>{transcriptionError}</span></div>}
-            {transcriptionError && onRetryTranscription && !isTranscribing && <button className="secondary-action" onClick={onRetryTranscription}>Retry failed chunk</button>}
-          </div>
-        )}
       </section>
-    
+
       <section className="sidebar-section timeline-sidebar-tools">
         <div className="section-heading">
           <div><h2>Timeline tools</h2></div>

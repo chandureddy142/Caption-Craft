@@ -27,6 +27,7 @@ import {
   Volume2,
   VolumeX,
   X,
+  Trash2,
 } from "lucide-react";
 import { ExportModal } from "./ExportModal";
 import { downloadStringAsFile, exportToSRT, exportToVTT } from "../utils/exporter";
@@ -134,10 +135,18 @@ export const Workspace: React.FC<WorkspaceProps> = ({
   const customVideoRef = useRef<HTMLVideoElement | null>(null);
   const songMediaRef = useRef<HTMLAudioElement | null>(null);
   const [songDuration, setSongDuration] = useState(0);
-  const [selectedLayer, setSelectedLayer] = useState<"audio" | "background" | "caption" | "music">("caption");
+  const [selectedLayer, setSelectedLayer] = useState<"audio" | "background" | "caption" | "music" | null>("caption");
   const [songVolume, setSongVolume] = useState(0.8);
+  const [bgSegments, setBgSegments] = useState<Array<{ id: string; start: number; end: number }>>([
+    { id: "bg-default", start: 0, end: 0 }
+  ]);
+  const [songSegments, setSongSegments] = useState<Array<{ id: string; start: number; end: number }>>([
+    { id: "song-default", start: 0, end: 0 }
+  ]);
+  const [selectedSegmentId, setSelectedSegmentId] = useState<string | null>(null);
   const [timelineZoom, setTimelineZoom] = useState(1);
   const timelineViewportRef = useRef<HTMLDivElement>(null);
+  const timelineContainerRef = useRef<HTMLDivElement>(null);
 
   const [activeCatalogTab, setActiveCatalogTab] = useState<"backgrounds" | "templates">("backgrounds");
   const [isZoom100, setIsZoom100] = useState(false);
@@ -152,12 +161,15 @@ export const Workspace: React.FC<WorkspaceProps> = ({
   const [duration, setDuration] = useState(0);
   const totalPlaybackDuration = Math.max(duration || 0, songDuration || 0, mediaDuration || 0);
   const effectiveDuration = totalPlaybackDuration > 0 ? totalPlaybackDuration : 1;
+  const totalTimelineDuration = effectiveDuration + 30;
   const [volume, setVolume] = useState(1);
   const [localSelectedSubtitleId, setLocalSelectedSubtitleId] = useState<string | null>(null);
   const [editingSubtitleId, setEditingSubtitleId] = useState<string | null>(null);
   const [draftText, setDraftText] = useState("");
-  const [inlineEditorStyle, setInlineEditorStyle] = useState<React.CSSProperties | null>(null);
+  const [_inlineEditorStyle, setInlineEditorStyle] = useState<React.CSSProperties | null>(null);
   const inlineEditorRef = useRef<HTMLTextAreaElement>(null);
+  const popupInputRef = useRef<HTMLInputElement>(null);
+  const editOpenedAtRef = useRef<number>(0);
   const editingSubtitleIdRef = useRef<string | null>(null);
   const draftTextRef = useRef("");
   const [exportResolution, setExportResolution] = useState<ExportResolutionPreset>("1080p");
@@ -300,14 +312,12 @@ export const Workspace: React.FC<WorkspaceProps> = ({
       selectedSubtitleId,
     );
 
-    setCurrentTime(media.currentTime);
+    // setCurrentTime driven by master clock loop
     if (isExporting && duration > 0) {
       setExportProgress(Math.min(100, (media.currentTime / duration) * 100));
     }
 
-    if (!media.paused && !media.ended) {
-      animationRef.current = requestAnimationFrame(() => drawFrameRef.current());
-    }
+    // requestAnimationFrame handled by masterClockLoop
   }, [duration, isExporting, isVideoMedia, language, selectedSubtitleId, settings, subtitles]);
 
   useEffect(() => {
@@ -328,8 +338,39 @@ export const Workspace: React.FC<WorkspaceProps> = ({
         }
 
         const media = mediaRef.current;
-        if (media && !media.paused && media.currentTime >= (media.duration || 0)) {
-          media.pause();
+        if (media) {
+          if (next < (media.duration || 0)) {
+            if (media.paused && !media.ended) {
+              void media.play().catch(() => undefined);
+            }
+          } else {
+            if (!media.paused) media.pause();
+          }
+        }
+
+        const song = songMediaRef.current;
+        if (song && localSongUrl) {
+          if (next < (song.duration || 0)) {
+            if (song.paused && !song.ended) {
+              void song.play().catch(() => undefined);
+            }
+          } else {
+            if (!song.paused) song.pause();
+          }
+        }
+
+        if (timelineViewportRef.current) {
+          const scroller = timelineViewportRef.current;
+          const totalScrollable = scroller.scrollWidth - scroller.clientWidth;
+          if (totalScrollable > 0 && effectiveDuration > 0) {
+            const targetX = (next / totalTimelineDuration) * scroller.scrollWidth;
+          const halfView = scroller.clientWidth / 2;
+          if (targetX > halfView) {
+            scroller.scrollLeft = targetX - halfView;
+          } else {
+            scroller.scrollLeft = 0;
+          }
+          }
         }
 
         return next;
@@ -343,23 +384,30 @@ export const Workspace: React.FC<WorkspaceProps> = ({
     return () => {
       if (animationRef.current) cancelAnimationFrame(animationRef.current);
     };
-  }, [isPlaying, effectiveDuration, drawFrame]);
+  }, [isPlaying, effectiveDuration, totalTimelineDuration, drawFrame]);
 
   useEffect(() => {
-    const el = timelineViewportRef.current;
-    if (!el) return;
+    const container = timelineContainerRef.current || timelineViewportRef.current;
+    const scroller = timelineViewportRef.current;
+    if (!container || !scroller) return;
+
     const onWheel = (e: WheelEvent) => {
       if (e.ctrlKey || e.metaKey) {
         e.preventDefault();
         const factor = e.deltaY < 0 ? 1.15 : 0.85;
-        setTimelineZoom(z => Math.max(0.4, Math.min(6, z * factor)));
-      } else if (Math.abs(e.deltaX) > Math.abs(e.deltaY)) {
-        e.preventDefault();
-        el.scrollLeft += e.deltaX;
+        setTimelineZoom(z => Math.max(0.5, Math.min(6, z * factor)));
+      } else {
+        // Two-finger horizontal or vertical swipe scrolls the tracks container horizontally
+        const delta = Math.abs(e.deltaX) >= Math.abs(e.deltaY) ? e.deltaX : (e.shiftKey ? e.deltaY : 0);
+        if (delta !== 0) {
+          e.preventDefault();
+          scroller.scrollLeft += delta;
+        }
       }
     };
-    el.addEventListener("wheel", onWheel, { passive: false });
-    return () => el.removeEventListener("wheel", onWheel);
+
+    container.addEventListener("wheel", onWheel, { passive: false });
+    return () => container.removeEventListener("wheel", onWheel);
   }, []);
 
   useEffect(() => {
@@ -419,7 +467,15 @@ export const Workspace: React.FC<WorkspaceProps> = ({
     draftTextRef.current = nextDraft;
     setDraftText(nextDraft);
     editingSubtitleIdRef.current = subtitle.id;
+    editOpenedAtRef.current = Date.now();
     setEditingSubtitleId(subtitle.id);
+    setTimeout(() => {
+      if (popupInputRef.current) {
+        popupInputRef.current.focus();
+        const len = popupInputRef.current.value.length;
+        popupInputRef.current.setSelectionRange(len, len);
+      }
+    }, 50);
   };
 
   const saveInlineEdit = () => {
@@ -545,7 +601,7 @@ export const Workspace: React.FC<WorkspaceProps> = ({
     if (!editingSubtitleId) return undefined;
     const handleOutsidePointerDown = (event: PointerEvent) => {
       const target = event.target;
-      if (target instanceof Node && inlineEditorRef.current?.contains(target)) return;
+      if (target instanceof Node && (inlineEditorRef.current?.contains(target) || popupInputRef.current?.closest('.timeline-caption-edit-modal')?.contains(target))) return;
       saveInlineEdit();
     };
     document.addEventListener("pointerdown", handleOutsidePointerDown, true);
@@ -582,10 +638,11 @@ export const Workspace: React.FC<WorkspaceProps> = ({
         if (media) media.currentTime = 0;
         if (song) song.currentTime = 0;
       }
-      if (media && media.currentTime < (media.duration || 0)) {
+      if (media && currentTime < (media.duration || 0)) {
+        media.currentTime = currentTime;
         void media.play().catch(() => undefined);
       }
-      if (song && localSongUrl) {
+      if (song && localSongUrl && currentTime < (song.duration || 0)) {
         song.currentTime = currentTime;
         void song.play().catch(() => undefined);
       }
@@ -596,7 +653,8 @@ export const Workspace: React.FC<WorkspaceProps> = ({
       setIsPlaying(false);
       if (animationRef.current) cancelAnimationFrame(animationRef.current);
     }
-  };
+  }
+  ;
 
   const handleExportFrame = () => {
     if (!canvasRef.current) {
@@ -857,12 +915,39 @@ export const Workspace: React.FC<WorkspaceProps> = ({
     }
   }, [currentTime, isPlaying, effectiveDuration]); // Auto-scroll timeline scroller to follow playback
 
+  
+  const handleSplitActiveLayer = () => {
+    if (selectedLayer === "background") {
+      setBgSegments(prev => {
+        const seg = (prev.find(s => s.id === selectedSegmentId) || prev.find(s => currentTime > s.start && currentTime < (s.end || effectiveDuration)));
+        if (!seg) return prev;
+        const actualEnd = seg.end || effectiveDuration;
+        if (currentTime <= seg.start + 0.1 || currentTime >= actualEnd - 0.1) return prev;
+        const newSeg1 = { id: seg.id, start: seg.start, end: currentTime };
+        const newSeg2 = { id: "bg-" + Date.now(), start: currentTime, end: actualEnd };
+        return prev.map(s => s.id === seg.id ? newSeg1 : s).concat(newSeg2).sort((a,b) => a.start - b.start);
+      });
+    } else if (selectedLayer === "music") {
+      setSongSegments(prev => {
+        const seg = (prev.find(s => s.id === selectedSegmentId) || prev.find(s => currentTime > s.start && currentTime < (s.end || effectiveDuration)));
+        if (!seg) return prev;
+        const actualEnd = seg.end || effectiveDuration;
+        if (currentTime <= seg.start + 0.1 || currentTime >= actualEnd - 0.1) return prev;
+        const newSeg1 = { id: seg.id, start: seg.start, end: currentTime };
+        const newSeg2 = { id: "song-" + Date.now(), start: currentTime, end: actualEnd };
+        return prev.map(s => s.id === seg.id ? newSeg1 : s).concat(newSeg2).sort((a,b) => a.start - b.start);
+      });
+    }
+  };
+
   const handleTimelineClick = (event: React.MouseEvent<HTMLDivElement>) => {
-    if (!mediaRef.current || !duration) return;
     if (editingSubtitleId) saveInlineEdit();
     const rect = event.currentTarget.getBoundingClientRect();
-    const nextTime = Math.max(0, Math.min(duration, ((event.clientX - rect.left) / rect.width) * duration));
-    mediaRef.current.currentTime = nextTime;
+    const clickX = event.clientX - rect.left;
+    const nextTime = Math.max(0, Math.min(effectiveDuration, (clickX / rect.width) * effectiveDuration));
+    setCurrentTime(nextTime);
+    if (mediaRef.current) mediaRef.current.currentTime = Math.min(nextTime, mediaRef.current.duration || nextTime);
+    if (songMediaRef.current) songMediaRef.current.currentTime = Math.min(nextTime, songMediaRef.current.duration || nextTime);
     drawFrame();
   };
 
@@ -1158,31 +1243,7 @@ export const Workspace: React.FC<WorkspaceProps> = ({
               aria-label="Caption preview. Click a visible caption to edit it."
               className={editingSubtitleId ? "editing" : ""}
             />
-            {editingSubtitleId && inlineEditorStyle && (
-              <textarea
-                ref={inlineEditorRef}
-                className="caption-inline-editor"
-                style={inlineEditorStyle}
-                autoFocus
-                value={draftText}
-                onChange={event => {
-                  draftTextRef.current = event.target.value;
-                  setDraftText(event.target.value);
-                }}
-                onBlur={saveInlineEdit}
-                onKeyDown={event => {
-                  if (event.key === "Escape") {
-                    event.preventDefault();
-                    event.stopPropagation();
-                    cancelInlineEdit();
-                  } else if (event.key === "Enter" && (event.ctrlKey || event.metaKey)) {
-                    event.preventDefault();
-                    saveInlineEdit();
-                  }
-                }}
-                aria-label="Edit caption text"
-              ></textarea>
-            )}
+            {/* Canvas textarea replaced by popup modal */}
           </div>
           {!videoFile && <div className="preview-empty">Upload media to start previewing</div>}
           <video
@@ -1209,7 +1270,17 @@ export const Workspace: React.FC<WorkspaceProps> = ({
         </div>
 
         {/* BOTTOM STUDIO TIMELINE PANEL */}
-        <section className="player-panel">
+        <section
+          className="player-panel"
+          onClick={e => {
+            const target = e.target as HTMLElement;
+            if (!target.closest(".timeline-unified-row") && !target.closest(".caption-segment-pill")) {
+              setSelectedLayer(null);
+              selectSubtitle(null);
+              setSelectedSegmentId(null);
+            }
+          }}
+        >
           {/* PLAY CONTROLS & TIMECODE */}
           <div className="player-controls">
             <button
@@ -1238,8 +1309,9 @@ export const Workspace: React.FC<WorkspaceProps> = ({
                 value={Math.min(currentTime, effectiveDuration)}
                 onChange={event => {
                   const targetTime = Number(event.target.value);
-                  if (mediaRef.current) mediaRef.current.currentTime = targetTime;
-                  if (songMediaRef.current) songMediaRef.current.currentTime = targetTime;
+                  setCurrentTime(targetTime);
+                  if (mediaRef.current) mediaRef.current.currentTime = Math.min(targetTime, mediaRef.current.duration || targetTime);
+                  if (songMediaRef.current) songMediaRef.current.currentTime = Math.min(targetTime, songMediaRef.current.duration || targetTime);
                   drawFrame();
                 }}
                 disabled={!effectiveDuration}
@@ -1249,7 +1321,18 @@ export const Workspace: React.FC<WorkspaceProps> = ({
 
             <span className="studio-time-display total">{formatDuration(effectiveDuration)}</span>
 
-            {/* CONTEXT-AWARE VOLUME CONTROLLER */}
+            {/* SPLIT BUTTON */}
+            {(selectedLayer === "background" || selectedLayer === "music") && (
+              <button
+                type="button"
+                className="studio-split-btn"
+                onClick={handleSplitActiveLayer}
+                title="Split selected layer at needle"
+              >
+                Split
+              </button>
+            )}
+
             <span className="volume-context-pill">
               {selectedLayer === "music" && localSongUrl ? "Song Vol" : "Main Vol"}
             </span>
@@ -1300,37 +1383,113 @@ export const Workspace: React.FC<WorkspaceProps> = ({
             />
           </div>
 
-          {/* TIMELINE WITH UNCLIPPED MILLISECONDS RULER */}
-          <div
-            className="timeline-editor"
-            aria-label="Timeline"
-            
-          >
-            {/* HORIZONTAL PANNING WRAPPER */}
+          {/* TIMELINE EDITOR */}
+          <div className="timeline-editor" aria-label="Timeline" ref={timelineContainerRef} style={{ display: "flex", width: "100%", overflow: "hidden", position: "relative" }}>
+            {/* 100% FIXED LEFT LABELS COLUMN */}
             <div
-              className="timeline-viewport-scroller"
-              ref={timelineViewportRef}
-              
+              className="timeline-fixed-headers"
+              style={{
+                width: "120px",
+                minWidth: "120px",
+                flexShrink: 0,
+                zIndex: 30,
+                background: "#0c1017",
+                borderRight: "1px solid #1a2230",
+                display: "flex",
+                flexDirection: "column",
+                userSelect: "none"
+              }}
             >
-              {/* VIRTUAL CANVAS SIZED FOR DEFAULT 20 SECONDS VIEWPORT */}
+              <div style={{ height: "26px", borderBottom: "1px solid #1a2230", background: "#090c12" }} />
+              <div style={{ display: "flex", flexDirection: "column", gap: "6px", paddingTop: "6px" }}>
+                <div
+                  className={`track-name-tag ${selectedLayer === "audio" ? "is-selected" : ""}`}
+                  style={{ height: "34px", display: "flex", alignItems: "center", padding: "0 12px", fontSize: "0.65rem", fontWeight: 800, letterSpacing: "0.05em", color: "#38bdf8", cursor: "pointer" }}
+                  onClick={e => {
+                    e.stopPropagation();
+                    setSelectedLayer("audio");
+                    selectSubtitle(null);
+                  }}
+                >
+                  AUDIO
+                </div>
+
+                <div
+                  className={`track-name-tag ${selectedLayer === "background" ? "is-selected" : ""}`}
+                  style={{ height: "34px", display: "flex", alignItems: "center", padding: "0 12px", fontSize: "0.65rem", fontWeight: 800, letterSpacing: "0.05em", color: "#c084fc", cursor: "pointer" }}
+                  onClick={e => {
+                    e.stopPropagation();
+                    setSelectedLayer("background");
+                    selectSubtitle(null);
+                  }}
+                >
+                  BACKGROUND
+                </div>
+
+                <div
+                  className={`track-name-tag ${selectedLayer === "caption" ? "is-selected" : ""}`}
+                  style={{ height: "40px", display: "flex", alignItems: "center", padding: "0 12px", fontSize: "0.65rem", fontWeight: 800, letterSpacing: "0.05em", color: "#e879f9", cursor: "pointer" }}
+                  onClick={e => {
+                    e.stopPropagation();
+                    setSelectedLayer("caption");
+                  }}
+                >
+                  CAPTION
+                </div>
+
+                <div
+                  className={`track-name-tag ${selectedLayer === "music" ? "is-selected" : ""}`}
+                  style={{ height: "34px", display: "flex", alignItems: "center", justifyContent: "space-between", padding: "0 12px", fontSize: "0.65rem", fontWeight: 800, letterSpacing: "0.05em", color: "#34d399", cursor: "pointer" }}
+                  onClick={e => {
+                    e.stopPropagation();
+                    setSelectedLayer("music");
+                    selectSubtitle(null);
+                  }}
+                >
+                  <span>MUSIC</span>
+                  {localSongUrl && (
+                    <button
+                      type="button"
+                      className="music-tag-bin-btn"
+                      title="Delete song from project"
+                      onClick={e => {
+                        e.stopPropagation();
+                        if (localSongUrl.startsWith("blob:")) URL.revokeObjectURL(localSongUrl);
+                        setLocalSongUrl(null);
+                        setLocalSongName(null);
+                        setSongDuration(0);
+                        setSongSegments([{ id: "song-default", start: 0, end: 0 }]);
+                      }}
+                    >
+                      <Trash2 size={12} />
+                    </button>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* HORIZONTALLY SCROLLABLE TRACK LANES */}
+            <div className="timeline-viewport-scroller" ref={timelineViewportRef} style={{ flex: 1, minWidth: 0, overflowX: "auto", overflowY: "hidden", position: "relative" }}>
               <div
                 className="timeline-virtual-canvas"
                 style={{
-                  width: `${Math.max(100, (effectiveDuration / 20) * 100 * timelineZoom)}%`,
+                  width: `${Math.max(100, (totalTimelineDuration / 20) * 100 * timelineZoom)}%`,
+                  position: "relative",
+                  minWidth: "100%"
                 }}
               >
-                {/* HIGH-PRECISION UNCLIPPED RULER */}
-                <div className="timeline-ruler" aria-hidden="true">
+                {/* RULER */}
+                <div className="timeline-ruler" aria-hidden="true" onClick={handleTimelineClick} style={{ height: "26px", position: "relative" }}>
                   {(() => {
                     const step = timelineZoom > 2 ? 0.25 : timelineZoom > 1 ? 0.5 : 1.0;
                     const ticks = [];
-                    for (let t = 0; t <= effectiveDuration; t += step) {
+                    for (let t = 0; t <= totalTimelineDuration; t += step) {
                       const isMajor = Math.abs(t % 1) < 0.001;
                       ticks.push(
                         <div
                           key={t}
                           className={`ruler-tick ${isMajor ? "major" : "minor"}`}
-                          style={{ left: `${(t / effectiveDuration) * 100}%` }}
+                          style={{ left: `${(t / totalTimelineDuration) * 100}%` }}
                         >
                           <span className="ruler-tick-label">
                             {formatPrecisionTime(t)}
@@ -1342,23 +1501,24 @@ export const Workspace: React.FC<WorkspaceProps> = ({
                   })()}
                 </div>
 
-                {/* 4-TIER TRACK STACK */}
-                <div className={`timeline-tracks-stack active-layer-${selectedLayer}`}>
+                {/* TRACK LANES */}
+                <div className={`timeline-tracks-stack ${selectedLayer ? "has-layer-selected" : "all-layers-active"}`} style={{ width: "100%", minWidth: "100%", display: "flex", flexDirection: "column", gap: "6px", paddingTop: "6px" }}>
                   {/* TRACK 1: AUDIO */}
                   <div
-                    className={`timeline-unified-row row-audio ${selectedLayer === "audio" ? "is-selected" : "is-dimmed"}`}
+                    className={`timeline-unified-row row-audio ${selectedLayer === "audio" ? "is-selected" : selectedLayer ? "is-dimmed" : "is-active"}`}
+                    style={{ height: "34px", display: "block" }}
                     onClick={e => {
                       e.stopPropagation();
                       setSelectedLayer("audio");
                       selectSubtitle(null);
                     }}
                   >
-                    <span className="track-name-tag audio-tag">Audio</span>
-                    <div className="track-lane" onClick={handleTimelineClick}>
+                    <div className="track-lane" onClick={handleTimelineClick} style={{ height: "100%", width: "100%", position: "relative" }}>
                       <div
                         className="track-lane-clip clip-audio-fill"
                         style={{
                           width: `${((duration || mediaDuration || 7) / effectiveDuration) * 100}%`,
+                          height: "100%"
                         }}
                       >
                         <span className="clip-label-text">{videoFile?.name || "Uploaded audio track"}</span>
@@ -1368,43 +1528,78 @@ export const Workspace: React.FC<WorkspaceProps> = ({
 
                   {/* TRACK 2: BACKGROUND */}
                   <div
-                    className={`timeline-unified-row row-bg ${selectedLayer === "background" ? "is-selected" : "is-dimmed"}`}
+                    className={`timeline-unified-row row-bg ${selectedLayer === "background" ? "is-selected" : selectedLayer ? "is-dimmed" : "is-active"}`}
+                    style={{ height: "34px", display: "block" }}
                     onClick={e => {
                       e.stopPropagation();
                       setSelectedLayer("background");
                       selectSubtitle(null);
                     }}
                   >
-                    <span className="track-name-tag bg-tag">Background</span>
-                    <div className="track-lane" onClick={handleTimelineClick}>
-                      <div className="track-lane-clip clip-bg-fill" style={{ width: "100%" }}>
-                        <span className="clip-label-text">
-                          {settings.backgroundTheme === "custom-image"
-                            ? "Custom photo backdrop"
-                            : settings.backgroundTheme === "custom-video"
-                              ? "Custom video backdrop"
-                              : `Theme: ${settings.backgroundTheme ? settings.backgroundTheme.toUpperCase() : "MIDNIGHT"}`}
-                        </span>
-                      </div>
+                    <div className="track-lane" onClick={handleTimelineClick} style={{ height: "100%", width: "100%", position: "relative" }}>
+                      {bgSegments.map((seg, idx) => {
+                        const start = seg.start;
+                        const end = seg.end || effectiveDuration;
+                        const leftPct = (start / totalTimelineDuration) * 100;
+                        const widthPct = Math.max(0.5, ((end - start) / totalTimelineDuration) * 100);
+                        const isSegSelected = selectedSegmentId === seg.id;
+                        return (
+                          <div
+                            key={seg.id}
+                            className={`track-lane-clip clip-bg-fill ${isSegSelected ? "is-segment-active" : ""}`}
+                            style={{
+                              left: `${leftPct}%`,
+                              width: `${widthPct}%`,
+                              height: "100%"
+                            }}
+                            onClick={ev => {
+                              ev.stopPropagation();
+                              setSelectedLayer("background");
+                              setSelectedSegmentId(seg.id);
+                            }}
+                          >
+                            <span className="clip-label-text">
+                              {settings.backgroundTheme === "custom-image"
+                                ? "Custom photo backdrop"
+                                : settings.backgroundTheme === "custom-video"
+                                  ? "Custom video backdrop"
+                                  : `Theme: ${settings.backgroundTheme ? settings.backgroundTheme.toUpperCase() : "MIDNIGHT"}`}
+                              {bgSegments.length > 1 ? ` (${idx + 1})` : ""}
+                            </span>
+                            {bgSegments.length > 1 && (
+                              <button
+                                type="button"
+                                className="track-song-remove-btn"
+                                onClick={ev => {
+                                  ev.stopPropagation();
+                                  setBgSegments(prev => prev.filter(s => s.id !== seg.id));
+                                }}
+                                title="Delete background segment"
+                              >
+                                <X size={11} />
+                              </button>
+                            )}
+                          </div>
+                        );
+                      })}
                     </div>
                   </div>
 
                   {/* TRACK 3: CAPTION */}
                   <div
-                    className={`timeline-unified-row row-caption track-row-captions ${selectedLayer === "caption" ? "is-selected" : "is-dimmed"}`}
+                    className={`timeline-unified-row row-caption track-row-captions ${selectedLayer === "caption" ? "is-selected" : selectedLayer ? "is-dimmed" : "is-active"}`}
+                    style={{ height: "40px", display: "block" }}
                     onClick={e => {
                       e.stopPropagation();
                       setSelectedLayer("caption");
                     }}
                   >
-                    <span className="track-name-tag caption-tag">Caption</span>
-                    <div className="track-lane captions-lane" ref={captionTrackRef} onClick={handleTimelineClick}>
+                    <div className="track-lane captions-lane" ref={captionTrackRef} onClick={handleTimelineClick} style={{ height: "100%", width: "100%", position: "relative" }}>
                       {subtitles.map(subtitle => {
                         const timing = timelineTimingPreview?.id === subtitle.id ? timelineTimingPreview : subtitle;
-                        const startPercent = Math.max(0, Math.min(100, (timing.start / effectiveDuration) * 100));
-                        const widthPercent = Math.max(0.5, ((timing.end - timing.start) / effectiveDuration) * 100);
+                        const startPercent = Math.max(0, Math.min(100, (timing.start / totalTimelineDuration) * 100));
+                        const widthPercent = Math.max(0.5, ((timing.end - timing.start) / totalTimelineDuration) * 100);
                         const isSelected = subtitle.id === selectedSubtitleId;
-                        const isEditingThis = editingSubtitleId === subtitle.id;
 
                         return (
                           <div
@@ -1415,7 +1610,6 @@ export const Workspace: React.FC<WorkspaceProps> = ({
                               width: `${widthPercent}%`,
                             }}
                             onPointerDown={event => {
-                              if (isEditingThis) return;
                               event.stopPropagation();
                               setSelectedLayer("caption");
                               selectSubtitle(subtitle.id);
@@ -1426,6 +1620,11 @@ export const Workspace: React.FC<WorkspaceProps> = ({
                             onDoubleClick={e => {
                               e.stopPropagation();
                               startEditing(subtitle);
+                            }}
+                            onClick={e => {
+                              e.stopPropagation();
+                              setSelectedLayer("caption");
+                              selectSubtitle(subtitle.id);
                             }}
                           >
                             <button
@@ -1438,36 +1637,11 @@ export const Workspace: React.FC<WorkspaceProps> = ({
                               }}
                               onKeyDown={event => nudgeCaptionEdge(event, subtitle, "start")}
                               onClick={e => e.stopPropagation()}
-                            ></button>
+                            />
                             
-                            {isEditingThis ? (
-                              <input
-                                className="timeline-caption-inline-input"
-                                autoFocus
-                                value={draftText}
-                                onChange={e => {
-                                  draftTextRef.current = e.target.value;
-                                  setDraftText(e.target.value);
-                                }}
-                                onBlur={saveInlineEdit}
-                                onKeyDown={e => {
-                                  if (e.key === "Enter") {
-                                    e.preventDefault();
-                                    saveInlineEdit();
-                                  }
-                                  if (e.key === "Escape") {
-                                    e.preventDefault();
-                                    cancelInlineEdit();
-                                  }
-                                }}
-                                onClick={e => e.stopPropagation()}
-                                onPointerDown={e => e.stopPropagation()}
-                              />
-                            ) : (
-                              <span className="caption-text-preview">
-                                {getCaptionText(subtitle.text, language, subtitle.tenglishText)}
-                              </span>
-                            )}
+                            <span className="caption-text-preview">
+                              {getCaptionText(subtitle.text, language, subtitle.tenglishText)}
+                            </span>
 
                             <button
                               type="button"
@@ -1479,7 +1653,7 @@ export const Workspace: React.FC<WorkspaceProps> = ({
                               }}
                               onKeyDown={event => nudgeCaptionEdge(event, subtitle, "end")}
                               onClick={e => e.stopPropagation()}
-                            ></button>
+                            />
                           </div>
                         );
                       })}
@@ -1488,33 +1662,57 @@ export const Workspace: React.FC<WorkspaceProps> = ({
 
                   {/* TRACK 4: MUSIC */}
                   <div
-                    className={`timeline-unified-row row-music ${selectedLayer === "music" ? "is-selected" : "is-dimmed"}`}
+                    className={`timeline-unified-row row-music ${selectedLayer === "music" ? "is-selected" : selectedLayer ? "is-dimmed" : "is-active"}`}
+                    style={{ height: "34px", display: "block" }}
                     onClick={e => {
                       e.stopPropagation();
                       setSelectedLayer("music");
                       selectSubtitle(null);
                     }}
                   >
-                    <span className="track-name-tag music-tag">Music</span>
-                    <div className="track-lane" onClick={handleTimelineClick}>
+                    <div className="track-lane" onClick={handleTimelineClick} style={{ height: "100%", width: "100%", position: "relative" }}>
                       {localSongUrl ? (
-                        <div className="track-lane-clip clip-music-fill" style={{ width: "100%" }}>
-                          <span className="clip-label-text">{localSongName || "Custom song track"}</span>
-                          <button
-                            type="button"
-                            className="track-song-remove-btn"
-                            onClick={e => {
-                              e.stopPropagation();
-                              if (localSongUrl.startsWith("blob:")) URL.revokeObjectURL(localSongUrl);
-                              setLocalSongUrl(null);
-                              setLocalSongName(null);
-                              setSongDuration(0);
-                            }}
-                            title="Remove song"
-                          >
-                            <X size={12} />
-                          </button>
-                        </div>
+                        songSegments.map((seg, idx) => {
+                          const start = seg.start;
+                          const end = seg.end || effectiveDuration;
+                          const leftPct = (start / totalTimelineDuration) * 100;
+                          const widthPct = Math.max(0.5, ((end - start) / totalTimelineDuration) * 100);
+                          const isSegSelected = selectedSegmentId === seg.id;
+                          return (
+                            <div
+                              key={seg.id}
+                              className={`track-lane-clip clip-music-fill ${isSegSelected ? "is-segment-active" : ""}`}
+                              style={{
+                                left: `${leftPct}%`,
+                                width: `${widthPct}%`,
+                                height: "100%"
+                              }}
+                              onClick={ev => {
+                                ev.stopPropagation();
+                                setSelectedLayer("music");
+                                setSelectedSegmentId(seg.id);
+                              }}
+                            >
+                              <span className="clip-label-text">
+                                {localSongName || "Custom song track"}
+                                {songSegments.length > 1 ? ` (${idx + 1})` : ""}
+                              </span>
+                              {songSegments.length > 1 && (
+                                <button
+                                  type="button"
+                                  className="track-song-remove-btn"
+                                  onClick={ev => {
+                                    ev.stopPropagation();
+                                    setSongSegments(prev => prev.filter(s => s.id !== seg.id));
+                                  }}
+                                  title="Delete segment"
+                                >
+                                  <X size={11} />
+                                </button>
+                              )}
+                            </div>
+                          );
+                        })
                       ) : (
                         <label className="track-add-song-slot" onClick={e => e.stopPropagation()}>
                           <span>+ Select song from local device</span>
@@ -1538,9 +1736,122 @@ export const Workspace: React.FC<WorkspaceProps> = ({
                       )}
                     </div>
                   </div>
+
+                  {/* NATIVE WHITE TIMELINE NEEDLE LINE */}
+                  <div
+                    className="timeline-native-needle"
+                    style={{
+                      position: "absolute",
+                      left: `${Math.min(100, Math.max(0, (currentTime / totalTimelineDuration) * 100))}%`,
+                      top: 0,
+                      bottom: 0,
+                      width: "1.5px",
+                      zIndex: 32,
+                      pointerEvents: "none"
+                    }}
+                  >
+                    <div
+                      className="needle-head-marker"
+                      style={{
+                        position: "absolute",
+                        top: "-2px",
+                        left: "-5px",
+                        width: "11px",
+                        height: "11px",
+                        borderRadius: "50%",
+                        background: "#ffffff",
+                        boxShadow: "0 0 8px rgba(255, 255, 255, 0.9)"
+                      }}
+                    />
+                    <div
+                      className="needle-vertical-line"
+                      style={{
+                        position: "absolute",
+                        top: "9px",
+                        bottom: 0,
+                        left: "0px",
+                        width: "1.5px",
+                        background: "#ffffff",
+                        boxShadow: "0 0 6px rgba(255, 255, 255, 0.75)"
+                      }}
+                    />
                 </div>
               </div>
             </div>
+          </div>
+
+          {/* DIRECT CAPTION EDIT POPUP */}
+            {editingSubtitleId && (
+              <div
+                className="timeline-modal-backdrop"
+                style={{
+                  position: "fixed",
+                  inset: 0,
+                  zIndex: 99999,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  backgroundColor: "rgba(0, 0, 0, 0.55)",
+                  backdropFilter: "blur(3px)",
+                }}
+                onPointerDown={e => e.stopPropagation()}
+                onMouseDown={e => e.stopPropagation()}
+                onClick={e => e.stopPropagation()}
+              >
+                <div
+                  className="timeline-caption-edit-modal"
+                  style={{
+                    position: "relative",
+                    zIndex: 100000,
+                    pointerEvents: "auto",
+                  }}
+                  onPointerDown={e => e.stopPropagation()}
+                  onMouseDown={e => e.stopPropagation()}
+                  onClick={e => e.stopPropagation()}
+                  onDoubleClick={e => e.stopPropagation()}
+                >
+                  <span className="edit-modal-title">Edit Caption Text</span>
+                  <input
+                    ref={popupInputRef}
+                    type="text"
+                    className="edit-modal-input"
+                    value={draftText}
+                    autoFocus
+                    onChange={e => {
+                      draftTextRef.current = e.target.value;
+                      setDraftText(e.target.value);
+                    }}
+                    onKeyDown={e => {
+                      e.stopPropagation();
+                      if (e.key === "Enter") saveInlineEdit();
+                      if (e.key === "Escape") cancelInlineEdit();
+                    }}
+                  />
+                  <div className="edit-modal-actions">
+                    <button
+                      type="button"
+                      className="edit-modal-cancel"
+                      onClick={e => {
+                        e.stopPropagation();
+                        cancelInlineEdit();
+                      }}
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="button"
+                      className="edit-modal-save"
+                      onClick={e => {
+                        e.stopPropagation();
+                        saveInlineEdit();
+                      }}
+                    >
+                      Save
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
 
           {/* BACKGROUND AUDIO PLAYER FOR LOCAL SONG */}

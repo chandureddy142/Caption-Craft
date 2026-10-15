@@ -377,7 +377,8 @@ const applyProgress = (progress: LocalTranscriptionProgress) => {
       return;
     }
     if (subtitles.length > 0 && !window.confirm('Regenerate captions and replace the current edited segments?')) return;
-    if (transcriptionBackend === 'gemini') {
+    const shouldUseGemini = transcriptionBackend === "gemini" && sourceLanguage !== "en";
+    if (shouldUseGemini) {
       void startGeminiTranscription(audioBlob);
     } else {
       void startTranscription(audioBlob);
@@ -391,7 +392,11 @@ const applyProgress = (progress: LocalTranscriptionProgress) => {
       handleGenerateCaptions();
       return;
     }
-    void startTranscription(audioBlob, nextChunkIndex, subtitles);
+    if (transcriptionBackend === "gemini" && sourceLanguage !== "en") {
+      void startGeminiTranscription(audioBlob);
+    } else {
+      void startTranscription(audioBlob, nextChunkIndex, subtitles);
+    }
   };
 
   const handleCancelTranscription = () => {
@@ -402,8 +407,9 @@ const applyProgress = (progress: LocalTranscriptionProgress) => {
     setModelStatus('idle');
     setModelProgress(0);
     setIsTranscribing(false);
-    setTranscriptionError('Transcription cancelled. Completed caption segments were kept; retry to resume.');
-    setTranscriptionStatus('Transcription cancelled · completed segments were kept');
+    setTranscriptionError('');
+    setTranscriptionStatus('');
+    setTranscriptionProgress(0);
   };
 
   const handleRemoveMedia = () => {
@@ -630,6 +636,86 @@ const applyProgress = (progress: LocalTranscriptionProgress) => {
                onUndo={undo}
                onRedo={redo}
              />
+          </div>
+        </div>
+      )}
+
+      {isTranscribing && (
+        <div style={{
+          position: "fixed",
+          inset: 0,
+          backgroundColor: "rgba(0, 0, 0, 0.72)",
+          backdropFilter: "blur(6px)",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          zIndex: 99999,
+          padding: "20px"
+        }}>
+          <div style={{
+            background: "#12141c",
+            border: "1px solid rgba(255, 255, 255, 0.12)",
+            borderRadius: "16px",
+            padding: "28px 32px",
+            width: "100%",
+            maxWidth: "420px",
+            boxShadow: "0 24px 50px rgba(0,0,0,0.6)",
+            display: "flex",
+            flexDirection: "column",
+            gap: "16px",
+            textAlign: "center"
+          }}>
+            <div style={{ fontSize: "17px", fontWeight: 600, color: "#fff" }}>
+              {modelStatus === "loading" ? "Initializing speech model" : "Generating captions"}
+            </div>
+
+            <div style={{ fontSize: "13px", color: "rgba(255, 255, 255, 0.65)", minHeight: "20px" }}>
+              {modelStatus === "loading"
+                ? `Loading Whisper locally (${Math.round(modelProgress || 0)}%)`
+                : (transcriptionStatus || "Processing audio...")}
+            </div>
+
+            <div style={{
+              width: "100%",
+              height: "7px",
+              background: "rgba(255, 255, 255, 0.08)",
+              borderRadius: "999px",
+              overflow: "hidden"
+            }}>
+              <div style={{
+                height: "100%",
+                width: `${Math.min(100, Math.max(0, modelStatus === "loading" ? modelProgress : transcriptionProgress))}%`,
+                background: "linear-gradient(90deg, #8b5cf6, #a855f7)",
+                borderRadius: "999px",
+                transition: "width 0.25s ease"
+              }} />
+            </div>
+
+            <div style={{ display: "flex", justifyContent: "space-between", fontSize: "12px", color: "rgba(255, 255, 255, 0.5)" }}>
+              <span>{modelStatus === "loading" ? "Initial model download" : `${(transcriptionProcessedDuration || 0).toFixed(1)}s / ${(transcriptionTotalDuration || 0).toFixed(1)}s`}</span>
+              <strong style={{ color: "#a855f7" }}>
+                {Math.round(modelStatus === "loading" ? modelProgress : transcriptionProgress)}%
+              </strong>
+            </div>
+
+            <button
+              type="button"
+              onClick={handleCancelTranscription}
+              style={{
+                marginTop: "8px",
+                padding: "10px 16px",
+                borderRadius: "10px",
+                border: "1px solid rgba(239, 68, 68, 0.3)",
+                background: "rgba(239, 68, 68, 0.12)",
+                color: "#f87171",
+                fontSize: "13px",
+                fontWeight: 500,
+                cursor: "pointer",
+                transition: "background 0.2s"
+              }}
+            >
+              Cancel transcription
+            </button>
           </div>
         </div>
       )}
