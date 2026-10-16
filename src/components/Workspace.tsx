@@ -1372,6 +1372,22 @@ const [selectedSegmentId, setSelectedSegmentId] = useState<string | null>(null);
     setSettings(previous => applyTemplateToSettings(previous, "classic-white"));
   };
 
+  const handleSelectBackgroundWithConfirm = (applyAction: () => void) => {
+    if (settings.customImageDataUrl || settings.customVideoUrl) {
+      const confirmed = window.confirm("Switching background preset will remove your uploaded media backdrop. Do you want to continue?");
+      if (!confirmed) return;
+      if (settings.customVideoUrl && settings.customVideoUrl.startsWith("blob:")) {
+        URL.revokeObjectURL(settings.customVideoUrl);
+      }
+      setSettings(prev => ({
+        ...prev,
+        customImageDataUrl: undefined,
+        customVideoUrl: undefined
+      }));
+    }
+    applyAction();
+  };
+
   const handleMediaUpload = (file: File) => {
     if (file.type.startsWith("video/")) {
       if (settings.customVideoUrl && settings.customVideoUrl.startsWith("blob:")) {
@@ -2249,7 +2265,7 @@ const [selectedSegmentId, setSelectedSegmentId] = useState<string | null>(null);
                         justifyContent: "center",
                         boxShadow: "0 2px 6px rgba(0,0,0,0.3)"
                       }}
-                      onClick={() => setSettings(prev => ({ ...prev, backgroundTheme: "midnight", backgroundColor: item.color }))}
+                      onClick={() => handleSelectBackgroundWithConfirm(() => setSettings(prev => ({ ...prev, backgroundTheme: "midnight", backgroundColor: item.color, customImageDataUrl: undefined, customVideoUrl: undefined })))}
                       title={item.label}
                     >
                       {settings.backgroundColor === item.color && settings.backgroundTheme === "midnight" && (
@@ -2278,7 +2294,7 @@ const [selectedSegmentId, setSelectedSegmentId] = useState<string | null>(null);
                       type="color"
                       style={{ display: "none" }}
                       value={settings.backgroundColor || "#000000"}
-                      onChange={e => setSettings(prev => ({ ...prev, backgroundTheme: "midnight", backgroundColor: e.target.value }))}
+                      onChange={e => { const val = e.target.value; handleSelectBackgroundWithConfirm(() => setSettings(prev => ({ ...prev, backgroundTheme: "midnight", backgroundColor: val, customImageDataUrl: undefined, customVideoUrl: undefined }))); }}
                     />
                   </label>
                 </div>
@@ -2305,7 +2321,7 @@ const [selectedSegmentId, setSelectedSegmentId] = useState<string | null>(null);
                       <button
                         key={g.id}
                         type="button"
-                        onClick={() => setSettings(prev => ({ ...prev, backgroundTheme: g.id as any }))}
+                        onClick={() => handleSelectBackgroundWithConfirm(() => setSettings(prev => ({ ...prev, backgroundTheme: g.id as any, customImageDataUrl: undefined, customVideoUrl: undefined })))}
                         title={g.name}
                         style={{
                           flex: "0 0 90px",
@@ -2363,7 +2379,7 @@ const [selectedSegmentId, setSelectedSegmentId] = useState<string | null>(null);
                       <button
                         key={p.id}
                         type="button"
-                        onClick={() => setSettings(prev => ({ ...prev, backgroundTheme: p.id as any }))}
+                        onClick={() => handleSelectBackgroundWithConfirm(() => setSettings(prev => ({ ...prev, backgroundTheme: p.id as any, customImageDataUrl: undefined, customVideoUrl: undefined })))}
                         title={p.name}
                         style={{
                           flex: "0 0 90px",
@@ -2438,32 +2454,66 @@ const [selectedSegmentId, setSelectedSegmentId] = useState<string | null>(null);
                 </label>
 
                 {(settings.customImageDataUrl || settings.customVideoUrl) && (
-                  <div
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "space-between",
-                      marginTop: "8px",
-                      padding: "6px 10px",
-                      borderRadius: "6px",
-                      background: "rgba(124, 58, 237, 0.15)",
-                      border: "1px solid rgba(168, 85, 247, 0.3)"
-                    }}
-                  >
-                    <span style={{ fontSize: "0.7rem", color: "#c084fc", fontWeight: 500 }}>Active custom media</span>
-                    <button
-                      type="button"
-                      style={{ background: "transparent", border: "none", color: "#ffffff", cursor: "pointer", padding: "2px" }}
-                      onClick={() => setSettings(prev => ({
-                        ...prev,
-                        customImageDataUrl: undefined,
-                        customVideoUrl: undefined,
-                        backgroundTheme: isVideoMedia ? "original-video" : "midnight",
-                      }))}
-                      title="Remove custom backdrop"
+                  <div style={{ display: "flex", flexDirection: "column", gap: "10px", marginTop: "12px" }}>
+                    <div
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "space-between",
+                        padding: "8px 12px",
+                        borderRadius: "6px",
+                        background: "rgba(124, 58, 237, 0.12)",
+                        border: "1px solid rgba(168, 85, 247, 0.25)"
+                      }}
                     >
-                      <X size={12} />
-                    </button>
+                      <span style={{ fontSize: "0.72rem", color: "#c084fc", fontWeight: 500 }}>Active custom media</span>
+                      <button
+                        type="button"
+                        style={{ background: "transparent", border: "none", color: "#ffffff", cursor: "pointer", padding: "2px", display: "flex", alignItems: "center" }}
+                        onClick={() => setSettings(prev => ({
+                          ...prev,
+                          customImageDataUrl: undefined,
+                          customVideoUrl: undefined,
+                          backgroundTheme: isVideoMedia ? "original-video" : "midnight",
+                        }))}
+                        title="Remove custom backdrop"
+                      >
+                        <X size={13} />
+                      </button>
+                    </div>
+
+                    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                      <span style={{ fontSize: "0.68rem", fontWeight: 600, color: "rgba(255, 255, 255, 0.6)" }}>Fit Mode</span>
+                      <div style={{ display: "flex", gap: "4px", background: "rgba(18, 24, 38, 0.9)", padding: "2px", borderRadius: "6px", border: "1px solid rgba(255, 255, 255, 0.1)" }}>
+                        {[
+                          { key: "cover", label: "Fill" },
+                          { key: "contain", label: "Fit" },
+                          { key: "stretch", label: "Stretch" },
+                          { key: "blur-fill", label: "Blur Fill" },
+                        ].map(item => {
+                          const isActive = (settings.fitMode || "cover") === item.key;
+                          return (
+                            <button
+                              key={item.key}
+                              type="button"
+                              onClick={() => setSettings(prev => ({ ...prev, fitMode: item.key as any }))}
+                              style={{
+                                padding: "4px 8px",
+                                fontSize: "0.63rem",
+                                fontWeight: 600,
+                                border: "none",
+                                borderRadius: "4px",
+                                cursor: "pointer",
+                                color: "#ffffff",
+                                background: isActive ? "#7c3aed" : "transparent"
+                              }}
+                            >
+                              {item.label}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
                   </div>
                 )}
               </div>

@@ -44,25 +44,117 @@ export interface DrawBackgroundOptions {
   fitMode?: CanvasSettings["fitMode"];
 }
 
+
+function drawMediaItem(
+  ctx: CanvasRenderingContext2D,
+  media: HTMLImageElement | HTMLVideoElement,
+  canvasWidth: number,
+  canvasHeight: number,
+  mode: "cover" | "contain" | "stretch" | "blur-fill" = "cover"
+) {
+  const mediaWidth = "videoWidth" in media ? media.videoWidth || media.clientWidth : media.naturalWidth || media.width;
+  const mediaHeight = "videoHeight" in media ? media.videoHeight || media.clientHeight : media.naturalHeight || media.height;
+
+  if (!mediaWidth || !mediaHeight) {
+    ctx.drawImage(media, 0, 0, canvasWidth, canvasHeight);
+    return;
+  }
+
+  if (mode === "stretch") {
+    ctx.drawImage(media, 0, 0, canvasWidth, canvasHeight);
+    return;
+  }
+
+  const canvasRatio = canvasWidth / canvasHeight;
+  const mediaRatio = mediaWidth / mediaHeight;
+
+  if (mode === "blur-fill") {
+    // 1. Draw blurred, zoomed background to fill bars
+    ctx.save();
+    let bgSWidth = mediaWidth;
+    let bgSHeight = mediaHeight;
+    let bgSx = 0;
+    let bgSy = 0;
+    if (mediaRatio > canvasRatio) {
+      bgSWidth = mediaHeight * canvasRatio;
+      bgSx = (mediaWidth - bgSWidth) / 2;
+    } else {
+      bgSHeight = mediaWidth / canvasRatio;
+      bgSy = (mediaHeight - bgSHeight) / 2;
+    }
+    ctx.filter = "blur(22px) brightness(0.65)";
+    ctx.drawImage(media, bgSx, bgSy, bgSWidth, bgSHeight, -20, -20, canvasWidth + 40, canvasHeight + 40);
+    ctx.restore();
+
+    // 2. Draw sharp, aspect-ratio preserved media centered on top
+    let dWidth = canvasWidth;
+    let dHeight = canvasHeight;
+    let dx = 0;
+    let dy = 0;
+    if (mediaRatio > canvasRatio) {
+      dHeight = canvasWidth / mediaRatio;
+      dy = (canvasHeight - dHeight) / 2;
+    } else {
+      dWidth = canvasHeight * mediaRatio;
+      dx = (canvasWidth - dWidth) / 2;
+    }
+    ctx.drawImage(media, 0, 0, mediaWidth, mediaHeight, dx, dy, dWidth, dHeight);
+    return;
+  }
+
+  let sWidth = mediaWidth;
+  let sHeight = mediaHeight;
+  let sx = 0;
+  let sy = 0;
+
+  let dWidth = canvasWidth;
+  let dHeight = canvasHeight;
+  let dx = 0;
+  let dy = 0;
+
+  if (mode === "cover") {
+    if (mediaRatio > canvasRatio) {
+      sWidth = mediaHeight * canvasRatio;
+      sx = (mediaWidth - sWidth) / 2;
+    } else {
+      sHeight = mediaWidth / canvasRatio;
+      sy = (mediaHeight - sHeight) / 2;
+    }
+    ctx.drawImage(media, sx, sy, sWidth, sHeight, 0, 0, canvasWidth, canvasHeight);
+  } else {
+    // contain / fit
+    if (mediaRatio > canvasRatio) {
+      dHeight = canvasWidth / mediaRatio;
+      dy = (canvasHeight - dHeight) / 2;
+    } else {
+      dWidth = canvasHeight * mediaRatio;
+      dx = (canvasWidth - dWidth) / 2;
+    }
+    ctx.drawImage(media, 0, 0, mediaWidth, mediaHeight, dx, dy, dWidth, dHeight);
+  }
+}
+
 export function drawBackgroundToCanvas(ctx: CanvasRenderingContext2D, options: DrawBackgroundOptions) {
-  const { themeId, width, height, backgroundColor, videoElement, isVideoMedia, customImage, customVideoElement } = options;
+  const { themeId, width, height, backgroundColor, fitMode, videoElement, isVideoMedia, customImage, customVideoElement } = options;
 
   ctx.save();
 
+  const mode = (fitMode as "cover" | "contain" | "stretch") || "cover";
+
   if (themeId === "custom-image" && customImage) {
-    ctx.drawImage(customImage, 0, 0, width, height);
+    drawMediaItem(ctx, customImage, width, height, mode);
     ctx.restore();
     return;
   }
 
   if (themeId === "custom-video" && customVideoElement) {
-    ctx.drawImage(customVideoElement, 0, 0, width, height);
+    drawMediaItem(ctx, customVideoElement, width, height, mode);
     ctx.restore();
     return;
   }
 
   if (themeId === "original-video" && isVideoMedia && videoElement) {
-    ctx.drawImage(videoElement, 0, 0, width, height);
+    drawMediaItem(ctx, videoElement, width, height, mode);
     ctx.restore();
     return;
   }
@@ -235,7 +327,7 @@ export function drawBackgroundToCanvas(ctx: CanvasRenderingContext2D, options: D
     ctx.fillRect(0, 0, width, height);
   } else {
     // Solid plain color
-    ctx.fillStyle = backgroundColor || (themeId.startsWith("#") ? themeId : "#000000");
+    ctx.fillStyle = backgroundColor || (themeId.startsWith("#") ? themeId : "#ffffff");
     ctx.fillRect(0, 0, width, height);
   }
 

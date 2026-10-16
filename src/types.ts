@@ -58,7 +58,7 @@ export type BackgroundThemeId =
   | "custom-image"
   | "custom-video";
 
-export type BackgroundFitMode = 'cover' | 'contain';
+export type BackgroundFitMode = "cover" | "contain" | "stretch" | "blur-fill";
 
 export type SafeZonePlatform = 'instagram' | 'youtube' | 'tiktok';
 
