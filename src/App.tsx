@@ -84,7 +84,7 @@ function App() {
 
   const initialSettings: CanvasSettings = {
     aspectRatio: '9:16',
-    backgroundColor: '#000000',
+    backgroundColor: "#ffffff",
     backgroundTheme: 'midnight',
     backgroundOverlayOpacity: 0.25,
     fitMode: 'cover',
@@ -105,7 +105,7 @@ function App() {
       fontFamily: "'Inter', sans-serif",
       fontSize: 34,
       color: '#ffffff',
-      backgroundColor: '#00000080',
+      backgroundColor: "#ffffff",
       outlineColor: '#000000',
       outlineWidth: 2,
       horizontalAlign: 'center',
@@ -735,7 +735,7 @@ const applyProgress = (progress: LocalTranscriptionProgress) => {
         <div style={{
           position: "fixed",
           inset: 0,
-          backgroundColor: "rgba(0, 0, 0, 0.72)",
+          backgroundColor: "#ffffff",
           backdropFilter: "blur(6px)",
           display: "flex",
           alignItems: "center",

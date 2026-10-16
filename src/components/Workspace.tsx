@@ -1556,7 +1556,7 @@ const [selectedSegmentId, setSelectedSegmentId] = useState<string | null>(null);
               }}
               disabled={!duration || isExporting}
             >
-              <Share2 size={16} /> Export video
+              <Share2 size={16} /> Export
             </button>
           </div>
         </header>
@@ -2601,208 +2601,284 @@ const [selectedSegmentId, setSelectedSegmentId] = useState<string | null>(null);
             </div>
           )}
 
-          {/* TAB 3: TYPOGRAPHY (MATCHING IMAGE 2 EXACTLY) */}
+          {/* TAB 3: TYPOGRAPHY */}
           {activeCatalogTab === "typography" && (
-            <div className="catalog-pane">
-              <section className="inspector-section" style={{ padding: "0" }}>
-                <div className="inspector-form">
-                  {/* Font & Style */}
-                  <div className="field-split">
-                    <div className="control-group">
-                      <span className="control-label">Font</span>
-                      <div className="custom-select-wrap">
-                        <select
-                          className="studio-select"
-                          value={settings.fontFamily}
-                          onChange={event => setAppearance("fontFamily", event.target.value)}
-                        >
-                          <option value="'Inter', sans-serif">Inter</option>
-                          <option value="'Noto Sans Telugu', sans-serif">Telugu Sans</option>
-                          <option value="Arial, sans-serif">Arial</option>
-                          <option value="Georgia, serif">Georgia</option>
-                          <option value="'Courier New', monospace">Mono</option>
-                        </select>
-                      </div>
-                    </div>
-
-                    <div className="control-group">
-                      <span className="control-label">Style</span>
-                      <div className="custom-select-wrap">
-                        <select
-                          className="studio-select"
-                          value={settings.style}
-                          onChange={event => setAppearance("style", event.target.value as CanvasSettings["style"])}
-                        >
-                          <option value="outline">Outline</option>
-                          <option value="kinetic">Highlight</option>
-                          <option value="box">Box Card</option>
-                          <option value="minimalist">Minimal</option>
-                        </select>
-                      </div>
-                    </div>
+            <div className="catalog-pane" style={{ display: "flex", flexDirection: "column", gap: "16px", padding: "4px 0" }}>
+              <div className="sub-catalog-group">
+                <span className="sub-group-title" style={{ fontSize: "0.68rem", fontWeight: 700, letterSpacing: "0.06em", color: "rgba(255, 255, 255, 0.45)", textTransform: "uppercase", display: "block", marginBottom: "8px" }}>
+                  Font and Weight
+                </span>
+                <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+                  <div className="custom-select-wrap">
+                    <select
+                      className="studio-select"
+                      value={settings.fontFamily}
+                      onChange={e => setAppearance("fontFamily", e.target.value)}
+                    >
+                      <option value="Inter, sans-serif">Inter</option>
+                      <option value="Montserrat, sans-serif">Montserrat</option>
+                      <option value="Poppins, sans-serif">Poppins</option>
+                      <option value="Bebas Neue, sans-serif">Bebas Neue</option>
+                      <option value="Anton, sans-serif">Anton</option>
+                      <option value="Noto Sans Telugu, sans-serif">Telugu Sans</option>
+                      <option value="Arial, sans-serif">Arial</option>
+                      <option value="Georgia, serif">Georgia</option>
+                      <option value="Courier New, monospace">Mono</option>
+                    </select>
                   </div>
 
-                  {/* Size */}
-                  <div className="control-group">
-                    <div className="slider-header">
-                      <span className="control-label">Size</span>
-                      <span className="slider-badge">{settings.fontSize}px</span>
-                    </div>
-                    <div className="slider-wrap">
-                      <input
-                        type="range"
-                        className="studio-slider"
-                        min="16"
-                        max="100"
-                        step="1"
-                        value={settings.fontSize}
-                        onChange={event => setAppearance("fontSize", Number(event.target.value))}
-                      />
-                    </div>
-                  </div>
-
-                  {/* Position & Align */}
-                  <div className="field-split">
-                    <div className="control-group">
-                      <span className="control-label">Position</span>
-                      <div className="custom-select-wrap">
-                        <select
-                          className="studio-select"
-                          value={settings.verticalPosition <= 0.35 ? "0.2" : settings.verticalPosition >= 0.75 ? "0.88" : "0.5"}
-                          onChange={event => setAppearance("verticalPosition", Number(event.target.value))}
-                        >
-                          <option value="0.2">Top</option>
-                          <option value="0.5">Middle</option>
-                          <option value="0.88">Bottom</option>
-                        </select>
-                      </div>
-                    </div>
-
-                    <div className="control-group">
-                      <span className="control-label">Align</span>
-                      <div className="studio-segmented-pill">
+                  <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: "4px", background: "rgba(18, 24, 38, 0.9)", padding: "2px", borderRadius: "6px", border: "1px solid rgba(255, 255, 255, 0.1)" }}>
+                    {[
+                      { key: "normal", label: "Regular" },
+                      { key: "600", label: "Semi" },
+                      { key: "700", label: "Bold" },
+                      { key: "900", label: "Black" },
+                    ].map(w => {
+                      const isActive = (settings.fontWeight || "700") === w.key;
+                      return (
                         <button
+                          key={w.key}
                           type="button"
-                          className={"pill-btn " + (settings.alignment === "left" ? "is-active" : "")}
-                          onClick={() => setAppearance("alignment", "left")}
+                          onClick={() => setAppearance("fontWeight", w.key as any)}
+                          style={{
+                            padding: "4px 6px",
+                            fontSize: "0.63rem",
+                            fontWeight: 600,
+                            border: "none",
+                            borderRadius: "4px",
+                            cursor: "pointer",
+                            color: "#ffffff",
+                            background: isActive ? "#7c3aed" : "transparent"
+                          }}
                         >
-                          Left
+                          {w.label}
                         </button>
-                        <button
-                          type="button"
-                          className={"pill-btn " + (settings.alignment === "center" ? "is-active" : "")}
-                          onClick={() => setAppearance("alignment", "center")}
-                        >
-                          Center
-                        </button>
-                        <button
-                          type="button"
-                          className={"pill-btn " + (settings.alignment === "right" ? "is-active" : "")}
-                          onClick={() => setAppearance("alignment", "right")}
-                        >
-                          Right
-                        </button>
-                      </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              </div>
+
+              <div className="sub-catalog-group">
+                <div className="field-split">
+                  <div className="control-group" style={{ flex: 1 }}>
+                    <span className="control-label">Case</span>
+                    <div className="studio-segmented-pill">
+                      <button
+                        type="button"
+                        className={"pill-btn " + (settings.textTransform === "uppercase" ? "is-active" : "")}
+                        onClick={() => setAppearance("textTransform", "uppercase")}
+                      >
+                        ALL CAPS
+                      </button>
+                      <button
+                        type="button"
+                        className={"pill-btn " + (settings.textTransform !== "uppercase" ? "is-active" : "")}
+                        onClick={() => setAppearance("textTransform", "none")}
+                      >
+                        Normal
+                      </button>
                     </div>
                   </div>
 
-                  {/* Colors */}
-                  <div className="control-group">
-                    <span className="control-label">Colors</span>
-                    <div className="palette-chip-grid">
-                      <label className="color-chip" title="Text Color">
-                        <span className="color-preview" style={{ backgroundColor: settings.textColor }} />
-                        <span className="chip-name">Text</span>
-                        <input
-                          type="color"
-                          className="hidden-color-input"
-                          value={settings.textColor.startsWith("#") ? settings.textColor : "#ffffff"}
-                          onChange={event => setAppearance("textColor", event.target.value)}
-                        />
-                      </label>
-
-                      <label className="color-chip" title="Highlight Accent">
-                        <span className="color-preview" style={{ backgroundColor: settings.highlightColor }} />
-                        <span className="chip-name">Accent</span>
-                        <input
-                          type="color"
-                          className="hidden-color-input"
-                          value={settings.highlightColor.startsWith("#") ? settings.highlightColor : "#8b5cf6"}
-                          onChange={event => setAppearance("highlightColor", event.target.value)}
-                        />
-                      </label>
-
-                      <label className="color-chip" title="Box Backdrop">
-                        <span className="color-preview" style={{ backgroundColor: settings.boxColor }} />
-                        <span className="chip-name">Box</span>
-                        <input
-                          type="color"
-                          className="hidden-color-input"
-                          value={settings.boxColor.startsWith("#") ? settings.boxColor : "#000000"}
-                          onChange={event => setAppearance("boxColor", event.target.value)}
-                        />
-                      </label>
+                  <div className="control-group" style={{ flex: 1 }}>
+                    <span className="control-label">Style</span>
+                    <div className="custom-select-wrap">
+                      <select
+                        className="studio-select"
+                        value={settings.style}
+                        onChange={e => setAppearance("style", e.target.value as CanvasSettings["style"])}
+                      >
+                        <option value="outline">Outline</option>
+                        <option value="kinetic">Highlight</option>
+                        <option value="box">Box Badge</option>
+                        <option value="minimalist">Minimal</option>
+                      </select>
                     </div>
                   </div>
+                </div>
+              </div>
 
-                  <div className="panel-divider" style={{ margin: "12px 0" }} />
-
-                  {/* Safe Guides */}
-                  <label className="studio-toggle-bar">
-                    <span>Safe Area Overlays</span>
+              <div className="sub-catalog-group">
+                <span className="sub-group-title" style={{ fontSize: "0.68rem", fontWeight: 700, letterSpacing: "0.06em", color: "rgba(255, 255, 255, 0.45)", textTransform: "uppercase", display: "block", marginBottom: "8px" }}>
+                  Size
+                </span>
+                <div className="control-group">
+                  <div className="slider-header">
+                    <span className="control-label">Font Size</span>
+                    <span className="slider-badge">{settings.fontSize}px</span>
+                  </div>
+                  <div className="slider-wrap">
                     <input
-                      type="checkbox"
-                      className="studio-checkbox"
-                      checked={!!settings.safeZones?.show}
-                      onChange={event => setSettings(previous => ({
-                        ...previous,
-                        safeZones: { ...(previous.safeZones ?? { platform: "instagram" }), show: event.target.checked },
-                      }))}
+                      type="range"
+                      className="studio-slider"
+                      min="16"
+                      max="100"
+                      step="1"
+                      value={settings.fontSize}
+                      onChange={e => setAppearance("fontSize", Number(e.target.value))}
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div className="sub-catalog-group">
+                <span className="sub-group-title" style={{ fontSize: "0.68rem", fontWeight: 700, letterSpacing: "0.06em", color: "rgba(255, 255, 255, 0.45)", textTransform: "uppercase", display: "block", marginBottom: "8px" }}>
+                  Position and Alignment
+                </span>
+                <div className="field-split">
+                  <div className="control-group" style={{ flex: 1 }}>
+                    <span className="control-label">Anchor</span>
+                    <div className="custom-select-wrap">
+                      <select
+                        className="studio-select"
+                        value={settings.verticalPosition <= 0.35 ? "0.2" : settings.verticalPosition >= 0.75 ? "0.88" : "0.5"}
+                        onChange={e => setAppearance("verticalPosition", Number(e.target.value))}
+                      >
+                        <option value="0.2">Top</option>
+                        <option value="0.5">Middle</option>
+                        <option value="0.88">Bottom</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <div className="control-group" style={{ flex: 1 }}>
+                    <span className="control-label">Align</span>
+                    <div className="studio-segmented-pill">
+                      <button
+                        type="button"
+                        className={"pill-btn " + (settings.alignment === "left" ? "is-active" : "")}
+                        onClick={() => setAppearance("alignment", "left")}
+                      >
+                        Left
+                      </button>
+                      <button
+                        type="button"
+                        className={"pill-btn " + (settings.alignment === "center" ? "is-active" : "")}
+                        onClick={() => setAppearance("alignment", "center")}
+                      >
+                        Center
+                      </button>
+                      <button
+                        type="button"
+                        className={"pill-btn " + (settings.alignment === "right" ? "is-active" : "")}
+                        onClick={() => setAppearance("alignment", "right")}
+                      >
+                        Right
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="sub-catalog-group">
+                <span className="sub-group-title" style={{ fontSize: "0.68rem", fontWeight: 700, letterSpacing: "0.06em", color: "rgba(255, 255, 255, 0.45)", textTransform: "uppercase", display: "block", marginBottom: "8px" }}>
+                  Colors and Styling
+                </span>
+                <div className="palette-chip-grid" style={{ gridTemplateColumns: "repeat(4, 1fr)" }}>
+                  <label className="color-chip" title="Base Text Color">
+                    <span className="color-preview" style={{ backgroundColor: settings.textColor }} />
+                    <span className="chip-name">Text</span>
+                    <input
+                      type="color"
+                      className="hidden-color-input"
+                      value={settings.textColor.startsWith("#") ? settings.textColor : "#ffffff"}
+                      onChange={e => setAppearance("textColor", e.target.value)}
                     />
                   </label>
 
-                  {settings.safeZones?.show && (
-                    <div className="studio-segmented-pill" style={{ marginTop: "8px" }}>
-                      <button
-                        type="button"
-                        className={"pill-btn " + (settings.safeZones?.platform === "instagram" ? "is-active" : "")}
-                        onClick={() => setSettings(prev => ({ ...prev, safeZones: { platform: "instagram", show: true } }))}
-                      >
-                        Reels
-                      </button>
-                      <button
-                        type="button"
-                        className={"pill-btn " + (settings.safeZones?.platform === "tiktok" ? "is-active" : "")}
-                        onClick={() => setSettings(prev => ({ ...prev, safeZones: { platform: "tiktok", show: true } }))}
-                      >
-                        TikTok
-                      </button>
-                      <button
-                        type="button"
-                        className={"pill-btn " + (settings.safeZones?.platform === "youtube" ? "is-active" : "")}
-                        onClick={() => setSettings(prev => ({ ...prev, safeZones: { platform: "youtube", show: true } }))}
-                      >
-                        Shorts
-                      </button>
-                    </div>
-                  )}
-                </div>
-              </section>
-            </div>
-          )}
+                  <label className="color-chip" title="Spoken Word Accent">
+                    <span className="color-preview" style={{ backgroundColor: settings.highlightColor }} />
+                    <span className="chip-name">Accent</span>
+                    <input
+                      type="color"
+                      className="hidden-color-input"
+                      value={settings.highlightColor.startsWith("#") ? settings.highlightColor : "#8b5cf6"}
+                      onChange={e => setAppearance("highlightColor", e.target.value)}
+                    />
+                  </label>
 
-          {/* TAB 4: ADVANCED (PLACEHOLDER FOR FUTURE FEATURES) */}
-          {activeCatalogTab === "advanced" && (
-            <div className="catalog-pane" style={{ padding: "20px 8px", textAlign: "center" }}>
-              <div style={{ padding: "24px 12px", border: "1px dashed rgba(255, 255, 255, 0.15)", borderRadius: "8px" }}>
-                <p style={{ fontSize: "0.78rem", margin: 0, fontWeight: 600, color: "#ffffff" }}>Advanced Settings</p>
-                <p style={{ fontSize: "0.72rem", marginTop: "6px", color: "rgba(255, 255, 255, 0.45)", lineHeight: 1.5 }}>
-                  Future updates: custom animations, audio equalizer sync, and export profiles.
-                </p>
+                  <label className="color-chip" title="Outline or Stroke Color">
+                    <span className="color-preview" style={{ backgroundColor: settings.strokeColor || "#000000" }} />
+                    <span className="chip-name">Stroke</span>
+                    <input
+                      type="color"
+                      className="hidden-color-input"
+                      value={(settings.strokeColor && settings.strokeColor.startsWith("#")) ? settings.strokeColor : "#000000"}
+                      onChange={e => setAppearance("strokeColor", e.target.value)}
+                    />
+                  </label>
+
+                  <label className="color-chip" title="Box Card Background">
+                    <span className="color-preview" style={{ backgroundColor: settings.boxColor }} />
+                    <span className="chip-name">Box</span>
+                    <input
+                      type="color"
+                      className="hidden-color-input"
+                      value={settings.boxColor.startsWith("#") ? settings.boxColor : "#000000"}
+                      onChange={e => setAppearance("boxColor", e.target.value)}
+                    />
+                  </label>
+                </div>
               </div>
             </div>
           )}
 
+          {/* TAB 4: ADVANCED */}
+          {activeCatalogTab === "advanced" && (
+            <div className="catalog-pane" style={{ display: "flex", flexDirection: "column", gap: "16px", padding: "4px 0" }}>
+              <div className="sub-catalog-group">
+                <span className="sub-group-title" style={{ fontSize: "0.68rem", fontWeight: 700, letterSpacing: "0.06em", color: "rgba(255, 255, 255, 0.45)", textTransform: "uppercase", display: "block", marginBottom: "8px" }}>
+                  Platform Safe Zones
+                </span>
+                <label className="studio-toggle-bar">
+                  <span>Safe Area Overlays</span>
+                  <input
+                    type="checkbox"
+                    className="studio-checkbox"
+                    checked={!!settings.safeZones?.show}
+                    onChange={event => setSettings(previous => ({
+                      ...previous,
+                      safeZones: { ...(previous.safeZones ?? { platform: "instagram" }), show: event.target.checked },
+                    }))}
+                  />
+                </label>
+
+                {settings.safeZones?.show && (
+                  <div className="studio-segmented-pill" style={{ marginTop: "10px" }}>
+                    <button
+                      type="button"
+                      className={"pill-btn " + (settings.safeZones?.platform === "instagram" ? "is-active" : "")}
+                      onClick={() => setSettings(prev => ({ ...prev, safeZones: { platform: "instagram", show: true } }))}
+                    >
+                      Reels
+                    </button>
+                    <button
+                      type="button"
+                      className={"pill-btn " + (settings.safeZones?.platform === "tiktok" ? "is-active" : "")}
+                      onClick={() => setSettings(prev => ({ ...prev, safeZones: { platform: "tiktok", show: true } }))}
+                    >
+                      TikTok
+                    </button>
+                    <button
+                      type="button"
+                      className={"pill-btn " + (settings.safeZones?.platform === "youtube" ? "is-active" : "")}
+                      onClick={() => setSettings(prev => ({ ...prev, safeZones: { platform: "youtube", show: true } }))}
+                    >
+                      Shorts
+                    </button>
+                  </div>
+                )}
+              </div>
+
+              <div style={{ padding: "16px 12px", border: "1px dashed rgba(255, 255, 255, 0.15)", borderRadius: "8px", textAlign: "center" }}>
+                <p style={{ fontSize: "0.75rem", margin: 0, fontWeight: 600, color: "#ffffff" }}>Coming Soon</p>
+                <p style={{ fontSize: "0.68rem", marginTop: "4px", color: "rgba(255, 255, 255, 0.45)", lineHeight: 1.4 }}>
+                  Audio ducking curve, vocal equalizer sync, and custom export profiles.
+                </p>
+              </div>
+            </div>
+          )}
         </div>
       </aside>
     </div>

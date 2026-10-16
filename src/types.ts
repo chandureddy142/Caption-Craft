@@ -145,6 +145,12 @@ export interface ProjectExportPreferences {
 }
 
 export interface CanvasSettings {
+  letterSpacing?: number;
+  lineHeight?: number;
+  strokeColor?: string;
+  strokeWidth?: number;
+  boxOpacity?: number;
+  fontWeight?: "normal" | "600" | "700" | "900";
   textTransform?: "uppercase" | "none";
   wordPatterns?: any[];
   animation?: string;
