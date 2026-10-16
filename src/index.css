@@ -1411,3 +1411,13 @@ button:disabled { cursor: not-allowed; opacity: 0.5; }
   width: 100% !important;
   min-width: 100% !important;
 }
+
+
+/* Hide horizontal scrollbars */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}

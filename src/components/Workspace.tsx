@@ -9,7 +9,6 @@ import {
   type CaptionTemplateDefinition,
 } from "../utils/captionTemplates";
 import {
-  BACKGROUND_THEMES,
   drawBackgroundToCanvas,
 } from "../utils/backgroundThemes";
 import {
@@ -182,7 +181,7 @@ const [selectedSegmentId, setSelectedSegmentId] = useState<string | null>(null);
   const timelineViewportRef = useRef<HTMLDivElement>(null);
   const timelineContainerRef = useRef<HTMLDivElement>(null);
 
-  const [activeCatalogTab, setActiveCatalogTab] = useState<"backgrounds" | "templates">("backgrounds");
+  const [activeCatalogTab, setActiveCatalogTab] = useState<"backgrounds" | "templates" | "typography" | "advanced">("backgrounds");
   const [isZoom100, setIsZoom100] = useState(false);
   const titleInputRef = useRef<HTMLInputElement>(null);
   const [isPlaying, setIsPlaying] = useState(false);
@@ -442,6 +441,7 @@ const [selectedSegmentId, setSelectedSegmentId] = useState<string | null>(null);
 
     drawBackgroundToCanvas(ctx, {
       themeId: settings.backgroundTheme,
+      backgroundColor: settings.backgroundColor,
       width: canvas.width,
       height: canvas.height,
       videoElement: media,
@@ -1083,7 +1083,8 @@ const [selectedSegmentId, setSelectedSegmentId] = useState<string | null>(null);
       }
 
       drawBackgroundToCanvas(ctx, {
-        themeId: settings.backgroundTheme,
+      themeId: settings.backgroundTheme,
+      backgroundColor: settings.backgroundColor,
         width: offscreen.width,
         height: offscreen.height,
         videoElement: media,
@@ -2171,15 +2172,15 @@ const [selectedSegmentId, setSelectedSegmentId] = useState<string | null>(null);
       <aside className="style-sidebar">
         <div className="style-sidebar-scroll">
 
-          {/* MAIN HEADING */}
+          {/* MAIN HEADING & 4 TOP TABS */}
           <div className="catalog-header">
             <span className="catalog-title">Style &amp; Appearance</span>
-            <div className="catalog-tabs" role="tablist" aria-label="Style panels">
+            <div className="catalog-tabs" role="tablist" aria-label="Style panels" style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: "4px" }}>
               <button
                 type="button"
                 role="tab"
                 aria-selected={activeCatalogTab === "backgrounds"}
-                className={`catalog-tab-btn ${activeCatalogTab === "backgrounds" ? "is-active" : ""}`}
+                className={"catalog-tab-btn " + (activeCatalogTab === "backgrounds" ? "is-active" : "")}
                 onClick={() => setActiveCatalogTab("backgrounds")}
               >
                 <ImageIcon size={13} />
@@ -2189,50 +2190,93 @@ const [selectedSegmentId, setSelectedSegmentId] = useState<string | null>(null);
                 type="button"
                 role="tab"
                 aria-selected={activeCatalogTab === "templates"}
-                className={`catalog-tab-btn ${activeCatalogTab === "templates" ? "is-active" : ""}`}
+                className={"catalog-tab-btn " + (activeCatalogTab === "templates" ? "is-active" : "")}
                 onClick={() => setActiveCatalogTab("templates")}
               >
                 <LayoutTemplate size={13} />
                 <span>Templates</span>
+              </button>
+              <button
+                type="button"
+                role="tab"
+                aria-selected={activeCatalogTab === "typography"}
+                className={"catalog-tab-btn " + (activeCatalogTab === "typography" ? "is-active" : "")}
+                onClick={() => setActiveCatalogTab("typography")}
+              >
+                <span>Typography</span>
+              </button>
+              <button
+                type="button"
+                role="tab"
+                aria-selected={activeCatalogTab === "advanced"}
+                className={"catalog-tab-btn " + (activeCatalogTab === "advanced" ? "is-active" : "")}
+                onClick={() => setActiveCatalogTab("advanced")}
+              >
+                <span>Advanced</span>
               </button>
             </div>
           </div>
 
           {/* TAB 1: BACKGROUNDS */}
           {activeCatalogTab === "backgrounds" && (
-            <div className="catalog-pane">
-              {/* Plain Colors */}
+            <div className="catalog-pane" style={{ display: "flex", flexDirection: "column", gap: "18px", padding: "4px 0" }}>
+              {/* 1. Plain Colors */}
               <div className="sub-catalog-group">
-                <span className="sub-group-title">Plain Colors</span>
-                <div className="swatch-strip" role="group" aria-label="Plain background colors">
+                <span className="sub-group-title" style={{ fontSize: "0.68rem", fontWeight: 700, letterSpacing: "0.06em", color: "rgba(255, 255, 255, 0.45)", textTransform: "uppercase", display: "block", marginBottom: "8px" }}>
+                  Plain Colors
+                </span>
+                <div style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" }}>
                   {[
+                    { color: "#ffffff", label: "White" },
+                    { color: "#ef4444", label: "Red" },
+                    { color: "#22c55e", label: "Green" },
+                    { color: "#3b82f6", label: "Blue" },
                     { color: "#000000", label: "Black" },
-                    { color: "#090b10", label: "Obsidian" },
-                    { color: "#111827", label: "Slate" },
-                    { color: "#172554", label: "Navy" },
-                    { color: "#1e1b4b", label: "Indigo" },
-                    { color: "#2e1065", label: "Deep Violet" },
-                    { color: "#31102b", label: "Plum" },
-                    { color: "#1c1917", label: "Warm Dark" },
                   ].map(item => (
                     <button
                       key={item.color}
                       type="button"
-                      className={`solid-color-btn ${settings.backgroundColor === item.color && settings.backgroundTheme === "midnight" ? "is-active" : ""}`}
-                      style={{ backgroundColor: item.color }}
+                      className={"solid-color-btn " + (settings.backgroundColor === item.color && settings.backgroundTheme === "midnight" ? "is-active" : "")}
+                      style={{
+                        backgroundColor: item.color,
+                        width: "30px",
+                        height: "30px",
+                        borderRadius: "50%",
+                        border: settings.backgroundColor === item.color && settings.backgroundTheme === "midnight" ? "2px solid #a855f7" : "1px solid rgba(255, 255, 255, 0.2)",
+                        cursor: "pointer",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        boxShadow: "0 2px 6px rgba(0,0,0,0.3)"
+                      }}
                       onClick={() => setSettings(prev => ({ ...prev, backgroundTheme: "midnight", backgroundColor: item.color }))}
                       title={item.label}
                     >
                       {settings.backgroundColor === item.color && settings.backgroundTheme === "midnight" && (
-                        <Check size={10} color="#ffffff" strokeWidth={3} />
+                        <Check size={12} color={item.color === "#ffffff" ? "#000000" : "#ffffff"} strokeWidth={3} />
                       )}
                     </button>
                   ))}
-                  <label className="solid-color-btn custom-picker-btn" title="Pick custom plain color">
+                  <label
+                    title="Pick custom plain color"
+                    style={{
+                      width: "30px",
+                      height: "30px",
+                      borderRadius: "50%",
+                      border: "1px dashed rgba(255, 255, 255, 0.35)",
+                      cursor: "pointer",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      color: "#ffffff",
+                      fontSize: "1rem",
+                      background: "rgba(255, 255, 255, 0.05)"
+                    }}
+                  >
                     <span>+</span>
                     <input
                       type="color"
-                      className="hidden-color-input"
+                      style={{ display: "none" }}
                       value={settings.backgroundColor || "#000000"}
                       onChange={e => setSettings(prev => ({ ...prev, backgroundTheme: "midnight", backgroundColor: e.target.value }))}
                     />
@@ -2240,67 +2284,150 @@ const [selectedSegmentId, setSelectedSegmentId] = useState<string | null>(null);
                 </div>
               </div>
 
-              {/* Color Palettes & Gradients */}
+              {/* 2. 10 Gradients in horizontal row */}
               <div className="sub-catalog-group">
-                <span className="sub-group-title">Color Palettes &amp; Gradients</span>
-                <div className="carousel-row">
-                  {BACKGROUND_THEMES.filter(t => !["custom-image", "custom-video", "paper"].includes(t.id)).map(theme => {
-                    const isSelected = settings.backgroundTheme === theme.id;
-                    const isOriginal = theme.id === "original-video";
-                    const isDisabled = isOriginal && !isVideoMedia;
+                <span className="sub-group-title" style={{ fontSize: "0.68rem", fontWeight: 700, letterSpacing: "0.06em", color: "rgba(255, 255, 255, 0.45)", textTransform: "uppercase", display: "block", marginBottom: "8px" }}>
+                  Gradients
+                </span>
+                <div
+                  style={{
+                    display: "flex",
+                    gap: "10px",
+                    overflowX: "auto",
+                    paddingBottom: "6px",
+                    scrollbarWidth: "none",
+                    msOverflowStyle: "none"
+                  }}
+                >
+                  {[{"id":"sunset-mesh","name":"Sunset","css":"linear-gradient(135deg, #ff512f, #dd2476)"},{"id":"deep-blue","name":"Deep Blue","css":"linear-gradient(135deg, #0f2027, #203a43, #2c5364)"},{"id":"purple-haze","name":"Purple Haze","css":"linear-gradient(135deg, #7f00ff, #e100ff)"},{"id":"emerald","name":"Emerald","css":"linear-gradient(135deg, #0ba360, #3cba92)"},{"id":"crimson-tide","name":"Crimson","css":"linear-gradient(135deg, #642b73, #c6426e)"},{"id":"cyber-punk","name":"Cyberpunk","css":"linear-gradient(135deg, #ff0844, #ffb199)"},{"id":"aurora","name":"Aurora","css":"linear-gradient(135deg, #00c6ff, #0072ff)"},{"id":"golden-hour","name":"Gold","css":"linear-gradient(135deg, #f7971e, #ffd200)"},{"id":"midnight-neon","name":"Midnight","css":"linear-gradient(135deg, #182848, #4b6cb7)"},{"id":"dark-matter","name":"Obsidian","css":"linear-gradient(135deg, #232526, #414345)"}].map(g => {
+                    const isSelected = settings.backgroundTheme === g.id;
                     return (
                       <button
-                        key={theme.id}
+                        key={g.id}
                         type="button"
-                        disabled={isDisabled}
-                        className={`catalog-card ${isSelected ? "is-selected" : ""} ${isDisabled ? "is-disabled" : ""}`}
-                        onClick={() => !isDisabled && setSettings(prev => ({ ...prev, backgroundTheme: theme.id }))}
-                        title={theme.name}
+                        onClick={() => setSettings(prev => ({ ...prev, backgroundTheme: g.id as any }))}
+                        title={g.name}
+                        style={{
+                          flex: "0 0 90px",
+                          display: "flex",
+                          flexDirection: "column",
+                          gap: "4px",
+                          background: "transparent",
+                          border: "none",
+                          cursor: "pointer",
+                          padding: 0
+                        }}
                       >
-                        <div className="card-thumb" style={{ background: theme.previewCss }}>
-                          {isSelected && <span className="card-check"><Check size={11} strokeWidth={3} /></span>}
+                        <div
+                          style={{
+                            width: "100%",
+                            height: "56px",
+                            borderRadius: "6px",
+                            background: g.css,
+                            border: isSelected ? "2px solid #a855f7" : "1px solid rgba(255, 255, 255, 0.12)",
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            boxShadow: isSelected ? "0 0 10px rgba(168, 85, 247, 0.4)" : "none"
+                          }}
+                        >
+                          {isSelected && <Check size={14} color="#ffffff" strokeWidth={3} />}
                         </div>
-                        <span className="card-label">{theme.name}</span>
+                        <span style={{ fontSize: "0.65rem", color: isSelected ? "#c084fc" : "rgba(255, 255, 255, 0.6)", textAlign: "center", width: "100%", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                          {g.name}
+                        </span>
                       </button>
                     );
                   })}
                 </div>
               </div>
 
-              {/* Patterns & Textures */}
+              {/* 3. 10 Patterns in horizontal row */}
               <div className="sub-catalog-group">
-                <span className="sub-group-title">Patterns &amp; Textures</span>
-                <div className="carousel-row">
-                  {BACKGROUND_THEMES.filter(t => ["paper", "studio", "gradient"].includes(t.id)).map(theme => {
-                    const isSelected = settings.backgroundTheme === theme.id;
+                <span className="sub-group-title" style={{ fontSize: "0.68rem", fontWeight: 700, letterSpacing: "0.06em", color: "rgba(255, 255, 255, 0.45)", textTransform: "uppercase", display: "block", marginBottom: "8px" }}>
+                  Patterns
+                </span>
+                <div
+                  style={{
+                    display: "flex",
+                    gap: "10px",
+                    overflowX: "auto",
+                    paddingBottom: "6px",
+                    scrollbarWidth: "none",
+                    msOverflowStyle: "none"
+                  }}
+                >
+                  {[{"id":"pattern-grid","name":"Grid","css":"radial-gradient(rgba(255,255,255,0.2) 1px, transparent 1px), #0f172a","bgSize":"16px 16px"},{"id":"pattern-dots","name":"Dots","css":"radial-gradient(rgba(255,255,255,0.15) 1.5px, transparent 1.5px), #1e1b4b","bgSize":"14px 14px"},{"id":"pattern-lines","name":"Lines","css":"repeating-linear-gradient(45deg, rgba(255,255,255,0.05) 0, rgba(255,255,255,0.05) 1px, transparent 0, transparent 10px), #0c1017"},{"id":"pattern-carbon","name":"Carbon","css":"linear-gradient(27deg, #151515 5px, transparent 5px) 0 5px, linear-gradient(207deg, #151515 5px, transparent 5px) 10px 0px, #111"},{"id":"pattern-cubes","name":"Blueprint","css":"linear-gradient(rgba(56, 189, 248, 0.1) 1px, transparent 1px), linear-gradient(90deg, rgba(56, 189, 248, 0.1) 1px, transparent 1px), #030712","bgSize":"20px 20px"},{"id":"pattern-hex","name":"Hexagon","css":"radial-gradient(circle at 50% 50%, rgba(168, 85, 247, 0.15) 20%, transparent 20%), #090b10","bgSize":"18px 18px"},{"id":"pattern-paper","name":"Paper","css":"radial-gradient(#ffffff 0.5px, transparent 0.5px), #1e293b","bgSize":"12px 12px"},{"id":"pattern-noise","name":"Studio","css":"radial-gradient(circle at center, #1e293b 0%, #090d16 100%)"},{"id":"pattern-scanlines","name":"Scanlines","css":"repeating-linear-gradient(0deg, rgba(0,0,0,0.3) 0px, rgba(0,0,0,0.3) 1px, transparent 1px, transparent 2px), #1e1b4b"},{"id":"pattern-glow","name":"Glow Orb","css":"radial-gradient(circle at 50% 30%, rgba(139, 92, 246, 0.4) 0%, transparent 70%), #020617"}].map(p => {
+                    const isSelected = settings.backgroundTheme === p.id;
                     return (
                       <button
-                        key={theme.id}
+                        key={p.id}
                         type="button"
-                        className={`catalog-card ${isSelected ? "is-selected" : ""}`}
-                        onClick={() => setSettings(prev => ({ ...prev, backgroundTheme: theme.id }))}
-                        title={theme.name}
+                        onClick={() => setSettings(prev => ({ ...prev, backgroundTheme: p.id as any }))}
+                        title={p.name}
+                        style={{
+                          flex: "0 0 90px",
+                          display: "flex",
+                          flexDirection: "column",
+                          gap: "4px",
+                          background: "transparent",
+                          border: "none",
+                          cursor: "pointer",
+                          padding: 0
+                        }}
                       >
-                        <div className="card-thumb" style={{ background: theme.previewCss }}>
-                          {isSelected && <span className="card-check"><Check size={11} strokeWidth={3} /></span>}
+                        <div
+                          style={{
+                            width: "100%",
+                            height: "56px",
+                            borderRadius: "6px",
+                            background: p.css,
+                            backgroundSize: p.bgSize || "auto",
+                            border: isSelected ? "2px solid #a855f7" : "1px solid rgba(255, 255, 255, 0.12)",
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            boxShadow: isSelected ? "0 0 10px rgba(168, 85, 247, 0.4)" : "none"
+                          }}
+                        >
+                          {isSelected && <Check size={14} color="#ffffff" strokeWidth={3} />}
                         </div>
-                        <span className="card-label">{theme.name}</span>
+                        <span style={{ fontSize: "0.65rem", color: isSelected ? "#c084fc" : "rgba(255, 255, 255, 0.6)", textAlign: "center", width: "100%", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                          {p.name}
+                        </span>
                       </button>
                     );
                   })}
                 </div>
               </div>
 
-              {/* Custom Backdrop Upload */}
+              {/* 4. Upload Background Box supporting all formats */}
               <div className="sub-catalog-group">
-                <span className="sub-group-title">Upload Background</span>
-                <label className="upload-dropzone">
-                  <FolderUp size={16} />
-                  <span>Choose Photo or Video</span>
-                  <small>JPG, PNG, MP4, WebM</small>
+                <span className="sub-group-title" style={{ fontSize: "0.68rem", fontWeight: 700, letterSpacing: "0.06em", color: "rgba(255, 255, 255, 0.45)", textTransform: "uppercase", display: "block", marginBottom: "8px" }}>
+                  Upload Background
+                </span>
+                <label
+                  className="upload-dropzone"
+                  style={{
+                    display: "flex",
+                    flexDirection: "column",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    gap: "6px",
+                    padding: "18px 12px",
+                    border: "1px dashed rgba(255, 255, 255, 0.2)",
+                    borderRadius: "8px",
+                    background: "rgba(18, 24, 38, 0.5)",
+                    cursor: "pointer",
+                    textAlign: "center"
+                  }}
+                >
+                  <FolderUp size={18} color="#a855f7" />
+                  <span style={{ fontSize: "0.74rem", fontWeight: 600, color: "#ffffff" }}>Choose Photo or Video</span>
+                  <small style={{ fontSize: "0.65rem", color: "rgba(255, 255, 255, 0.45)" }}>All image and video formats supported</small>
                   <input
                     type="file"
-                    accept="image/*,video/*,.mp4,.mov,.webm"
+                    accept="image/*,video/*"
                     className="visually-hidden"
                     onChange={e => {
                       const file = e.target.files?.[0];
@@ -2311,11 +2438,22 @@ const [selectedSegmentId, setSelectedSegmentId] = useState<string | null>(null);
                 </label>
 
                 {(settings.customImageDataUrl || settings.customVideoUrl) && (
-                  <div className="active-upload-pill">
-                    <span>Active custom media</span>
+                  <div
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "space-between",
+                      marginTop: "8px",
+                      padding: "6px 10px",
+                      borderRadius: "6px",
+                      background: "rgba(124, 58, 237, 0.15)",
+                      border: "1px solid rgba(168, 85, 247, 0.3)"
+                    }}
+                  >
+                    <span style={{ fontSize: "0.7rem", color: "#c084fc", fontWeight: 500 }}>Active custom media</span>
                     <button
                       type="button"
-                      className="clear-upload-btn"
+                      style={{ background: "transparent", border: "none", color: "#ffffff", cursor: "pointer", padding: "2px" }}
                       onClick={() => setSettings(prev => ({
                         ...prev,
                         customImageDataUrl: undefined,
@@ -2332,10 +2470,8 @@ const [selectedSegmentId, setSelectedSegmentId] = useState<string | null>(null);
             </div>
           )}
 
-          {/* TAB 2: TEMPLATES */}
           {activeCatalogTab === "templates" && (
             <div className="catalog-pane">
-              {/* Classic Styles */}
               <div className="sub-catalog-group">
                 <div className="sub-group-header">
                   <span className="sub-group-title">Classic Styles</span>
@@ -2350,7 +2486,7 @@ const [selectedSegmentId, setSelectedSegmentId] = useState<string | null>(null);
                       <button
                         key={template.id}
                         type="button"
-                        className={`catalog-card ${isSelected ? "is-selected" : ""}`}
+                        className={"catalog-card " + (isSelected ? "is-selected" : "")}
                         onClick={() => handleApplyTemplate(template.id)}
                         title={template.name}
                       >
@@ -2365,7 +2501,6 @@ const [selectedSegmentId, setSelectedSegmentId] = useState<string | null>(null);
                 </div>
               </div>
 
-              {/* Transition Styles */}
               <div className="sub-catalog-group">
                 <span className="sub-group-title">Transitions</span>
                 <div className="carousel-row">
@@ -2375,7 +2510,7 @@ const [selectedSegmentId, setSelectedSegmentId] = useState<string | null>(null);
                       <button
                         key={template.id}
                         type="button"
-                        className={`catalog-card ${isSelected ? "is-selected" : ""}`}
+                        className={"catalog-card " + (isSelected ? "is-selected" : "")}
                         onClick={() => handleApplyTemplate(template.id)}
                         title={template.name}
                       >
@@ -2390,7 +2525,6 @@ const [selectedSegmentId, setSelectedSegmentId] = useState<string | null>(null);
                 </div>
               </div>
 
-              {/* Animation & Kinetic */}
               <div className="sub-catalog-group">
                 <span className="sub-group-title">Animation &amp; Kinetic</span>
                 <div className="carousel-row">
@@ -2400,7 +2534,7 @@ const [selectedSegmentId, setSelectedSegmentId] = useState<string | null>(null);
                       <button
                         key={template.id}
                         type="button"
-                        className={`catalog-card ${isSelected ? "is-selected" : ""}`}
+                        className={"catalog-card " + (isSelected ? "is-selected" : "")}
                         onClick={() => handleApplyTemplate(template.id)}
                         title={template.name}
                       >
@@ -2417,201 +2551,207 @@ const [selectedSegmentId, setSelectedSegmentId] = useState<string | null>(null);
             </div>
           )}
 
-          <div className="panel-divider" />
+          {/* TAB 3: TYPOGRAPHY (MATCHING IMAGE 2 EXACTLY) */}
+          {activeCatalogTab === "typography" && (
+            <div className="catalog-pane">
+              <section className="inspector-section" style={{ padding: "0" }}>
+                <div className="inspector-form">
+                  {/* Font & Style */}
+                  <div className="field-split">
+                    <div className="control-group">
+                      <span className="control-label">Font</span>
+                      <div className="custom-select-wrap">
+                        <select
+                          className="studio-select"
+                          value={settings.fontFamily}
+                          onChange={event => setAppearance("fontFamily", event.target.value)}
+                        >
+                          <option value="'Inter', sans-serif">Inter</option>
+                          <option value="'Noto Sans Telugu', sans-serif">Telugu Sans</option>
+                          <option value="Arial, sans-serif">Arial</option>
+                          <option value="Georgia, serif">Georgia</option>
+                          <option value="'Courier New', monospace">Mono</option>
+                        </select>
+                      </div>
+                    </div>
 
-          {/* DOCKED TYPOGRAPHY INSPECTOR */}
-          <section className="inspector-section">
-            <span className="inspector-section-label">Typography</span>
-
-            <div className="inspector-form">
-              {/* Row 1: Font & Style */}
-              <div className="field-split">
-                <div className="control-group">
-                  <span className="control-label">Font</span>
-                  <div className="custom-select-wrap">
-                    <select
-                      className="studio-select"
-                      value={settings.fontFamily}
-                      onChange={event => setAppearance("fontFamily", event.target.value)}
-                    >
-                      <option value="'Inter', sans-serif">Inter</option>
-                      <option value="'Noto Sans Telugu', sans-serif">Telugu Sans</option>
-                      <option value="Arial, sans-serif">Arial</option>
-                      <option value="Georgia, serif">Georgia</option>
-                      <option value="'Courier New', monospace">Mono</option>
-                    </select>
+                    <div className="control-group">
+                      <span className="control-label">Style</span>
+                      <div className="custom-select-wrap">
+                        <select
+                          className="studio-select"
+                          value={settings.style}
+                          onChange={event => setAppearance("style", event.target.value as CanvasSettings["style"])}
+                        >
+                          <option value="outline">Outline</option>
+                          <option value="kinetic">Highlight</option>
+                          <option value="box">Box Card</option>
+                          <option value="minimalist">Minimal</option>
+                        </select>
+                      </div>
+                    </div>
                   </div>
-                </div>
 
-                <div className="control-group">
-                  <span className="control-label">Style</span>
-                  <div className="custom-select-wrap">
-                    <select
-                      className="studio-select"
-                      value={settings.style}
-                      onChange={event => setAppearance("style", event.target.value as CanvasSettings["style"])}
-                    >
-                      <option value="outline">Outline</option>
-                      <option value="kinetic">Highlight</option>
-                      <option value="box">Box Card</option>
-                      <option value="minimalist">Minimal</option>
-                    </select>
+                  {/* Size */}
+                  <div className="control-group">
+                    <div className="slider-header">
+                      <span className="control-label">Size</span>
+                      <span className="slider-badge">{settings.fontSize}px</span>
+                    </div>
+                    <div className="slider-wrap">
+                      <input
+                        type="range"
+                        className="studio-slider"
+                        min="16"
+                        max="100"
+                        step="1"
+                        value={settings.fontSize}
+                        onChange={event => setAppearance("fontSize", Number(event.target.value))}
+                      />
+                    </div>
                   </div>
-                </div>
-              </div>
 
-              {/* Row 2: Size */}
-              <div className="control-group">
-                <div className="slider-header">
-                  <span className="control-label">Size</span>
-                  <span className="slider-badge">{settings.fontSize}px</span>
-                </div>
-                <div className="slider-wrap">
-                  <input
-                    type="range"
-                    className="studio-slider"
-                    min="24"
-                    max="100"
-                    step="1"
-                    value={settings.fontSize}
-                    onChange={event => setAppearance("fontSize", Number(event.target.value))}
-                  />
-                </div>
-              </div>
+                  {/* Position & Align */}
+                  <div className="field-split">
+                    <div className="control-group">
+                      <span className="control-label">Position</span>
+                      <div className="custom-select-wrap">
+                        <select
+                          className="studio-select"
+                          value={settings.verticalPosition <= 0.35 ? "0.2" : settings.verticalPosition >= 0.75 ? "0.88" : "0.5"}
+                          onChange={event => setAppearance("verticalPosition", Number(event.target.value))}
+                        >
+                          <option value="0.2">Top</option>
+                          <option value="0.5">Middle</option>
+                          <option value="0.88">Bottom</option>
+                        </select>
+                      </div>
+                    </div>
 
-              {/* Row 3: Position & Alignment */}
-              <div className="field-split">
-                <div className="control-group">
-                  <span className="control-label">Position</span>
-                  <div className="custom-select-wrap">
-                    <select
-                      className="studio-select"
-                      value={settings.verticalPosition}
-                      onChange={event => setAppearance("verticalPosition", Number(event.target.value))}
-                    >
-                      <option value="0.2">Top</option>
-                      <option value="0.5">Center</option>
-                      <option value="0.78">Lower 3rd</option>
-                      <option value="0.88">Bottom</option>
-                    </select>
+                    <div className="control-group">
+                      <span className="control-label">Align</span>
+                      <div className="studio-segmented-pill">
+                        <button
+                          type="button"
+                          className={"pill-btn " + (settings.alignment === "left" ? "is-active" : "")}
+                          onClick={() => setAppearance("alignment", "left")}
+                        >
+                          Left
+                        </button>
+                        <button
+                          type="button"
+                          className={"pill-btn " + (settings.alignment === "center" ? "is-active" : "")}
+                          onClick={() => setAppearance("alignment", "center")}
+                        >
+                          Center
+                        </button>
+                        <button
+                          type="button"
+                          className={"pill-btn " + (settings.alignment === "right" ? "is-active" : "")}
+                          onClick={() => setAppearance("alignment", "right")}
+                        >
+                          Right
+                        </button>
+                      </div>
+                    </div>
                   </div>
-                </div>
 
-                <div className="control-group">
-                  <span className="control-label">Align</span>
-                  <div className="studio-segmented-pill">
-                    <button
-                      type="button"
-                      className={`pill-btn ${settings.alignment === "left" ? "is-active" : ""}`}
-                      onClick={() => setAppearance("alignment", "left")}
-                    >
-                      Left
-                    </button>
-                    <button
-                      type="button"
-                      className={`pill-btn ${settings.alignment === "center" ? "is-active" : ""}`}
-                      onClick={() => setAppearance("alignment", "center")}
-                    >
-                      Center
-                    </button>
-                    <button
-                      type="button"
-                      className={`pill-btn ${settings.alignment === "right" ? "is-active" : ""}`}
-                      onClick={() => setAppearance("alignment", "right")}
-                    >
-                      Right
-                    </button>
+                  {/* Colors */}
+                  <div className="control-group">
+                    <span className="control-label">Colors</span>
+                    <div className="palette-chip-grid">
+                      <label className="color-chip" title="Text Color">
+                        <span className="color-preview" style={{ backgroundColor: settings.textColor }} />
+                        <span className="chip-name">Text</span>
+                        <input
+                          type="color"
+                          className="hidden-color-input"
+                          value={settings.textColor.startsWith("#") ? settings.textColor : "#ffffff"}
+                          onChange={event => setAppearance("textColor", event.target.value)}
+                        />
+                      </label>
+
+                      <label className="color-chip" title="Highlight Accent">
+                        <span className="color-preview" style={{ backgroundColor: settings.highlightColor }} />
+                        <span className="chip-name">Accent</span>
+                        <input
+                          type="color"
+                          className="hidden-color-input"
+                          value={settings.highlightColor.startsWith("#") ? settings.highlightColor : "#8b5cf6"}
+                          onChange={event => setAppearance("highlightColor", event.target.value)}
+                        />
+                      </label>
+
+                      <label className="color-chip" title="Box Backdrop">
+                        <span className="color-preview" style={{ backgroundColor: settings.boxColor }} />
+                        <span className="chip-name">Box</span>
+                        <input
+                          type="color"
+                          className="hidden-color-input"
+                          value={settings.boxColor.startsWith("#") ? settings.boxColor : "#000000"}
+                          onChange={event => setAppearance("boxColor", event.target.value)}
+                        />
+                      </label>
+                    </div>
                   </div>
-                </div>
-              </div>
 
-              {/* Row 4: Colors */}
-              <div className="control-group">
-                <span className="control-label">Color Palette</span>
-                <div className="palette-chip-grid">
-                  <label className="color-chip" title="Text Color">
-                    <span className="color-preview" style={{ backgroundColor: settings.textColor }} />
-                    <span className="chip-name">Text</span>
+                  <div className="panel-divider" style={{ margin: "12px 0" }} />
+
+                  {/* Safe Guides */}
+                  <label className="studio-toggle-bar">
+                    <span>Safe Area Overlays</span>
                     <input
-                      type="color"
-                      className="hidden-color-input"
-                      value={settings.textColor.startsWith("#") ? settings.textColor : "#ffffff"}
-                      onChange={event => setAppearance("textColor", event.target.value)}
+                      type="checkbox"
+                      className="studio-checkbox"
+                      checked={!!settings.safeZones?.show}
+                      onChange={event => setSettings(previous => ({
+                        ...previous,
+                        safeZones: { ...(previous.safeZones ?? { platform: "instagram" }), show: event.target.checked },
+                      }))}
                     />
                   </label>
 
-                  <label className="color-chip" title="Highlight Accent">
-                    <span className="color-preview" style={{ backgroundColor: settings.highlightColor }} />
-                    <span className="chip-name">Accent</span>
-                    <input
-                      type="color"
-                      className="hidden-color-input"
-                      value={settings.highlightColor.startsWith("#") ? settings.highlightColor : "#8b5cf6"}
-                      onChange={event => setAppearance("highlightColor", event.target.value)}
-                    />
-                  </label>
-
-                  <label className="color-chip" title="Box Backdrop">
-                    <span className="color-preview" style={{ backgroundColor: settings.boxColor }} />
-                    <span className="chip-name">Box</span>
-                    <input
-                      type="color"
-                      className="hidden-color-input"
-                      value={settings.boxColor.startsWith("#") ? settings.boxColor : "#000000"}
-                      onChange={event => setAppearance("boxColor", event.target.value)}
-                    />
-                  </label>
+                  {settings.safeZones?.show && (
+                    <div className="studio-segmented-pill" style={{ marginTop: "8px" }}>
+                      <button
+                        type="button"
+                        className={"pill-btn " + (settings.safeZones?.platform === "instagram" ? "is-active" : "")}
+                        onClick={() => setSettings(prev => ({ ...prev, safeZones: { platform: "instagram", show: true } }))}
+                      >
+                        Reels
+                      </button>
+                      <button
+                        type="button"
+                        className={"pill-btn " + (settings.safeZones?.platform === "tiktok" ? "is-active" : "")}
+                        onClick={() => setSettings(prev => ({ ...prev, safeZones: { platform: "tiktok", show: true } }))}
+                      >
+                        TikTok
+                      </button>
+                      <button
+                        type="button"
+                        className={"pill-btn " + (settings.safeZones?.platform === "youtube" ? "is-active" : "")}
+                        onClick={() => setSettings(prev => ({ ...prev, safeZones: { platform: "youtube", show: true } }))}
+                      >
+                        Shorts
+                      </button>
+                    </div>
+                  )}
                 </div>
+              </section>
+            </div>
+          )}
+
+          {/* TAB 4: ADVANCED (PLACEHOLDER FOR FUTURE FEATURES) */}
+          {activeCatalogTab === "advanced" && (
+            <div className="catalog-pane" style={{ padding: "20px 8px", textAlign: "center" }}>
+              <div style={{ padding: "24px 12px", border: "1px dashed rgba(255, 255, 255, 0.15)", borderRadius: "8px" }}>
+                <p style={{ fontSize: "0.78rem", margin: 0, fontWeight: 600, color: "#ffffff" }}>Advanced Settings</p>
+                <p style={{ fontSize: "0.72rem", marginTop: "6px", color: "rgba(255, 255, 255, 0.45)", lineHeight: 1.5 }}>
+                  Future updates: custom animations, audio equalizer sync, and export profiles.
+                </p>
               </div>
             </div>
-          </section>
-
-          <div className="panel-divider" />
-
-          {/* SAFE GUIDES */}
-          <section className="inspector-section" style={{ paddingBottom: "16px" }}>
-            <span className="inspector-section-label">Safe Guides</span>
-            <div className="inspector-form">
-              <label className="studio-toggle-bar">
-                <span>Display Safe Zones</span>
-                <input
-                  type="checkbox"
-                  className="studio-checkbox"
-                  checked={!!settings.safeZones?.show}
-                  onChange={event => setSettings(previous => ({
-                    ...previous,
-                    safeZones: { ...(previous.safeZones ?? { platform: "instagram" }), show: event.target.checked },
-                  }))}
-                />
-              </label>
-
-              {settings.safeZones?.show && (
-                <div className="studio-segmented-pill" style={{ marginTop: "8px" }}>
-                  <button
-                    type="button"
-                    className={`pill-btn ${settings.safeZones?.platform === "instagram" ? "is-active" : ""}`}
-                    onClick={() => setSettings(prev => ({ ...prev, safeZones: { platform: "instagram", show: true } }))}
-                  >
-                    Reels
-                  </button>
-                  <button
-                    type="button"
-                    className={`pill-btn ${settings.safeZones?.platform === "tiktok" ? "is-active" : ""}`}
-                    onClick={() => setSettings(prev => ({ ...prev, safeZones: { platform: "tiktok", show: true } }))}
-                  >
-                    TikTok
-                  </button>
-                  <button
-                    type="button"
-                    className={`pill-btn ${settings.safeZones?.platform === "youtube" ? "is-active" : ""}`}
-                    onClick={() => setSettings(prev => ({ ...prev, safeZones: { platform: "youtube", show: true } }))}
-                  >
-                    Shorts
-                  </button>
-                </div>
-              )}
-            </div>
-          </section>
+          )}
 
         </div>
       </aside>

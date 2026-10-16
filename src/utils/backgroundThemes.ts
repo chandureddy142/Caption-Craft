@@ -1,263 +1,247 @@
-import type { BackgroundFitMode, BackgroundThemeId } from '../types';
+import type { CanvasSettings } from "../types";
 
-export interface BackgroundThemeDefinition {
-  id: BackgroundThemeId;
+export interface BackgroundThemeOption {
+  id: string;
   name: string;
-  description: string;
   previewCss: string;
-  requiresVideo?: boolean;
-  requiresCustomImage?: boolean;
-  requiresCustomVideo?: boolean;
 }
 
-export const BACKGROUND_THEMES: BackgroundThemeDefinition[] = [
-  {
-    id: 'original-video',
-    name: 'Original Video',
-    description: 'Actual video frames from the uploaded video file.',
-    previewCss: 'linear-gradient(135deg, #1e293b 0%, #0f172a 100%)',
-    requiresVideo: true,
-  },
-  {
-    id: 'midnight',
-    name: 'Midnight',
-    description: 'Dark charcoal cinematic background with subtle depth.',
-    previewCss: 'linear-gradient(180deg, #12151c 0%, #090b10 100%)',
-  },
-  {
-    id: 'deep-blue',
-    name: 'Deep Blue',
-    description: 'Dark navy background with rich cinematic tone.',
-    previewCss: 'linear-gradient(180deg, #0d1e38 0%, #060e1b 100%)',
-  },
-  {
-    id: 'purple-haze',
-    name: 'Purple Haze',
-    description: 'Restrained deep violet and indigo palette.',
-    previewCss: 'linear-gradient(180deg, #1e1333 0%, #0d0817 100%)',
-  },
-  {
-    id: 'sunset',
-    name: 'Sunset',
-    description: 'Warm dusk tones transitioning from amber to dark plum.',
-    previewCss: 'linear-gradient(180deg, #451a22 0%, #1c0e1e 100%)',
-  },
-  {
-    id: 'forest',
-    name: 'Forest',
-    description: 'Dark moss and emerald pine tones.',
-    previewCss: 'linear-gradient(180deg, #09281f 0%, #03130e 100%)',
-  },
-  {
-    id: 'paper',
-    name: 'Paper',
-    description: 'Clean, warm-neutral light surface for sharp reading.',
-    previewCss: 'linear-gradient(180deg, #f4f4f5 0%, #e4e4e7 100%)',
-  },
-  {
-    id: 'studio',
-    name: 'Studio',
-    description: 'Neutral professional graphite background.',
-    previewCss: 'linear-gradient(180deg, #1e222b 0%, #12151c 100%)',
-  },
-  {
-    id: 'gradient',
-    name: 'Gradient',
-    description: 'Subtle, professionally blended violet-slate gradient.',
-    previewCss: 'linear-gradient(135deg, #2e1065 0%, #0f172a 100%)',
-  },
-  {
-    id: 'custom-image',
-    name: 'Custom Image',
-    description: 'User-provided background photo or backdrop.',
-    previewCss: 'repeating-linear-gradient(45deg, #1e293b 0, #1e293b 10px, #0f172a 10px, #0f172a 20px)',
-    requiresCustomImage: true,
-  },
-  {
-    id: 'custom-video',
-    name: 'Custom Video',
-    description: 'User-provided background video or motion backdrop.',
-    previewCss: 'linear-gradient(135deg, #0f172a 0%, #1e1b4b 100%)',
-    requiresCustomVideo: true,
-  },
+export const BACKGROUND_THEMES: BackgroundThemeOption[] = [
+  { id: "original-video", name: "Original Video", previewCss: "linear-gradient(135deg, #1e293b, #0f172a)" },
+  { id: "midnight", name: "Solid Base", previewCss: "#000000" },
+  { id: "sunset-mesh", name: "Sunset", previewCss: "linear-gradient(135deg, #ff512f, #dd2476)" },
+  { id: "deep-blue", name: "Deep Blue", previewCss: "linear-gradient(135deg, #0f2027, #203a43, #2c5364)" },
+  { id: "purple-haze", name: "Purple Haze", previewCss: "linear-gradient(135deg, #7f00ff, #e100ff)" },
+  { id: "emerald", name: "Emerald", previewCss: "linear-gradient(135deg, #0ba360, #3cba92)" },
+  { id: "crimson-tide", name: "Crimson", previewCss: "linear-gradient(135deg, #642b73, #c6426e)" },
+  { id: "cyber-punk", name: "Cyberpunk", previewCss: "linear-gradient(135deg, #ff0844, #ffb199)" },
+  { id: "aurora", name: "Aurora", previewCss: "linear-gradient(135deg, #00c6ff, #0072ff)" },
+  { id: "golden-hour", name: "Gold", previewCss: "linear-gradient(135deg, #f7971e, #ffd200)" },
+  { id: "midnight-neon", name: "Midnight", previewCss: "linear-gradient(135deg, #182848, #4b6cb7)" },
+  { id: "dark-matter", name: "Obsidian", previewCss: "linear-gradient(135deg, #232526, #414345)" },
+  { id: "pattern-grid", name: "Grid", previewCss: "radial-gradient(rgba(255,255,255,0.2) 1px, transparent 1px), #0f172a" },
+  { id: "pattern-dots", name: "Dots", previewCss: "radial-gradient(rgba(255,255,255,0.15) 1.5px, transparent 1.5px), #1e1b4b" },
+  { id: "pattern-lines", name: "Lines", previewCss: "repeating-linear-gradient(45deg, rgba(255,255,255,0.05) 0, rgba(255,255,255,0.05) 1px, transparent 0, transparent 10px), #0c1017" },
+  { id: "pattern-carbon", name: "Carbon", previewCss: "linear-gradient(27deg, #151515 5px, transparent 5px) 0 5px, linear-gradient(207deg, #151515 5px, transparent 5px) 10px 0px, #111" },
+  { id: "pattern-cubes", name: "Blueprint", previewCss: "linear-gradient(rgba(56, 189, 248, 0.1) 1px, transparent 1px), linear-gradient(90deg, rgba(56, 189, 248, 0.1) 1px, transparent 1px), #030712" },
+  { id: "pattern-hex", name: "Hexagon", previewCss: "radial-gradient(circle at 50% 50%, rgba(168, 85, 247, 0.15) 20%, transparent 20%), #090b10" },
+  { id: "pattern-paper", name: "Paper", previewCss: "radial-gradient(#ffffff 0.5px, transparent 0.5px), #1e293b" },
+  { id: "pattern-noise", name: "Studio", previewCss: "radial-gradient(circle at center, #1e293b 0%, #090d16 100%)" },
+  { id: "pattern-scanlines", name: "Scanlines", previewCss: "repeating-linear-gradient(0deg, rgba(0,0,0,0.3) 0px, rgba(0,0,0,0.3) 1px, transparent 1px, transparent 2px), #1e1b4b" },
+  { id: "pattern-glow", name: "Glow Orb", previewCss: "radial-gradient(circle at 50% 30%, rgba(139, 92, 246, 0.4) 0%, transparent 70%), #020617" }
 ];
 
-export function getBackgroundTheme(id: BackgroundThemeId): BackgroundThemeDefinition | undefined {
-  return BACKGROUND_THEMES.find(t => t.id === id);
-}
-
-export interface RenderBackgroundOptions {
-  themeId: BackgroundThemeId;
+export interface DrawBackgroundOptions {
+  themeId: string;
   width: number;
   height: number;
+  backgroundColor?: string;
   videoElement?: HTMLVideoElement | null;
   isVideoMedia?: boolean;
   customImage?: HTMLImageElement | null;
   customVideoElement?: HTMLVideoElement | null;
   overlayOpacity?: number;
-  fitMode?: BackgroundFitMode;
+  fitMode?: CanvasSettings["fitMode"];
 }
 
-export function drawBackgroundToCanvas(
-  ctx: CanvasRenderingContext2D,
-  options: RenderBackgroundOptions,
-): void {
-  const {
-    themeId,
-    width,
-    height,
-    videoElement,
-    isVideoMedia,
-    customImage,
-    customVideoElement,
-    overlayOpacity = 0,
-    fitMode = 'cover',
-  } = options;
+export function drawBackgroundToCanvas(ctx: CanvasRenderingContext2D, options: DrawBackgroundOptions) {
+  const { themeId, width, height, backgroundColor, videoElement, isVideoMedia, customImage, customVideoElement } = options;
 
-  // 1. Draw base layer
-  if (themeId === 'original-video' && isVideoMedia && videoElement && videoElement.readyState >= 2) {
-    // Render video frames
-    const vWidth = videoElement.videoWidth || width;
-    const vHeight = videoElement.videoHeight || height;
-    const hRatio = width / vWidth;
-    const vRatio = height / vHeight;
-    const ratio = fitMode === 'cover' ? Math.max(hRatio, vRatio) : Math.min(hRatio, vRatio);
+  ctx.save();
 
-    const destWidth = vWidth * ratio;
-    const destHeight = vHeight * ratio;
-    const destX = (width - destWidth) / 2;
-    const destY = (height - destHeight) / 2;
-
-    // Fill black bars if contain
-    if (fitMode === 'contain') {
-      ctx.fillStyle = '#000000';
-      ctx.fillRect(0, 0, width, height);
-    }
-
-    ctx.drawImage(videoElement, 0, 0, vWidth, vHeight, destX, destY, destWidth, destHeight);
-  } else if (themeId === 'custom-video' && customVideoElement && customVideoElement.readyState >= 2) {
-    // Render custom background video frames
-    const vWidth = customVideoElement.videoWidth || width;
-    const vHeight = customVideoElement.videoHeight || height;
-    const hRatio = width / vWidth;
-    const vRatio = height / vHeight;
-    const ratio = fitMode === 'cover' ? Math.max(hRatio, vRatio) : Math.min(hRatio, vRatio);
-
-    const destWidth = vWidth * ratio;
-    const destHeight = vHeight * ratio;
-    const destX = (width - destWidth) / 2;
-    const destY = (height - destHeight) / 2;
-
-    if (fitMode === 'contain') {
-      ctx.fillStyle = '#000000';
-      ctx.fillRect(0, 0, width, height);
-    }
-
-    ctx.drawImage(customVideoElement, 0, 0, vWidth, vHeight, destX, destY, destWidth, destHeight);
-  } else if (themeId === 'custom-image' && customImage && customImage.complete && customImage.naturalWidth > 0) {
-    // Render custom image
-    const imgWidth = customImage.naturalWidth;
-    const imgHeight = customImage.naturalHeight;
-    const hRatio = width / imgWidth;
-    const vRatio = height / imgHeight;
-    const ratio = fitMode === 'cover' ? Math.max(hRatio, vRatio) : Math.min(hRatio, vRatio);
-
-    const destWidth = imgWidth * ratio;
-    const destHeight = imgHeight * ratio;
-    const destX = (width - destWidth) / 2;
-    const destY = (height - destHeight) / 2;
-
-    if (fitMode === 'contain') {
-      ctx.fillStyle = '#000000';
-      ctx.fillRect(0, 0, width, height);
-    }
-
-    ctx.drawImage(customImage, 0, 0, imgWidth, imgHeight, destX, destY, destWidth, destHeight);
-  } else {
-    // Render built-in themes
-    switch (themeId) {
-      case 'midnight': {
-        const grad = ctx.createLinearGradient(0, 0, 0, height);
-        grad.addColorStop(0, '#151922');
-        grad.addColorStop(1, '#090b10');
-        ctx.fillStyle = grad;
-        ctx.fillRect(0, 0, width, height);
-        break;
-      }
-      case 'deep-blue': {
-        const grad = ctx.createLinearGradient(0, 0, 0, height);
-        grad.addColorStop(0, '#0d1e38');
-        grad.addColorStop(1, '#060e1b');
-        ctx.fillStyle = grad;
-        ctx.fillRect(0, 0, width, height);
-        break;
-      }
-      case 'purple-haze': {
-        const grad = ctx.createLinearGradient(0, 0, 0, height);
-        grad.addColorStop(0, '#1e1333');
-        grad.addColorStop(1, '#0d0817');
-        ctx.fillStyle = grad;
-        ctx.fillRect(0, 0, width, height);
-        break;
-      }
-      case 'sunset': {
-        const grad = ctx.createLinearGradient(0, 0, 0, height);
-        grad.addColorStop(0, '#451a22');
-        grad.addColorStop(0.65, '#291224');
-        grad.addColorStop(1, '#150a16');
-        ctx.fillStyle = grad;
-        ctx.fillRect(0, 0, width, height);
-        break;
-      }
-      case 'forest': {
-        const grad = ctx.createLinearGradient(0, 0, 0, height);
-        grad.addColorStop(0, '#0a2a20');
-        grad.addColorStop(1, '#03140e');
-        ctx.fillStyle = grad;
-        ctx.fillRect(0, 0, width, height);
-        break;
-      }
-      case 'paper': {
-        const grad = ctx.createLinearGradient(0, 0, 0, height);
-        grad.addColorStop(0, '#f4f4f5');
-        grad.addColorStop(1, '#e4e4e7');
-        ctx.fillStyle = grad;
-        ctx.fillRect(0, 0, width, height);
-        break;
-      }
-      case 'studio': {
-        const grad = ctx.createLinearGradient(0, 0, 0, height);
-        grad.addColorStop(0, '#1f242e');
-        grad.addColorStop(1, '#12151c');
-        ctx.fillStyle = grad;
-        ctx.fillRect(0, 0, width, height);
-        break;
-      }
-      case 'gradient': {
-        const grad = ctx.createLinearGradient(0, 0, width, height);
-        grad.addColorStop(0, '#2e1065');
-        grad.addColorStop(1, '#0f172a');
-        ctx.fillStyle = grad;
-        ctx.fillRect(0, 0, width, height);
-        break;
-      }
-      case 'original-video':
-      case 'custom-image':
-      default: {
-        // Fallback if video or image not yet loaded
-        const grad = ctx.createLinearGradient(0, 0, 0, height);
-        grad.addColorStop(0, '#151922');
-        grad.addColorStop(1, '#090b10');
-        ctx.fillStyle = grad;
-        ctx.fillRect(0, 0, width, height);
-        break;
-      }
-    }
+  if (themeId === "custom-image" && customImage) {
+    ctx.drawImage(customImage, 0, 0, width, height);
+    ctx.restore();
+    return;
   }
 
-  // 2. Darkening overlay for caption readability
-  if (overlayOpacity > 0) {
-    ctx.fillStyle = `rgba(0, 0, 0, ${Math.min(0.9, Math.max(0, overlayOpacity))})`;
+  if (themeId === "custom-video" && customVideoElement) {
+    ctx.drawImage(customVideoElement, 0, 0, width, height);
+    ctx.restore();
+    return;
+  }
+
+  if (themeId === "original-video" && isVideoMedia && videoElement) {
+    ctx.drawImage(videoElement, 0, 0, width, height);
+    ctx.restore();
+    return;
+  }
+
+  // Gradients
+  if (themeId === "sunset-mesh" || themeId === "gradient-sunset") {
+    const g = ctx.createLinearGradient(0, 0, width, height);
+    g.addColorStop(0, "#ff512f");
+    g.addColorStop(1, "#dd2476");
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, width, height);
+  } else if (themeId === "deep-blue") {
+    const g = ctx.createLinearGradient(0, 0, width, height);
+    g.addColorStop(0, "#0f2027");
+    g.addColorStop(0.5, "#203a43");
+    g.addColorStop(1, "#2c5364");
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, width, height);
+  } else if (themeId === "purple-haze") {
+    const g = ctx.createLinearGradient(0, 0, width, height);
+    g.addColorStop(0, "#7f00ff");
+    g.addColorStop(1, "#e100ff");
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, width, height);
+  } else if (themeId === "emerald") {
+    const g = ctx.createLinearGradient(0, 0, width, height);
+    g.addColorStop(0, "#0ba360");
+    g.addColorStop(1, "#3cba92");
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, width, height);
+  } else if (themeId === "crimson-tide") {
+    const g = ctx.createLinearGradient(0, 0, width, height);
+    g.addColorStop(0, "#642b73");
+    g.addColorStop(1, "#c6426e");
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, width, height);
+  } else if (themeId === "cyber-punk") {
+    const g = ctx.createLinearGradient(0, 0, width, height);
+    g.addColorStop(0, "#ff0844");
+    g.addColorStop(1, "#ffb199");
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, width, height);
+  } else if (themeId === "aurora" || themeId === "gradient-aurora") {
+    const g = ctx.createLinearGradient(0, 0, width, height);
+    g.addColorStop(0, "#00c6ff");
+    g.addColorStop(1, "#0072ff");
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, width, height);
+  } else if (themeId === "golden-hour") {
+    const g = ctx.createLinearGradient(0, 0, width, height);
+    g.addColorStop(0, "#f7971e");
+    g.addColorStop(1, "#ffd200");
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, width, height);
+  } else if (themeId === "midnight-neon") {
+    const g = ctx.createLinearGradient(0, 0, width, height);
+    g.addColorStop(0, "#182848");
+    g.addColorStop(1, "#4b6cb7");
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, width, height);
+  } else if (themeId === "dark-matter") {
+    const g = ctx.createLinearGradient(0, 0, width, height);
+    g.addColorStop(0, "#232526");
+    g.addColorStop(1, "#414345");
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, width, height);
+  } 
+  // Patterns
+  else if (themeId === "pattern-grid") {
+    ctx.fillStyle = "#0f172a";
+    ctx.fillRect(0, 0, width, height);
+    ctx.strokeStyle = "rgba(255, 255, 255, 0.15)";
+    ctx.lineWidth = 1;
+    for (let x = 0; x < width; x += 24) {
+      ctx.beginPath();
+      ctx.moveTo(x, 0);
+      ctx.lineTo(x, height);
+      ctx.stroke();
+    }
+    for (let y = 0; y < height; y += 24) {
+      ctx.beginPath();
+      ctx.moveTo(0, y);
+      ctx.lineTo(width, y);
+      ctx.stroke();
+    }
+  } else if (themeId === "pattern-dots") {
+    ctx.fillStyle = "#1e1b4b";
+    ctx.fillRect(0, 0, width, height);
+    ctx.fillStyle = "rgba(255, 255, 255, 0.25)";
+    for (let x = 12; x < width; x += 20) {
+      for (let y = 12; y < height; y += 20) {
+        ctx.beginPath();
+        ctx.arc(x, y, 1.5, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }
+  } else if (themeId === "pattern-lines") {
+    ctx.fillStyle = "#0c1017";
+    ctx.fillRect(0, 0, width, height);
+    ctx.strokeStyle = "rgba(255, 255, 255, 0.08)";
+    ctx.lineWidth = 2;
+    for (let x = -height; x < width + height; x += 18) {
+      ctx.beginPath();
+      ctx.moveTo(x, 0);
+      ctx.lineTo(x + height, height);
+      ctx.stroke();
+    }
+  } else if (themeId === "pattern-carbon") {
+    ctx.fillStyle = "#111111";
+    ctx.fillRect(0, 0, width, height);
+    ctx.fillStyle = "#1c1c1c";
+    for (let x = 0; x < width; x += 16) {
+      for (let y = 0; y < height; y += 16) {
+        if ((x / 16 + y / 16) % 2 === 0) {
+          ctx.fillRect(x, y, 16, 16);
+        }
+      }
+    }
+  } else if (themeId === "pattern-cubes") {
+    ctx.fillStyle = "#030712";
+    ctx.fillRect(0, 0, width, height);
+    ctx.strokeStyle = "rgba(56, 189, 248, 0.2)";
+    ctx.lineWidth = 1.5;
+    for (let x = 0; x < width; x += 32) {
+      ctx.strokeRect(x, 0, 32, height);
+    }
+    for (let y = 0; y < height; y += 32) {
+      ctx.strokeRect(0, y, width, 32);
+    }
+  } else if (themeId === "pattern-hex") {
+    ctx.fillStyle = "#090b10";
+    ctx.fillRect(0, 0, width, height);
+    ctx.fillStyle = "rgba(168, 85, 247, 0.2)";
+    for (let x = 10; x < width; x += 28) {
+      for (let y = 10; y < height; y += 28) {
+        ctx.beginPath();
+        ctx.arc(x, y, 3, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }
+  } else if (themeId === "pattern-paper") {
+    ctx.fillStyle = "#1e293b";
+    ctx.fillRect(0, 0, width, height);
+    ctx.fillStyle = "rgba(255, 255, 255, 0.12)";
+    for (let x = 6; x < width; x += 14) {
+      for (let y = 6; y < height; y += 14) {
+        ctx.fillRect(x, y, 1, 1);
+      }
+    }
+  } else if (themeId === "pattern-noise") {
+    const rad = ctx.createRadialGradient(width / 2, height / 2, 20, width / 2, height / 2, Math.max(width, height) / 1.2);
+    rad.addColorStop(0, "#1e293b");
+    rad.addColorStop(1, "#090d16");
+    ctx.fillStyle = rad;
+    ctx.fillRect(0, 0, width, height);
+  } else if (themeId === "pattern-scanlines") {
+    ctx.fillStyle = "#1e1b4b";
+    ctx.fillRect(0, 0, width, height);
+    ctx.fillStyle = "rgba(0, 0, 0, 0.35)";
+    for (let y = 0; y < height; y += 4) {
+      ctx.fillRect(0, y, width, 2);
+    }
+  } else if (themeId === "pattern-glow") {
+    ctx.fillStyle = "#020617";
+    ctx.fillRect(0, 0, width, height);
+    const rad = ctx.createRadialGradient(width / 2, height * 0.35, 10, width / 2, height * 0.35, width * 0.8);
+    rad.addColorStop(0, "rgba(139, 92, 246, 0.65)");
+    rad.addColorStop(1, "transparent");
+    ctx.fillStyle = rad;
+    ctx.fillRect(0, 0, width, height);
+  } else {
+    // Solid plain color
+    ctx.fillStyle = backgroundColor || (themeId.startsWith("#") ? themeId : "#000000");
     ctx.fillRect(0, 0, width, height);
   }
+
+  ctx.restore();
+}
+
+export function getBackgroundTheme(id: string) {
+  return BACKGROUND_THEMES.find(t => t.id === id) || BACKGROUND_THEMES[0];
 }

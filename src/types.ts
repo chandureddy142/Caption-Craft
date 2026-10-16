@@ -40,17 +40,23 @@ export type CaptionTemplateId =
   | 'custom';
 
 export type BackgroundThemeId =
-  | 'original-video'
-  | 'midnight'
-  | 'deep-blue'
-  | 'purple-haze'
-  | 'sunset'
-  | 'forest'
-  | 'paper'
-  | 'studio'
-  | 'gradient'
-  | 'custom-image'
-  | 'custom-video';
+  | "original-video"
+  | "midnight"
+  | "deep-blue"
+  | "studio"
+  | "paper"
+  | "gradient"
+  | "sunset"
+  | "gradient-sunset"
+  | "gradient-aurora"
+  | "gradient-pastel"
+  | "gradient-nebula"
+  | "pattern-topography"
+  | "pattern-hex"
+  | "pattern-halftone"
+  | "pattern-dunes"
+  | "custom-image"
+  | "custom-video";
 
 export type BackgroundFitMode = 'cover' | 'contain';
 
@@ -139,6 +145,7 @@ export interface ProjectExportPreferences {
 }
 
 export interface CanvasSettings {
+  textTransform?: "uppercase" | "none";
   wordPatterns?: any[];
   animation?: string;
   shadowColor?: string;

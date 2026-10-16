@@ -54,7 +54,8 @@ function baseFontFamily(settings: CanvasSettings, text: string, language: Captio
 export function getSubtitleCanvasLayout(ctx: CanvasRenderingContext2D, width: number, height: number, currentTime: number, subtitles: Subtitle[], settings: CanvasSettings, language: CaptionLanguage): SubtitleCanvasLayout | null {
   const subtitle = subtitles.find(item => currentTime >= item.start && currentTime <= item.end);
   if (!subtitle) return null;
-  const rawText = getCaptionText(subtitle.text, language, subtitle.tenglishText);
+  const rawTextUncased = (settings.textTransform === "uppercase" ? getCaptionText(subtitle.text, language, subtitle.tenglishText).toUpperCase() : getCaptionText(subtitle.text, language, subtitle.tenglishText));
+    const rawText = settings.textTransform === "uppercase" ? rawTextUncased.toUpperCase() : rawTextUncased;
   const fontFamily = baseFontFamily(settings, rawText, language);
   const wrapped = wrapCaption(ctx, rawText, width * 0.8, fontFamily, settings.fontSize);
   const isTelugu = language === 'te' || isTeluguText(rawText);
@@ -88,7 +89,8 @@ function activeProgress(currentTime: number, start: number, end: number): number
 export function renderSubtitlesToCanvas(ctx: CanvasRenderingContext2D, width: number, height: number, currentTime: number, subtitles: Subtitle[], settings: CanvasSettings, language: CaptionLanguage, selectedSubtitleId?: string | null): void {
   const activeSub = subtitles.find(item => currentTime >= item.start && currentTime <= item.end);
   if (!activeSub) return;
-  const rawText = getCaptionText(activeSub.text, language, activeSub.tenglishText);
+  const rawTextUncased = (settings.textTransform === "uppercase" ? getCaptionText(activeSub.text, language, activeSub.tenglishText).toUpperCase() : getCaptionText(activeSub.text, language, activeSub.tenglishText));
+    const rawText = settings.textTransform === "uppercase" ? rawTextUncased.toUpperCase() : rawTextUncased;
   const layout = getSubtitleCanvasLayout(ctx, width, height, currentTime, subtitles, settings, language);
   if (!layout) return;
 
