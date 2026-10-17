@@ -378,7 +378,6 @@ const applyProgress = (progress: LocalTranscriptionProgress) => {
       return;
     }
 
-    setIsTranscribing(true);
     setTranscriptionStatus('Extracting and resampling audio to mono 16 kHz…');
     try {
       const audioBlob = await extractAudioToWav(file);
@@ -735,7 +734,7 @@ const applyProgress = (progress: LocalTranscriptionProgress) => {
         <div style={{
           position: "fixed",
           inset: 0,
-          backgroundColor: "#ffffff",
+          backgroundColor: "rgba(0, 0, 0, 0.72)",
           backdropFilter: "blur(6px)",
           display: "flex",
           alignItems: "center",
