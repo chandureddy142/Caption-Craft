@@ -13,6 +13,9 @@ export interface SubtitleCanvasLayout {
   fontSize: number;
 }
 
+const DEFAULT_PAD_X = 10;
+const DEFAULT_PAD_Y = 4;
+
 function isTeluguText(text: string): boolean {
   return /[\u0C00-\u0C7F]/.test(text);
 }
@@ -22,7 +25,17 @@ function withTeluguFallback(fontFamily: string, isTelugu: boolean): string {
   return `${fontFamily}, 'Noto Sans Telugu', sans-serif`;
 }
 
-function wrapCaption(ctx: CanvasRenderingContext2D, text: string, maxWidth: number, fontFamily: string, fontSize: number): { lines: string[]; fontSize: number } {
+function fontString(style: 'normal' | 'italic', weight: string, size: number, family: string): string {
+  return `${style === 'italic' ? 'italic ' : ''}${weight} ${size}px ${family}`;
+}
+
+function wrapCaption(
+  ctx: CanvasRenderingContext2D,
+  text: string,
+  maxWidth: number,
+  fontFamily: string,
+  fontSize: number,
+): { lines: string[]; fontSize: number } {
   let size = fontSize;
   const words = text.split(/\s+/).filter(Boolean);
   while (size >= 18) {
@@ -39,7 +52,9 @@ function wrapCaption(ctx: CanvasRenderingContext2D, text: string, maxWidth: numb
       }
     }
     if (current) lines.push(current);
-    if (lines.length <= 3 && lines.every(line => ctx.measureText(line).width <= maxWidth)) return { lines, fontSize: size };
+    if (lines.length <= 3 && lines.every(line => ctx.measureText(line).width <= maxWidth)) {
+      return { lines, fontSize: size };
+    }
     size -= 2;
   }
   ctx.font = `700 18px ${fontFamily}`;
@@ -51,16 +66,28 @@ function baseFontFamily(settings: CanvasSettings, text: string, language: Captio
   return withTeluguFallback(isTelugu ? "'Noto Sans Telugu', 'Inter', sans-serif" : settings.fontFamily, isTelugu);
 }
 
-export function getSubtitleCanvasLayout(ctx: CanvasRenderingContext2D, width: number, height: number, currentTime: number, subtitles: Subtitle[], settings: CanvasSettings, language: CaptionLanguage): SubtitleCanvasLayout | null {
+function resolveCaptionText(subtitle: Subtitle, settings: CanvasSettings, language: CaptionLanguage): string {
+  const text = getCaptionText(subtitle.text, language, subtitle.tenglishText);
+  return settings.textTransform === 'uppercase' ? text.toUpperCase() : text;
+}
+
+export function getSubtitleCanvasLayout(
+  ctx: CanvasRenderingContext2D,
+  width: number,
+  height: number,
+  currentTime: number,
+  subtitles: Subtitle[],
+  settings: CanvasSettings,
+  language: CaptionLanguage,
+): SubtitleCanvasLayout | null {
   const subtitle = subtitles.find(item => currentTime >= item.start && currentTime <= item.end);
   if (!subtitle) return null;
-  const rawTextUncased = (settings.textTransform === "uppercase" ? getCaptionText(subtitle.text, language, subtitle.tenglishText).toUpperCase() : getCaptionText(subtitle.text, language, subtitle.tenglishText));
-    const rawText = settings.textTransform === "uppercase" ? rawTextUncased.toUpperCase() : rawTextUncased;
+  const rawText = resolveCaptionText(subtitle, settings, language);
   const fontFamily = baseFontFamily(settings, rawText, language);
   const wrapped = wrapCaption(ctx, rawText, width * 0.8, fontFamily, settings.fontSize);
   const isTelugu = language === 'te' || isTeluguText(rawText);
   const lineHeight = wrapped.fontSize * (isTelugu ? 1.35 : 1.2);
-  ctx.font = `${settings?.fontWeight || '700'} ${wrapped.fontSize}px ${fontFamily}`;
+  ctx.font = `${settings.fontWeight ?? '700'} ${wrapped.fontSize}px ${fontFamily}`;
   const lineWidths = wrapped.lines.map(line => ctx.measureText(line).width);
   const horizontalPadding = settings.style === 'box' || settings.textBackground ? 40 : settings.style === 'outline' ? 12 : 0;
   const verticalPadding = settings.style === 'box' || settings.textBackground ? 20 : settings.style === 'outline' ? 12 : 0;
@@ -68,18 +95,32 @@ export function getSubtitleCanvasLayout(ctx: CanvasRenderingContext2D, width: nu
   const renderedHeight = wrapped.lines.length * lineHeight;
   const margin = 24;
   let blockLeft: number;
-  if (settings.alignment === "left") {
+  if (settings.alignment === 'left') {
     blockLeft = margin + horizontalPadding / 2;
-  } else if (settings.alignment === "right") {
+  } else if (settings.alignment === 'right') {
     blockLeft = width - margin - maxLineWidth - horizontalPadding / 2;
   } else {
     blockLeft = width / 2 - maxLineWidth / 2;
   }
   const x = settings.alignment === 'left' ? blockLeft : settings.alignment === 'right' ? blockLeft + maxLineWidth : width / 2;
-  const y = Math.min(height * 0.9 - renderedHeight / 2, Math.max(height * 0.1 + renderedHeight / 2, height * settings.verticalPosition));
-  return { subtitle, x, left: blockLeft - horizontalPadding / 2, y, width: maxLineWidth + horizontalPadding, height: renderedHeight + verticalPadding, lineHeight, lines: wrapped.lines, fontSize: wrapped.fontSize };
+  const y = Math.min(
+    height * 0.9 - renderedHeight / 2,
+    Math.max(height * 0.1 + renderedHeight / 2, height * settings.verticalPosition),
+  );
+  return {
+    subtitle,
+    x,
+    left: blockLeft - horizontalPadding / 2,
+    y,
+    width: maxLineWidth + horizontalPadding,
+    height: renderedHeight + verticalPadding,
+    lineHeight,
+    lines: wrapped.lines,
+    fontSize: wrapped.fontSize,
+  };
 }
 
+/** Dual-word rule: rule[index % rules.length] (word 0 = base, word 1 = accent). */
 function ruleFor(settings: CanvasSettings, index: number): WordStyleRule | undefined {
   const patterns = settings.wordPatterns;
   return patterns && patterns.length > 0 ? patterns[index % patterns.length] : undefined;
@@ -94,11 +135,35 @@ function activeProgress(currentTime: number, start: number, end: number): number
   return Math.min(1, Math.max(0, (currentTime - start) / Math.max(0.001, end - start)));
 }
 
-export function renderSubtitlesToCanvas(ctx: CanvasRenderingContext2D, width: number, height: number, currentTime: number, subtitles: Subtitle[], settings: CanvasSettings, language: CaptionLanguage, selectedSubtitleId?: string | null): void {
+interface MeasuredWord {
+  displayWord: string;
+  rule: WordStyleRule | undefined;
+  size: number;
+  font: string;
+  weight: string;
+  fontStyle: 'normal' | 'italic';
+  textWidth: number;
+  padX: number;
+  padY: number;
+  /** Width of the word slot (text + box padding), excluding the trailing space. */
+  slotWidth: number;
+  /** Slot plus the gap before the next word. */
+  advance: number;
+}
+
+export function renderSubtitlesToCanvas(
+  ctx: CanvasRenderingContext2D,
+  width: number,
+  height: number,
+  currentTime: number,
+  subtitles: Subtitle[],
+  settings: CanvasSettings,
+  language: CaptionLanguage,
+  selectedSubtitleId?: string | null,
+): void {
   const activeSub = subtitles.find(item => currentTime >= item.start && currentTime <= item.end);
   if (!activeSub) return;
-  const rawTextUncased = (settings.textTransform === "uppercase" ? getCaptionText(activeSub.text, language, activeSub.tenglishText).toUpperCase() : getCaptionText(activeSub.text, language, activeSub.tenglishText));
-    const rawText = settings.textTransform === "uppercase" ? rawTextUncased.toUpperCase() : rawTextUncased;
+  const rawText = resolveCaptionText(activeSub, settings, language);
   const layout = getSubtitleCanvasLayout(ctx, width, height, currentTime, subtitles, settings, language);
   if (!layout) return;
 
@@ -107,6 +172,7 @@ export function renderSubtitlesToCanvas(ctx: CanvasRenderingContext2D, width: nu
   const animation = settings.animation ?? 'none';
   const hasWordTimeline = Boolean(activeSub.words?.length);
   const baseFamily = baseFontFamily(settings, rawText, language);
+  const baseWeight: string = settings.fontWeight ?? '700';
   const lines = layout.lines;
   const lineHeight = layout.lineHeight;
   const x = settings.alignment === 'left' ? layout.left : settings.alignment === 'right' ? layout.left + layout.width : width / 2;
@@ -117,16 +183,33 @@ export function renderSubtitlesToCanvas(ctx: CanvasRenderingContext2D, width: nu
   lines.forEach((line, lineIndex) => {
     const lineY = layout.y + (lineIndex - (lines.length - 1) / 2) * lineHeight;
     const words = line.split(/\s+/).filter(Boolean);
-    const measured = words.map((word, wordIndex) => {
+
+    // Measure every word with ITS OWN font so boxes and spacing match the preview.
+    const measured: MeasuredWord[] = words.map((word, wordIndex) => {
       const rule = ruleFor(settings, globalWordIndex + wordIndex);
-      const size = layout.fontSize * (rule?.fontSizeMultiplier || 1);
+      const size = layout.fontSize * (rule?.fontSizeMultiplier ?? 1);
       const displayWord = rule?.uppercase ? word.toUpperCase() : word;
       const font = wordFont(settings, rule, displayWord, language);
-      ctx.font = `${settings?.fontWeight || '700'} ${size}px ${font}`;
-      return { word, displayWord, rule, size, font, width: ctx.measureText(`${displayWord} `).width };
+      const weight: string = rule?.fontWeight ?? baseWeight;
+      const fontStyle = rule?.fontStyle ?? 'normal';
+      ctx.font = fontString(fontStyle, weight, size, font);
+      const textWidth = ctx.measureText(displayWord).width;
+      const spaceWidth = ctx.measureText(' ').width;
+      const hasBox = Boolean(rule?.backgroundColor);
+      const scaleToSize = layout.fontSize / Math.max(1, settings.fontSize);
+      const padX = hasBox ? (rule?.paddingX ?? DEFAULT_PAD_X) * scaleToSize : 0;
+      const padY = hasBox ? (rule?.paddingY ?? DEFAULT_PAD_Y) * scaleToSize : 0;
+      const slotWidth = textWidth + padX * 2;
+      return { displayWord, rule, size, font, weight, fontStyle, textWidth, padX, padY, slotWidth, advance: slotWidth + spaceWidth };
     });
-    const totalWidth = measured.reduce((sum, item) => sum + item.width, 0);
-    const lineLeft = settings.alignment === 'left' ? layout.left : settings.alignment === 'right' ? layout.left + layout.width - totalWidth : x - totalWidth / 2;
+
+    const lastAdvanceGap = measured.length > 0 ? measured[measured.length - 1].advance - measured[measured.length - 1].slotWidth : 0;
+    const totalWidth = measured.reduce((sum, item) => sum + item.advance, 0) - lastAdvanceGap;
+    const lineLeft = settings.alignment === 'left'
+      ? layout.left
+      : settings.alignment === 'right'
+        ? layout.left + layout.width - totalWidth
+        : x - totalWidth / 2;
 
     const entryProgress = Math.min(1, lineProgress / 0.25);
     const lineOffsetY = animation === 'slide-up' ? (1 - entryProgress) * 16 : 0;
@@ -154,7 +237,7 @@ export function renderSubtitlesToCanvas(ctx: CanvasRenderingContext2D, width: nu
       ctx.fillStyle = settings.boxColor || 'rgba(0, 0, 0, 0.6)';
       ctx.beginPath();
       const boxWidth = totalWidth + 40;
-      const boxLeft = settings.alignment === 'left' ? lineLeft - 20 : settings.alignment === 'right' ? lineLeft - 20 : x - boxWidth / 2;
+      const boxLeft = settings.alignment === 'center' ? x - boxWidth / 2 : lineLeft - 20;
       if (typeof ctx.roundRect === 'function') {
         ctx.roundRect(boxLeft, lineY - (lineHeight + 20) / 2, boxWidth, lineHeight + 20, 10);
         ctx.fill();
@@ -172,29 +255,65 @@ export function renderSubtitlesToCanvas(ctx: CanvasRenderingContext2D, width: nu
       const displayText = isActive && animation === 'typewriter'
         ? item.displayWord.slice(0, Math.ceil(item.displayWord.length * progress))
         : item.displayWord;
-      const centerX = cursorX + item.width / 2;
+      const centerX = cursorX + item.slotWidth / 2;
       const centerY = lineY;
       const kineticProgress = animation === 'split-stagger'
         ? Math.min(1, Math.max(0, (lineProgress - wordIndex * 0.08) / 0.35))
         : progress;
       const scale = animation === 'pop'
-          ? kineticProgress < 0.25 ? 1 + (kineticProgress / 0.25) * 0.25 : 1.25 - ((kineticProgress - 0.25) / 0.75) * 0.25
-          : animation === 'bounce' ? 1 + Math.sin(kineticProgress * Math.PI) * 0.15
-            : animation === 'elastic-punch' ? 1 + Math.sin(kineticProgress * Math.PI) * 0.35
-              : animation === 'karaoke-sweep' ? 1 + Math.sin(kineticProgress * Math.PI) * 0.05
-                : 1;
+        ? kineticProgress < 0.25 ? 1 + (kineticProgress / 0.25) * 0.25 : 1.25 - ((kineticProgress - 0.25) / 0.75) * 0.25
+        : animation === 'bounce' ? 1 + Math.sin(kineticProgress * Math.PI) * 0.15
+          : animation === 'elastic-punch' ? 1 + Math.sin(kineticProgress * Math.PI) * 0.35
+            : animation === 'karaoke-sweep' ? 1 + Math.sin(kineticProgress * Math.PI) * 0.05
+              : 1;
       const offsetY = animation === 'bounce'
         ? -Math.sin(kineticProgress * Math.PI) * 14
         : animation === 'slide-up' && isActive && progress < 0.3
           ? (1 - progress / 0.3) * 16
           : 0;
+      const staticRotation = ((item.rule?.rotation ?? 0) * Math.PI) / 180;
 
       ctx.save();
       ctx.textAlign = 'center';
-      ctx.font = `${settings?.fontWeight || '700'} ${item.size}px ${item.font}`;
+      ctx.font = fontString(item.fontStyle, item.weight, item.size, item.font);
       if (animation === 'fade' && isActive) ctx.globalAlpha = Math.min(1, progress * 1.5);
+
+      // Shared transform: position -> animation scale -> static tilt, so the word's
+      // box, underline, stroke and text all move together.
+      if (typeof ctx.translate === 'function' && typeof ctx.scale === 'function') {
+        ctx.translate(centerX, centerY + offsetY);
+        ctx.scale(scale, scale);
+        if (staticRotation !== 0 && typeof ctx.rotate === 'function') ctx.rotate(staticRotation);
+        if (animation === 'elastic-punch' && typeof ctx.rotate === 'function') {
+          ctx.rotate(-0.04 * Math.sin(kineticProgress * Math.PI));
+        }
+      }
+      // From here on, (0, 0) is the word's centre.
+
+      // 1) Individual word box / pill / marker.
+      if (item.rule?.backgroundColor) {
+        ctx.save();
+        ctx.fillStyle = item.rule.backgroundColor;
+        const boxW = item.slotWidth;
+        const boxH = item.size * 1.05 + item.padY * 2;
+        const radius = Math.min(item.rule.borderRadius ?? 4, boxH / 2);
+        if (typeof ctx.roundRect === 'function') {
+          ctx.beginPath();
+          ctx.roundRect(-boxW / 2, -boxH / 2, boxW, boxH, radius);
+          ctx.fill();
+        } else if (typeof ctx.fillRect === 'function') {
+          ctx.fillRect(-boxW / 2, -boxH / 2, boxW, boxH);
+        }
+        ctx.restore();
+      }
+
+      // 2) Shadows / glow (per-word glow always on, template animations on top).
+      if (item.rule?.glowColor) {
+        ctx.shadowColor = item.rule.glowColor;
+        ctx.shadowBlur = item.rule.glowBlur ?? 16;
+      }
       if (animation === 'neon-glow' && isActive) {
-        ctx.shadowColor = settings.shadowColor || settings.highlightColor;
+        ctx.shadowColor = item.rule?.glowColor || settings.shadowColor || settings.highlightColor;
         ctx.shadowBlur = 24 + Math.sin(progress * Math.PI * 2) * 8;
       }
       if (animation === 'hard-shadow') {
@@ -203,31 +322,38 @@ export function renderSubtitlesToCanvas(ctx: CanvasRenderingContext2D, width: nu
         ctx.shadowOffsetY = settings.shadowOffsetY ?? 6;
         ctx.shadowBlur = settings.shadowBlur ?? 0;
       }
-      if (typeof ctx.translate === 'function' && typeof ctx.scale === 'function') {
-        ctx.translate(centerX, centerY + offsetY);
-        ctx.scale(scale, scale);
-        ctx.translate(-centerX, -centerY);
-      }
-      if (animation === 'elastic-punch' && typeof ctx.rotate === 'function') {
-        ctx.rotate(-0.04 * Math.sin(kineticProgress * Math.PI));
-      }
-      const color = isActive ? item.rule?.highlightColor || settings.highlightColor : item.rule?.textColor || settings.textColor;
-      ctx.fillStyle = color;
-      if (settings.style === 'outline') {
-        ctx.lineWidth = Math.max(4, Math.round(item.size * 0.12));
-        ctx.strokeStyle = settings.boxColor || '#000000';
+
+      // 3) Stroke (per-word outline wins; otherwise the template's outline style).
+      const styleOutlineWidth = settings.style === 'outline'
+        ? settings.strokeWidth ?? Math.max(4, Math.round(item.size * 0.12))
+        : 0;
+      const strokeWidth = item.rule?.outlineWidth ?? styleOutlineWidth;
+      const fillColor = isActive
+        ? item.rule?.highlightColor || settings.highlightColor
+        : item.rule?.textColor || item.rule?.color || settings.textColor;
+      if (strokeWidth > 0) {
+        ctx.lineWidth = strokeWidth;
+        ctx.strokeStyle = item.rule?.outlineColor || settings.strokeColor || settings.boxColor || '#000000';
         ctx.lineJoin = 'round';
-        ctx.strokeText(displayText, centerX, centerY);
+        ctx.strokeText(displayText, 0, 0);
       }
-      ctx.fillText(displayText, centerX, centerY);
+      ctx.fillStyle = fillColor;
+      ctx.fillText(displayText, 0, 0);
+
+      // 4) Underline accent.
+      if (item.rule?.underlineColor && typeof ctx.fillRect === 'function') {
+        ctx.shadowColor = 'transparent';
+        ctx.fillStyle = item.rule.underlineColor;
+        ctx.fillRect(-item.textWidth / 2, item.size * 0.46, item.textWidth, Math.max(2, item.size * 0.08));
+      }
       ctx.restore();
-      cursorX += item.width;
+      cursorX += item.advance;
     });
     globalWordIndex += words.length;
 
     if (!hasWordTimeline && words.length === 0) {
       ctx.save();
-      ctx.font = `${settings?.fontWeight || '700'} ${layout.fontSize}px ${baseFamily}`;
+      ctx.font = `${baseWeight} ${layout.fontSize}px ${baseFamily}`;
       ctx.fillStyle = settings.textColor;
       ctx.fillText(line, x, lineY);
       ctx.restore();

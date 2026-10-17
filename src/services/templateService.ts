@@ -20,7 +20,7 @@ export async function getTemplates(): Promise<CaptionTemplateDefinition[]> {
   try {
     const { data, error } = await supabase
       .from('caption_templates')
-      .select('id,name,category,description,badge,settings,word_patterns,preview_sample,display_order')
+      .select('id,name,category,description,badge,settings,word_patterns,preview_sample,preview_tokens,display_order')
       .eq('is_public', true)
       .order('display_order', { ascending: true });
 
@@ -38,6 +38,7 @@ export async function getTemplates(): Promise<CaptionTemplateDefinition[]> {
       settings: item.settings,
       wordPatterns: item.word_patterns ?? undefined,
       previewSample: item.preview_sample,
+      previewTokens: (item as any).preview_tokens ?? undefined,
     }));
   } catch (error) {
     console.error('CaptionCraft: unable to fetch caption templates.', error);

@@ -1,3 +1,5 @@
+import type { CSSProperties } from 'react';
+
 export interface SubtitleWord {
   word: string;
   start: number;
@@ -25,19 +27,7 @@ export type SourceLanguage = 'en' | 'te';
 
 export type CaptionLanguage = 'en' | 'te' | 'tenglish';
 
-export type CaptionTemplateId =
-  | 'classic-white'
-  | 'bold-creator'
-  | 'word-highlight'
-  | 'minimal-clean'
-  | 'cinematic'
-  | 'karaoke'
-  | 'karaoke-highlight'
-  | 'yellow-emphasis'
-  | 'boxed-subtitle'
-  | 'telugu-friendly'
-  | 'tenglish-creator'
-  | 'custom';
+export type CaptionTemplateId = string;
 
 export type BackgroundThemeId =
   | "original-video"
@@ -150,9 +140,9 @@ export interface CanvasSettings {
   strokeColor?: string;
   strokeWidth?: number;
   boxOpacity?: number;
-  fontWeight?: "normal" | "600" | "700" | "900";
+  fontWeight?: FontWeightValue;
   textTransform?: "uppercase" | "none";
-  wordPatterns?: any[];
+  wordPatterns?: WordStyleRule[];
   animation?: string;
   shadowColor?: string;
   shadowOffsetX?: number;
@@ -210,18 +200,39 @@ export interface ExportResolutionConfig {
   videoBitsPerSecond: number;
 }
 
-export type CaptionCategory = 'social' | 'minimal' | 'bold' | 'classic' | 'gaming' | 'custom' | string;
+export type CaptionCategory = 'trending' | 'classic' | 'animations' | 'transitions' | 'boxes' | 'typo';
 
+export type FontWeightValue = 'normal' | '600' | '700' | '800' | '900';
+
+/**
+ * Per-word style. Templates alternate rules by word index (index % rules.length),
+ * so a 2-rule template styles "Caption" with rule 0 and "Craft" with rule 1.
+ * The canvas renderer and the sidebar preview both read these fields.
+ */
 export interface WordStyleRule {
+  /** Legacy alias of textColor. */
   color?: string;
   textColor?: string;
+  /** Color while the word is actively spoken (needs word timings). */
   highlightColor?: string;
+  /** Individual word background (box / pill / marker). */
   backgroundColor?: string;
+  /** Corner radius in canvas px at the template's base font size. */
+  borderRadius?: number;
+  paddingX?: number;
+  paddingY?: number;
   outlineColor?: string;
   outlineWidth?: number;
+  underlineColor?: string;
+  glowColor?: string;
+  glowBlur?: number;
+  /** Tilt in degrees. */
+  rotation?: number;
   scale?: number;
   fontSizeMultiplier?: number;
   fontFamily?: string;
+  fontStyle?: 'normal' | 'italic';
+  fontWeight?: FontWeightValue;
   uppercase?: boolean;
 }
 
@@ -232,6 +243,12 @@ export interface TemplatePreviewSample {
   [key: string]: string | undefined;
 }
 
+export interface PreviewToken {
+  text: string;
+  style?: CSSProperties;
+  className?: string;
+}
+
 export interface CaptionTemplateDefinition {
   id: CaptionTemplateId;
   name: string;
@@ -240,6 +257,8 @@ export interface CaptionTemplateDefinition {
   badge?: string;
   previewUrl?: string;
   previewSample?: string | TemplatePreviewSample;
+  /** Optional manual override. When omitted, tokens are derived from wordPatterns. */
+  previewTokens?: PreviewToken[];
   settings: Partial<CanvasSettings>;
   canvasSettings?: Partial<CanvasSettings>;
   wordPatterns?: WordStyleRule[];

@@ -19,8 +19,7 @@ import {
   Maximize2,
   Minimize2,
     Pencil,
-    RotateCcw,
-  Share2,
+    Share2,
       X,
   Trash2,
 } from "lucide-react";
@@ -108,6 +107,125 @@ interface WorkspaceProps {
   onPlaybackStateChange?: (state: any) => void;
 }
 
+
+
+interface AnimatedTemplatePreviewProps {
+  template: CaptionTemplateDefinition;
+  isHovered: boolean;
+}
+
+const AnimatedTemplatePreview: React.FC<AnimatedTemplatePreviewProps> = ({ template, isHovered }) => {
+  const words = ["Caption", "Craft"];
+  const patterns = template.wordPatterns || [];
+  const baseSettings = template.settings || ({} as any);
+
+  const [step, setStep] = useState(2);
+
+  useEffect(() => {
+    if (!isHovered) {
+      setStep(2);
+      return undefined;
+    }
+
+    let t1: NodeJS.Timeout;
+    let t2: NodeJS.Timeout;
+    let t3: NodeJS.Timeout;
+
+    const run = () => {
+      setStep(1); // Show "Caption"
+      t1 = setTimeout(() => {
+        setStep(2); // Show "Craft" with active effect
+        t2 = setTimeout(() => {
+          setStep(0); // Clear
+          t3 = setTimeout(run, 280); // Pause before looping
+        }, 1100);
+      }, 380);
+    };
+
+    run();
+
+    return () => {
+      clearTimeout(t1);
+      clearTimeout(t2);
+      clearTimeout(t3);
+      setStep(2);
+    };
+  }, [isHovered]);
+
+  return (
+    <div
+      style={{
+        width: "100%",
+        height: "66px",
+        background: "#08090c",
+        borderRadius: "8px",
+        border: "1px solid rgba(255, 255, 255, 0.08)",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        gap: "8px",
+        padding: "6px 8px",
+        position: "relative",
+        overflow: "hidden",
+      }}
+    >
+      {words.map((word, idx) => {
+        const rule = patterns[idx] || ({} as any);
+        const isVisible = step > idx;
+
+        const fontFamily = rule.fontFamily || baseSettings.fontFamily || "sans-serif";
+        const color = rule.textColor || (idx === 1 ? baseSettings.highlightColor : baseSettings.textColor) || "#ffffff";
+        const isUppercase = rule.uppercase || baseSettings.textTransform === "uppercase";
+        const displayWord = isUppercase ? word.toUpperCase() : word;
+
+        // Bounding box styling (pill, marker, bubble)
+        const hasBox = Boolean(rule.backgroundColor);
+        const bg = rule.backgroundColor || "transparent";
+        const radius = rule.borderRadius ? `${rule.borderRadius}px` : "0px";
+        const padX = rule.paddingX || (hasBox ? 8 : 0);
+        const padY = rule.paddingY || (hasBox ? 3 : 0);
+
+        // Rotation
+        const rot = rule.rotation ? `rotate(${rule.rotation}deg)` : "";
+
+        // Text stroke & shadows
+        const stroke = rule.outlineColor
+          ? `-1px -1px 0 ${rule.outlineColor}, 1px -1px 0 ${rule.outlineColor}, -1px 1px 0 ${rule.outlineColor}, 1px 1px 0 ${rule.outlineColor}`
+          : undefined;
+        const glow = baseSettings.shadowColor && baseSettings.shadowBlur
+          ? `0 0 ${Math.min(16, baseSettings.shadowBlur)}px ${baseSettings.shadowColor}`
+          : undefined;
+
+        const textShadow = [stroke, glow].filter(Boolean).join(", ") || undefined;
+
+        return (
+          <span
+            key={idx}
+            style={{
+              fontFamily,
+              color,
+              backgroundColor: bg,
+              borderRadius: radius,
+              padding: hasBox ? `${padY}px ${padX}px` : undefined,
+              transform: isVisible ? `${rot} translateY(0)` : `${rot} translateY(4px)`,
+              opacity: isVisible ? 1 : 0,
+              transition: "opacity 0.22s ease-out, transform 0.22s ease-out",
+              fontSize: rule.fontSizeMultiplier ? `${0.88 * rule.fontSizeMultiplier}rem` : "0.88rem",
+              fontWeight: rule.fontWeight || baseSettings.fontWeight || 800,
+              fontStyle: rule.fontStyle || undefined,
+              textShadow,
+              display: "inline-block",
+              lineHeight: 1.15,
+            }}
+          >
+            {displayWord}
+          </span>
+        );
+      })}
+    </div>
+  );
+};
+
 export const Workspace: React.FC<WorkspaceProps> = ({
   captionSearchQuery = "",
   videoFile,
@@ -127,6 +245,7 @@ export const Workspace: React.FC<WorkspaceProps> = ({
   mediaDuration = 0,
   onPlaybackStateChange,
 }) => {
+  const [hoveredTemplateId, setHoveredTemplateId] = useState<string | null>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const mediaRef = useRef<HTMLVideoElement>(null);
   const canvasAreaRef = useRef<HTMLDivElement>(null);
@@ -1363,15 +1482,8 @@ const [selectedSegmentId, setSelectedSegmentId] = useState<string | null>(null);
     setSettings(previous => ({ ...previous, [key]: value }));
   };
 
-  const handleApplyTemplate = (templateId: CanvasSettings["selectedTemplateId"]) => {
-    if (!templateId) return;
-    setSettings(previous => applyTemplateToSettings(previous, templateId));
-  };
-
-  const handleResetStyling = () => {
-    setSettings(previous => applyTemplateToSettings(previous, "classic-white"));
-  };
-
+  
+  
   const handleSelectBackgroundWithConfirm = (applyAction: () => void) => {
     if (settings.customImageDataUrl || settings.customVideoUrl) {
       const confirmed = window.confirm("Switching background preset will remove your uploaded media backdrop. Do you want to continue?");
@@ -1416,73 +1528,7 @@ const [selectedSegmentId, setSelectedSegmentId] = useState<string | null>(null);
     }
   };
 
-  const renderTemplateSampleText = (template: CaptionTemplateDefinition) => {
-    const preview = template.previewSample;
-    const sample = typeof preview === "string"
-      ? preview
-      : preview
-        ? (language === "te"
-          ? preview.te
-          : language === "tenglish"
-            ? preview.tenglish
-            : preview.en)
-        : template.name;
-
-    const ts = template.settings;
-    const isBox = ts.style === "box" || ts.textBackground;
-    const isOutline = ts.style === "outline";
-    const isKinetic = ts.style === "kinetic";
-
-    const boxBg = isBox ? (ts.boxColor || "rgba(0,0,0,0.85)") : "transparent";
-    const textColor = ts.textColor || "#ffffff";
-    const highlightColor = ts.highlightColor || "#8b5cf6";
-    const strokeColor = ts.boxColor || "#000000";
-    const isTeluguText = language === "te" || /[\u0C00-\u0C7F]/.test(sample);
-    const fontStack = isTeluguText
-      ? "'Noto Sans Telugu', 'Inter', sans-serif"
-      : `${ts.fontFamily || "'Inter', sans-serif"}, 'Noto Sans Telugu', sans-serif`;
-
-    const words = sample.split(" ");
-    const firstWord = words[0];
-    const restWords = words.slice(1).join(" ");
-
-    return (
-      <div
-        className="template-card-preview"
-        style={{
-          fontFamily: fontStack,
-          backgroundColor: boxBg,
-          padding: isBox ? "4px 8px" : "0",
-          borderRadius: isBox ? "5px" : "0",
-        }}
-      >
-        <span
-          style={{
-            color: isKinetic ? highlightColor : textColor,
-            textShadow: isOutline
-              ? `-1px -1px 0 ${strokeColor}, 1px -1px 0 ${strokeColor}, -1px 1px 0 ${strokeColor}, 1px 1px 0 ${strokeColor}`
-              : "0 2px 4px rgba(0,0,0,0.6)",
-          }}
-        >
-          {firstWord}
-        </span>
-        {restWords && (
-          <span
-            style={{
-              marginLeft: "4px",
-              color: textColor,
-              textShadow: isOutline
-                ? `-1px -1px 0 ${strokeColor}, 1px -1px 0 ${strokeColor}, -1px 1px 0 ${strokeColor}, 1px 1px 0 ${strokeColor}`
-                : "0 2px 4px rgba(0,0,0,0.6)",
-            }}
-          >
-            {restWords}
-          </span>
-        )}
-      </div>
-    );
-  };
-
+  
   return (
     <div className="preview-layout">
       {/* CENTER PANEL */}
@@ -2521,87 +2567,117 @@ const [selectedSegmentId, setSelectedSegmentId] = useState<string | null>(null);
           )}
 
           {activeCatalogTab === "templates" && (
-            <div className="catalog-pane">
-              <div className="sub-catalog-group">
-                <div className="sub-group-header">
-                  <span className="sub-group-title">Classic Styles</span>
-                  <button type="button" className="palette-reset-btn" onClick={handleResetStyling} title="Reset template">
-                    <RotateCcw size={11} />
-                  </button>
-                </div>
-                <div className="carousel-row">
-                  {CAPTION_TEMPLATES.filter(t => ["classic-white", "bold-creator", "minimal-clean", "telugu-friendly"].includes(t.id)).map(template => {
-                    const isSelected = settings.selectedTemplateId === template.id;
-                    return (
-                      <button
-                        key={template.id}
-                        type="button"
-                        className={"catalog-card " + (isSelected ? "is-selected" : "")}
-                        onClick={() => handleApplyTemplate(template.id)}
-                        title={template.name}
-                      >
-                        <div className="card-thumb template-thumb">
-                          {renderTemplateSampleText(template)}
-                          {isSelected && <span className="card-check"><Check size={11} strokeWidth={3} /></span>}
-                        </div>
-                        <span className="card-label">{template.name}</span>
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-
-              <div className="sub-catalog-group">
-                <span className="sub-group-title">Transitions</span>
-                <div className="carousel-row">
-                  {CAPTION_TEMPLATES.filter(t => ["cinematic", "boxed-subtitle", "tenglish-creator"].includes(t.id)).map(template => {
-                    const isSelected = settings.selectedTemplateId === template.id;
-                    return (
-                      <button
-                        key={template.id}
-                        type="button"
-                        className={"catalog-card " + (isSelected ? "is-selected" : "")}
-                        onClick={() => handleApplyTemplate(template.id)}
-                        title={template.name}
-                      >
-                        <div className="card-thumb template-thumb">
-                          {renderTemplateSampleText(template)}
-                          {isSelected && <span className="card-check"><Check size={11} strokeWidth={3} /></span>}
-                        </div>
-                        <span className="card-label">{template.name}</span>
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-
-              <div className="sub-catalog-group">
-                <span className="sub-group-title">Animation &amp; Kinetic</span>
-                <div className="carousel-row">
-                  {CAPTION_TEMPLATES.filter(t => ["word-highlight", "karaoke", "karaoke-highlight", "yellow-emphasis"].includes(t.id)).map(template => {
-                    const isSelected = settings.selectedTemplateId === template.id;
-                    return (
-                      <button
-                        key={template.id}
-                        type="button"
-                        className={"catalog-card " + (isSelected ? "is-selected" : "")}
-                        onClick={() => handleApplyTemplate(template.id)}
-                        title={template.name}
-                      >
-                        <div className="card-thumb template-thumb">
-                          {renderTemplateSampleText(template)}
-                          {isSelected && <span className="card-check"><Check size={11} strokeWidth={3} /></span>}
-                        </div>
-                        <span className="card-label">{template.name}</span>
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
+            <div className="catalog-pane" style={{ display: "flex", flexDirection: "column", gap: "20px", padding: "4px 0" }}>
+              {[
+                { key: "trending", title: "trending" },
+                { key: "classic", title: "classic (simple)" },
+                { key: "animations", title: "animations" },
+                { key: "transitions", title: "transitions" },
+                { key: "boxes", title: "boxes" },
+                { key: "typo", title: "typo" },
+              ].map(section => {
+                const groupTemplates = CAPTION_TEMPLATES.filter(t => t.category === section.key);
+                if (groupTemplates.length === 0) return null;
+                return (
+                  <div key={section.key} className="sub-catalog-group" style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+                    <span
+                      className="sub-group-title"
+                      style={{
+                        fontSize: "0.68rem",
+                        fontWeight: 700,
+                        letterSpacing: "0.06em",
+                        color: "rgba(255, 255, 255, 0.45)",
+                        textTransform: "lowercase",
+                        display: "block",
+                      }}
+                    >
+                      {section.title}
+                    </span>
+                    <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: "10px" }}>
+                      {groupTemplates.map(template => {
+                        const isSelected = settings.selectedTemplateId === template.id;
+                        return (
+                          <button
+                            key={template.id}
+                            type="button"
+                            aria-pressed={isSelected}
+                            onMouseEnter={() => setHoveredTemplateId(template.id)}
+                            onMouseLeave={() => setHoveredTemplateId(null)}
+                            onClick={() => setSettings(applyTemplateToSettings(settings, template.id))}
+                            style={{
+                              background: isSelected ? "rgba(139, 92, 246, 0.16)" : "#14171c",
+                              border: isSelected ? "1.5px solid #8b5cf6" : "1px solid #232730",
+                              borderRadius: "12px",
+                              padding: "8px",
+                              display: "flex",
+                              flexDirection: "column",
+                              gap: "8px",
+                              cursor: "pointer",
+                              textAlign: "left",
+                              width: "100%",
+                              minWidth: 0,
+                              transition: "border-color 0.15s ease, background 0.15s ease",
+                            }}
+                          >
+                            <AnimatedTemplatePreview
+                              template={template}
+                              isHovered={hoveredTemplateId === template.id}
+                            />
+                            <div style={{ display: "flex", alignItems: "center", gap: "4px", width: "100%", minWidth: 0 }}>
+                              <span
+                                style={{
+                                  fontSize: "0.58rem",
+                                  fontWeight: 700,
+                                  color: "rgba(255, 255, 255, 0.4)",
+                                  border: "1px solid rgba(255, 255, 255, 0.12)",
+                                  borderRadius: "4px",
+                                  padding: "1px 4px",
+                                  textTransform: "lowercase",
+                                  flexShrink: 0,
+                                }}
+                              >
+                                bold
+                              </span>
+                              {template.badge && (
+                                <span
+                                  style={{
+                                    fontSize: "0.58rem",
+                                    fontWeight: 700,
+                                    color: "#38bdf8",
+                                    border: "1px solid rgba(56, 189, 248, 0.25)",
+                                    borderRadius: "4px",
+                                    padding: "1px 4px",
+                                    textTransform: "lowercase",
+                                    flexShrink: 0,
+                                  }}
+                                >
+                                  {template.badge}
+                                </span>
+                              )}
+                              <span
+                                style={{
+                                  marginLeft: "auto",
+                                  fontSize: "0.68rem",
+                                  fontWeight: 600,
+                                  color: isSelected ? "#c4b5fd" : "#cbd5e1",
+                                  textTransform: "lowercase",
+                                  overflow: "hidden",
+                                  textOverflow: "ellipsis",
+                                  whiteSpace: "nowrap",
+                                }}
+                              >
+                                {template.name}
+                              </span>
+                            </div>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           )}
-
-          {/* TAB 3: TYPOGRAPHY */}
           {activeCatalogTab === "typography" && (
             <div className="catalog-pane" style={{ display: "flex", flexDirection: "column", gap: "16px", padding: "4px 0" }}>
               <div className="sub-catalog-group">
