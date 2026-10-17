@@ -2610,21 +2610,56 @@ const [selectedSegmentId, setSelectedSegmentId] = useState<string | null>(null);
                 </span>
                 <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
                   <div className="custom-select-wrap">
-                    <select
-                      className="studio-select"
-                      value={settings.fontFamily}
-                      onChange={e => setAppearance("fontFamily", e.target.value)}
-                    >
-                      <option value="Inter, sans-serif">Inter</option>
-                      <option value="Montserrat, sans-serif">Montserrat</option>
-                      <option value="Poppins, sans-serif">Poppins</option>
-                      <option value="Bebas Neue, sans-serif">Bebas Neue</option>
-                      <option value="Anton, sans-serif">Anton</option>
-                      <option value="Noto Sans Telugu, sans-serif">Telugu Sans</option>
-                      <option value="Arial, sans-serif">Arial</option>
-                      <option value="Georgia, serif">Georgia</option>
-                      <option value="Courier New, monospace">Mono</option>
-                    </select>
+                    <select className="studio-select" value={settings.fontFamily} onChange={e => setAppearance("fontFamily", e.target.value)} style={{ fontFamily: settings.fontFamily }}>
+                      <optgroup label="serif">
+                        <option key="Times New Roman" value={"\"Times New Roman\", Times, serif"} style={{ fontFamily: "\"Times New Roman\", Times, serif" }}>Times New Roman</option>
+                        <option key="Georgia" value={"Georgia, serif"} style={{ fontFamily: "Georgia, serif" }}>Georgia</option>
+                        <option key="Garamond" value={"Garamond, \"Hoefler Text\", serif"} style={{ fontFamily: "Garamond, \"Hoefler Text\", serif" }}>Garamond</option>
+                        <option key="Palatino" value={"\"Palatino Linotype\", Palatino, serif"} style={{ fontFamily: "\"Palatino Linotype\", Palatino, serif" }}>Palatino</option>
+                        <option key="Baskerville" value={"Baskerville, serif"} style={{ fontFamily: "Baskerville, serif" }}>Baskerville</option>
+                        <option key="Cambria" value={"Cambria, Georgia, serif"} style={{ fontFamily: "Cambria, Georgia, serif" }}>Cambria</option>
+                      </optgroup>
+                      <optgroup label="sans-serif">
+                        <option key="Arial" value={"Arial, Helvetica, sans-serif"} style={{ fontFamily: "Arial, Helvetica, sans-serif" }}>Arial</option>
+                        <option key="Helvetica" value={"\"Helvetica Neue\", Helvetica, Arial, sans-serif"} style={{ fontFamily: "\"Helvetica Neue\", Helvetica, Arial, sans-serif" }}>Helvetica</option>
+                        <option key="Verdana" value={"Verdana, Geneva, sans-serif"} style={{ fontFamily: "Verdana, Geneva, sans-serif" }}>Verdana</option>
+                        <option key="Trebuchet MS" value={"\"Trebuchet MS\", sans-serif"} style={{ fontFamily: "\"Trebuchet MS\", sans-serif" }}>Trebuchet MS</option>
+                        <option key="Segoe UI" value={"\"Segoe UI\", Roboto, sans-serif"} style={{ fontFamily: "\"Segoe UI\", Roboto, sans-serif" }}>Segoe UI</option>
+                        <option key="Tahoma" value={"Tahoma, Verdana, sans-serif"} style={{ fontFamily: "Tahoma, Verdana, sans-serif" }}>Tahoma</option>
+                      </optgroup>
+                      <optgroup label="monospace">
+                        <option key="Courier New" value={"\"Courier New\", Courier, monospace"} style={{ fontFamily: "\"Courier New\", Courier, monospace" }}>Courier New</option>
+                        <option key="Consolas" value={"Consolas, monospace"} style={{ fontFamily: "Consolas, monospace" }}>Consolas</option>
+                        <option key="Monaco" value={"Monaco, monospace"} style={{ fontFamily: "Monaco, monospace" }}>Monaco</option>
+                        <option key="Lucida Console" value={"\"Lucida Console\", monospace"} style={{ fontFamily: "\"Lucida Console\", monospace" }}>Lucida Console</option>
+                        <option key="Source Code Pro" value={"\"Source Code Pro\", monospace"} style={{ fontFamily: "\"Source Code Pro\", monospace" }}>Source Code Pro</option>
+                        <option key="Generic Monospace" value={"monospace"} style={{ fontFamily: "monospace" }}>Generic Monospace</option>
+                      </optgroup>
+                      <optgroup label="cursive">
+                        <option key="Comic Sans MS" value={"\"Comic Sans MS\", cursive, sans-serif"} style={{ fontFamily: "\"Comic Sans MS\", cursive, sans-serif" }}>Comic Sans MS</option>
+                        <option key="Brush Script MT" value={"\"Brush Script MT\", cursive"} style={{ fontFamily: "\"Brush Script MT\", cursive" }}>Brush Script MT</option>
+                        <option key="Lucida Handwriting" value={"\"Lucida Handwriting\", cursive"} style={{ fontFamily: "\"Lucida Handwriting\", cursive" }}>Lucida Handwriting</option>
+                        <option key="Apple Chancery" value={"\"Apple Chancery\", cursive"} style={{ fontFamily: "\"Apple Chancery\", cursive" }}>Apple Chancery</option>
+                        <option key="Bradley Hand" value={"\"Bradley Hand\", cursive"} style={{ fontFamily: "\"Bradley Hand\", cursive" }}>Bradley Hand</option>
+                        <option key="Generic Cursive" value={"cursive"} style={{ fontFamily: "cursive" }}>Generic Cursive</option>
+                      </optgroup>
+                      <optgroup label="fantasy">
+                        <option key="Impact" value={"Impact, fantasy"} style={{ fontFamily: "Impact, fantasy" }}>Impact</option>
+                        <option key="Papyrus" value={"Papyrus, fantasy"} style={{ fontFamily: "Papyrus, fantasy" }}>Papyrus</option>
+                        <option key="Copperplate" value={"\"Copperplate Gothic\", Copperplate, fantasy"} style={{ fontFamily: "\"Copperplate Gothic\", Copperplate, fantasy" }}>Copperplate</option>
+                        <option key="Harrington" value={"Harrington, fantasy"} style={{ fontFamily: "Harrington, fantasy" }}>Harrington</option>
+                        <option key="Luminari" value={"Luminari, fantasy"} style={{ fontFamily: "Luminari, fantasy" }}>Luminari</option>
+                        <option key="Generic Fantasy" value={"fantasy"} style={{ fontFamily: "fantasy" }}>Generic Fantasy</option>
+                      </optgroup>
+                      <optgroup label="system-ui">
+                        <option key="System Default" value={"system-ui, -apple-system, sans-serif"} style={{ fontFamily: "system-ui, -apple-system, sans-serif" }}>System Default</option>
+                        <option key="Segoe UI" value={"\"Segoe UI\", sans-serif"} style={{ fontFamily: "\"Segoe UI\", sans-serif" }}>Segoe UI</option>
+                        <option key="Roboto" value={"Roboto, sans-serif"} style={{ fontFamily: "Roboto, sans-serif" }}>Roboto</option>
+                        <option key="Cantarell" value={"Cantarell, sans-serif"} style={{ fontFamily: "Cantarell, sans-serif" }}>Cantarell</option>
+                        <option key="San Francisco" value={"-apple-system, BlinkMacSystemFont, sans-serif"} style={{ fontFamily: "-apple-system, BlinkMacSystemFont, sans-serif" }}>San Francisco</option>
+                        <option key="Ubuntu" value={"Ubuntu, sans-serif"} style={{ fontFamily: "Ubuntu, sans-serif" }}>Ubuntu</option>
+                      </optgroup>
+                      </select>
                   </div>
 
                   <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: "4px", background: "rgba(18, 24, 38, 0.9)", padding: "2px", borderRadius: "6px", border: "1px solid rgba(255, 255, 255, 0.1)" }}>
@@ -2706,7 +2741,7 @@ const [selectedSegmentId, setSelectedSegmentId] = useState<string | null>(null);
                 <div className="control-group">
                   <div className="slider-header">
                     <span className="control-label">Font Size</span>
-                    <span className="slider-badge">{settings.fontSize}px</span>
+                    <span className="slider-badge">{settings.fontSize || 24}px</span>
                   </div>
                   <div className="slider-wrap">
                     <input
@@ -2715,7 +2750,7 @@ const [selectedSegmentId, setSelectedSegmentId] = useState<string | null>(null);
                       min="16"
                       max="100"
                       step="1"
-                      value={settings.fontSize}
+                      value={settings.fontSize || 24}
                       onChange={e => setAppearance("fontSize", Number(e.target.value))}
                     />
                   </div>

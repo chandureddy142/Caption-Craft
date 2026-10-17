@@ -26,7 +26,7 @@ function wrapCaption(ctx: CanvasRenderingContext2D, text: string, maxWidth: numb
   let size = fontSize;
   const words = text.split(/\s+/).filter(Boolean);
   while (size >= 18) {
-    ctx.font = `800 ${size}px ${fontFamily}`;
+    ctx.font = `700 ${size}px ${fontFamily}`;
     const lines: string[] = [];
     let current = '';
     for (const word of words) {
@@ -42,7 +42,7 @@ function wrapCaption(ctx: CanvasRenderingContext2D, text: string, maxWidth: numb
     if (lines.length <= 3 && lines.every(line => ctx.measureText(line).width <= maxWidth)) return { lines, fontSize: size };
     size -= 2;
   }
-  ctx.font = `800 18px ${fontFamily}`;
+  ctx.font = `700 18px ${fontFamily}`;
   return { lines: [text], fontSize: 18 };
 }
 
@@ -60,13 +60,21 @@ export function getSubtitleCanvasLayout(ctx: CanvasRenderingContext2D, width: nu
   const wrapped = wrapCaption(ctx, rawText, width * 0.8, fontFamily, settings.fontSize);
   const isTelugu = language === 'te' || isTeluguText(rawText);
   const lineHeight = wrapped.fontSize * (isTelugu ? 1.35 : 1.2);
-  ctx.font = `800 ${wrapped.fontSize}px ${fontFamily}`;
+  ctx.font = `${settings?.fontWeight || '700'} ${wrapped.fontSize}px ${fontFamily}`;
   const lineWidths = wrapped.lines.map(line => ctx.measureText(line).width);
   const horizontalPadding = settings.style === 'box' || settings.textBackground ? 40 : settings.style === 'outline' ? 12 : 0;
   const verticalPadding = settings.style === 'box' || settings.textBackground ? 20 : settings.style === 'outline' ? 12 : 0;
   const maxLineWidth = Math.max(...lineWidths, 0);
   const renderedHeight = wrapped.lines.length * lineHeight;
-  const blockLeft = Math.max(width * 0.1, Math.min(width * 0.9 - maxLineWidth, width / 2 - maxLineWidth / 2));
+  const margin = 24;
+  let blockLeft: number;
+  if (settings.alignment === "left") {
+    blockLeft = margin + horizontalPadding / 2;
+  } else if (settings.alignment === "right") {
+    blockLeft = width - margin - maxLineWidth - horizontalPadding / 2;
+  } else {
+    blockLeft = width / 2 - maxLineWidth / 2;
+  }
   const x = settings.alignment === 'left' ? blockLeft : settings.alignment === 'right' ? blockLeft + maxLineWidth : width / 2;
   const y = Math.min(height * 0.9 - renderedHeight / 2, Math.max(height * 0.1 + renderedHeight / 2, height * settings.verticalPosition));
   return { subtitle, x, left: blockLeft - horizontalPadding / 2, y, width: maxLineWidth + horizontalPadding, height: renderedHeight + verticalPadding, lineHeight, lines: wrapped.lines, fontSize: wrapped.fontSize };
@@ -114,7 +122,7 @@ export function renderSubtitlesToCanvas(ctx: CanvasRenderingContext2D, width: nu
       const size = layout.fontSize * (rule?.fontSizeMultiplier || 1);
       const displayWord = rule?.uppercase ? word.toUpperCase() : word;
       const font = wordFont(settings, rule, displayWord, language);
-      ctx.font = `800 ${size}px ${font}`;
+      ctx.font = `${settings?.fontWeight || '700'} ${size}px ${font}`;
       return { word, displayWord, rule, size, font, width: ctx.measureText(`${displayWord} `).width };
     });
     const totalWidth = measured.reduce((sum, item) => sum + item.width, 0);
@@ -183,7 +191,7 @@ export function renderSubtitlesToCanvas(ctx: CanvasRenderingContext2D, width: nu
 
       ctx.save();
       ctx.textAlign = 'center';
-      ctx.font = `800 ${item.size}px ${item.font}`;
+      ctx.font = `${settings?.fontWeight || '700'} ${item.size}px ${item.font}`;
       if (animation === 'fade' && isActive) ctx.globalAlpha = Math.min(1, progress * 1.5);
       if (animation === 'neon-glow' && isActive) {
         ctx.shadowColor = settings.shadowColor || settings.highlightColor;
@@ -219,7 +227,7 @@ export function renderSubtitlesToCanvas(ctx: CanvasRenderingContext2D, width: nu
 
     if (!hasWordTimeline && words.length === 0) {
       ctx.save();
-      ctx.font = `800 ${layout.fontSize}px ${baseFamily}`;
+      ctx.font = `${settings?.fontWeight || '700'} ${layout.fontSize}px ${baseFamily}`;
       ctx.fillStyle = settings.textColor;
       ctx.fillText(line, x, lineY);
       ctx.restore();

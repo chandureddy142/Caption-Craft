@@ -90,7 +90,7 @@ function App() {
     fitMode: 'cover',
     selectedTemplateId: 'classic-white',
     fontFamily: "'Inter', sans-serif",
-    fontSize: 46,
+    fontSize: 24,
     textColor: '#ffffff',
     highlightColor: '#8b5cf6',
     boxColor: '#000000',
