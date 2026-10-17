@@ -1,3 +1,4 @@
+import { LandingPage } from "./components/LandingPage";
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Sidebar } from './components/Sidebar';
 import { Workspace } from './components/Workspace';
@@ -32,6 +33,7 @@ function formatSeconds(seconds: number): string {
 }
 
 function App() {
+  const [showLanding, setShowLanding] = useState<boolean>(true);
   const [captionSearchQuery, setCaptionSearchQuery] = useState<string>("");
   const [videoFile, setVideoFile] = useState<File | null>(null);
   const [audioBlob, setAudioBlob] = useState<Blob | null>(null);
@@ -611,9 +613,15 @@ const applyProgress = (progress: LocalTranscriptionProgress) => {
     );
   }
 
+  if (showLanding && !videoFile) {
+    return <LandingPage onStart={() => setShowLanding(false)} />;
+  }
+
   return (
     <div className="app-frame">
-      {!videoFile || !audioReady ? (
+      {showLanding && !videoFile ? (
+        <LandingPage onStart={() => setShowLanding(false)} />
+      ) : !videoFile || !audioReady ? (
         <UploadDashboard
           onSelectAudio={handleFileUpload}
           onSelectVideo={handleFileUpload}

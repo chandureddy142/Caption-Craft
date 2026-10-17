@@ -119,11 +119,15 @@ const AnimatedTemplatePreview: React.FC<AnimatedTemplatePreviewProps> = ({ templ
   const patterns = template.wordPatterns || [];
   const baseSettings = template.settings || ({} as any);
 
-  const [step, setStep] = useState(2);
+  // Active word index during hover simulation:
+  // -1: idle (both shown in base template state)
+  //  0: word 0 active
+  //  1: word 1 active
+  const [activeWordIndex, setActiveWordIndex] = useState<number>(-1);
 
   useEffect(() => {
     if (!isHovered) {
-      setStep(2);
+      setActiveWordIndex(-1);
       return undefined;
     }
 
@@ -131,24 +135,24 @@ const AnimatedTemplatePreview: React.FC<AnimatedTemplatePreviewProps> = ({ templ
     let t2: NodeJS.Timeout;
     let t3: NodeJS.Timeout;
 
-    const run = () => {
-      setStep(1); // Show "Caption"
+    const cycle = () => {
+      setActiveWordIndex(0); // Word 0 active
       t1 = setTimeout(() => {
-        setStep(2); // Show "Craft" with active effect
+        setActiveWordIndex(1); // Word 1 active
         t2 = setTimeout(() => {
-          setStep(0); // Clear
-          t3 = setTimeout(run, 280); // Pause before looping
-        }, 1100);
-      }, 380);
+          setActiveWordIndex(-1); // Hold full phrase
+          t3 = setTimeout(cycle, 450); // Pause before repeating loop
+        }, 850);
+      }, 500);
     };
 
-    run();
+    cycle();
 
     return () => {
       clearTimeout(t1);
       clearTimeout(t2);
       clearTimeout(t3);
-      setStep(2);
+      setActiveWordIndex(-1);
     };
   }, [isHovered]);
 
@@ -157,65 +161,81 @@ const AnimatedTemplatePreview: React.FC<AnimatedTemplatePreviewProps> = ({ templ
       style={{
         width: "100%",
         height: "66px",
-        background: "#08090c",
+        background: "linear-gradient(180deg, #0c0f15 0%, #07090d 100%)",
         borderRadius: "8px",
         border: "1px solid rgba(255, 255, 255, 0.08)",
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
-        gap: "8px",
-        padding: "6px 8px",
+        gap: "6px",
+        padding: "4px 8px",
         position: "relative",
         overflow: "hidden",
       }}
     >
       {words.map((word, idx) => {
         const rule = patterns[idx] || ({} as any);
-        const isVisible = step > idx;
+        const isActive = activeWordIndex === idx;
 
+        // Exact font resolution matching SubtitleRenderer.ts
         const fontFamily = rule.fontFamily || baseSettings.fontFamily || "sans-serif";
-        const color = rule.textColor || (idx === 1 ? baseSettings.highlightColor : baseSettings.textColor) || "#ffffff";
+        const fontWeight = rule.fontWeight || baseSettings.fontWeight || "700";
+        const fontStyle = rule.fontStyle || "normal";
         const isUppercase = rule.uppercase || baseSettings.textTransform === "uppercase";
         const displayWord = isUppercase ? word.toUpperCase() : word;
 
-        // Bounding box styling (pill, marker, bubble)
+        // Color resolution
+        let textColor = rule.textColor;
+        if (!textColor) {
+          textColor = idx === 1 ? (baseSettings.highlightColor || "#ffffff") : (baseSettings.textColor || "#ffffff");
+        }
+        if (isActive && baseSettings.highlightColor) {
+          textColor = baseSettings.highlightColor;
+        }
+
+        // Bounding box styling matching canvas roundRect & padding
         const hasBox = Boolean(rule.backgroundColor);
-        const bg = rule.backgroundColor || "transparent";
-        const radius = rule.borderRadius ? `${rule.borderRadius}px` : "0px";
-        const padX = rule.paddingX || (hasBox ? 8 : 0);
-        const padY = rule.paddingY || (hasBox ? 3 : 0);
+        const backgroundColor = rule.backgroundColor || "transparent";
+        const borderRadius = rule.borderRadius ? `${rule.borderRadius}px` : "0px";
+        const padX = hasBox ? (rule.paddingX ?? 8) * 0.75 : 0;
+        const padY = hasBox ? (rule.paddingY ?? 3) * 0.75 : 0;
 
-        // Rotation
-        const rot = rule.rotation ? `rotate(${rule.rotation}deg)` : "";
+        // Rotation matching canvas rotation
+        const rotationDeg = rule.rotation || 0;
+        const transform = rotationDeg !== 0 ? `rotate(${rotationDeg}deg)` : undefined;
 
-        // Text stroke & shadows
-        const stroke = rule.outlineColor
-          ? `-1px -1px 0 ${rule.outlineColor}, 1px -1px 0 ${rule.outlineColor}, -1px 1px 0 ${rule.outlineColor}, 1px 1px 0 ${rule.outlineColor}`
-          : undefined;
-        const glow = baseSettings.shadowColor && baseSettings.shadowBlur
-          ? `0 0 ${Math.min(16, baseSettings.shadowBlur)}px ${baseSettings.shadowColor}`
-          : undefined;
+        // Text stroke matching canvas strokeText
+        const outlineColor = rule.outlineColor || baseSettings.strokeColor || "#000000";
+        const outlineWidth = rule.outlineWidth ?? (baseSettings.style === "outline" ? 2 : 0);
+        let textStroke: string | undefined = undefined;
+        if (outlineWidth > 0 && outlineColor) {
+          textStroke = `-${outlineWidth}px -${outlineWidth}px 0 ${outlineColor}, ${outlineWidth}px -${outlineWidth}px 0 ${outlineColor}, -${outlineWidth}px ${outlineWidth}px 0 ${outlineColor}, ${outlineWidth}px ${outlineWidth}px 0 ${outlineColor}`;
+        }
 
-        const textShadow = [stroke, glow].filter(Boolean).join(", ") || undefined;
+        // Glow shadow matching canvas neon-glow / shadowBlur
+        let glowShadow: string | undefined = undefined;
+        if (baseSettings.shadowColor && baseSettings.shadowBlur) {
+          glowShadow = `0 0 ${Math.min(14, baseSettings.shadowBlur)}px ${baseSettings.shadowColor}`;
+        }
+        const textShadow = [textStroke, glowShadow].filter(Boolean).join(", ") || undefined;
 
         return (
           <span
             key={idx}
             style={{
               fontFamily,
-              color,
-              backgroundColor: bg,
-              borderRadius: radius,
+              fontWeight,
+              fontStyle,
+              color: textColor,
+              backgroundColor,
+              borderRadius,
               padding: hasBox ? `${padY}px ${padX}px` : undefined,
-              transform: isVisible ? `${rot} translateY(0)` : `${rot} translateY(4px)`,
-              opacity: isVisible ? 1 : 0,
-              transition: "opacity 0.22s ease-out, transform 0.22s ease-out",
-              fontSize: rule.fontSizeMultiplier ? `${0.88 * rule.fontSizeMultiplier}rem` : "0.88rem",
-              fontWeight: rule.fontWeight || baseSettings.fontWeight || 800,
-              fontStyle: rule.fontStyle || undefined,
+              transform,
               textShadow,
-              display: "inline-block",
+              fontSize: rule.fontSizeMultiplier ? `${0.86 * rule.fontSizeMultiplier}rem` : "0.86rem",
               lineHeight: 1.15,
+              display: "inline-block",
+              transition: "color 0.18s ease, transform 0.18s ease",
             }}
           >
             {displayWord}
