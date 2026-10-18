@@ -1417,61 +1417,170 @@ const [selectedSegmentId, setSelectedSegmentId] = useState<string | null>(null);
     <div className="preview-layout">
       {/* CENTER PANEL */}
       <main className="preview-workspace">
-        <header className="workspace-header">
-          <div className="workspace-title-group">
+        <header
+          className="workspace-header"
+          style={{
+            display: "grid",
+            gridTemplateColumns: "minmax(180px, 1fr) auto auto",
+            alignItems: "center",
+            width: "100%",
+            height: "48px",
+            minHeight: "48px",
+            maxHeight: "48px",
+            padding: "0 14px",
+            boxSizing: "border-box",
+            background: "#0d1117",
+            borderBottom: "1px solid rgba(255, 255, 255, 0.08)",
+            gap: "14px",
+            overflow: "hidden",
+            userSelect: "none",
+            flexWrap: "nowrap"
+          }}
+        >
+          {/* 1. LEFT ZONE: Duration Pill + Editable File Name */}
+          <div style={{ display: "flex", alignItems: "center", gap: "8px", minWidth: 0, overflow: "hidden" }}>
             {duration > 0 && (
-              <span className="duration-pill" title="Total project duration">
+              <span
+                className="duration-pill"
+                title="File duration"
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  padding: "3px 8px",
+                  borderRadius: "5px",
+                  background: "rgba(255, 255, 255, 0.07)",
+                  border: "1px solid rgba(255, 255, 255, 0.08)",
+                  color: "#d1d5db",
+                  fontSize: "11px",
+                  fontWeight: 600,
+                  whiteSpace: "nowrap",
+                  flexShrink: 0
+                }}
+              >
                 {formatDuration(duration)}
               </span>
             )}
-            <input
-              ref={titleInputRef}
-              className="project-title-input"
-              value={projectTitle ?? ""}
-              maxLength={150}
-              placeholder="Untitled project"
-              size={Math.max((projectTitle || "Untitled project").length, 8)}
-              onChange={event => onProjectTitleChange?.(event.target.value)}
-              aria-label="Project title"
-            />
-            <button
-              type="button"
-              className="title-edit-icon"
-              onClick={() => titleInputRef.current?.focus()}
-              title="Edit title"
-              aria-label="Edit title"
+
+            <div
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: "4px",
+                minWidth: 0,
+                flex: "0 1 300px",
+                background: "rgba(255, 255, 255, 0.03)",
+                border: "1px solid rgba(255, 255, 255, 0.06)",
+                borderRadius: "6px",
+                padding: "2px 6px"
+              }}
             >
-              <Pencil size={13} />
-            </button>
+              <input
+                ref={titleInputRef}
+                className="project-title-input"
+                value={projectTitle || ""}
+                placeholder="Untitled project"
+                onChange={event => onProjectTitleChange?.(event.target.value)}
+                aria-label="Project title"
+                style={{
+                  background: "transparent",
+                  border: "none",
+                  outline: "none",
+                  color: "#f3f4f6",
+                  fontSize: "12px",
+                  fontWeight: 600,
+                  width: "100%",
+                  minWidth: 0,
+                  overflow: "hidden",
+                  textOverflow: "ellipsis",
+                  whiteSpace: "nowrap"
+                }}
+              />
+              <button
+                type="button"
+                className="title-edit-icon"
+                onClick={() => titleInputRef.current?.focus()}
+                title="Edit name"
+                aria-label="Edit name"
+                style={{
+                  background: "transparent",
+                  border: "none",
+                  cursor: "pointer",
+                  color: "rgba(255, 255, 255, 0.45)",
+                  display: "inline-flex",
+                  alignItems: "center",
+                  padding: "2px",
+                  flexShrink: 0
+                }}
+              >
+                <Pencil size={11} />
+              </button>
+            </div>
           </div>
 
-          <div className="workspace-header-actions">
+          {/* 2. CENTER ZONE: Canvas Scale & Fit Mode */}
+          <div style={{ display: "flex", alignItems: "center", flexShrink: 0 }}>
             <button
               type="button"
               className="fit-toggle-button"
               onClick={() => setIsZoom100(prev => !prev)}
-              title={isZoom100 ? "Fit canvas to screen" : "Zoom to actual scale"}
-              aria-label={isZoom100 ? "Fit canvas to screen" : "Zoom to actual scale"}
+              title={isZoom100 ? "Fit to view" : "Scale to 100%"}
+              aria-label={isZoom100 ? "Fit to view" : "Scale to 100%"}
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: "5px",
+                padding: "4px 9px",
+                borderRadius: "6px",
+                border: "1px solid rgba(255, 255, 255, 0.12)",
+                background: isZoom100 ? "rgba(139, 92, 246, 0.15)" : "rgba(255, 255, 255, 0.04)",
+                color: isZoom100 ? "#c4b5fd" : "#d1d5db",
+                fontSize: "11px",
+                fontWeight: 600,
+                cursor: "pointer",
+                whiteSpace: "nowrap"
+              }}
             >
-              {isZoom100 ? <Minimize2 size={14} /> : <Maximize2 size={14} />}
-              <span>{isZoom100 ? "Fit" : "100%"}</span>
+              {isZoom100 ? <Minimize2 size={12} /> : <Maximize2 size={12} />}
+              <span>{isZoom100 ? "Fit view" : "100%"}</span>
             </button>
+          </div>
 
-            <label className="ratio-select-wrap">
-              <span>Ratio</span>
+          {/* 3. RIGHT ZONE: Aspect Ratio & Export Action */}
+          <div style={{ display: "flex", alignItems: "center", gap: "10px", flexShrink: 0 }}>
+            <div
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: "6px",
+                background: "rgba(255, 255, 255, 0.03)",
+                border: "1px solid rgba(255, 255, 255, 0.1)",
+                borderRadius: "6px",
+                padding: "3px 6px"
+              }}
+            >
+              <span style={{ fontSize: "11px", color: "rgba(255, 255, 255, 0.5)", fontWeight: 500 }}>Ratio</span>
               <select
                 className="ratio-select"
                 value={settings.aspectRatio}
                 onChange={event => setSettings(previous => ({ ...previous, aspectRatio: event.target.value as CanvasSettings["aspectRatio"] }))}
-                aria-label="Canvas aspect ratio"
+                aria-label="Aspect ratio"
+                style={{
+                  background: "transparent",
+                  border: "none",
+                  color: "#f3f4f6",
+                  fontSize: "11px",
+                  fontWeight: 600,
+                  outline: "none",
+                  cursor: "pointer"
+                }}
               >
                 {ratioOptions.map(option => (
-                  <option key={option.value} value={option.value}>
+                  <option key={option.value} value={option.value} style={{ background: "#11141c", color: "#fff" }}>
                     {option.label} · {option.detail}
                   </option>
                 ))}
               </select>
-            </label>
+            </div>
 
             <button
               className="export-trigger"
@@ -1485,8 +1594,25 @@ const [selectedSegmentId, setSelectedSegmentId] = useState<string | null>(null);
                 setIsExportPanelOpen(true);
               }}
               disabled={!duration || isExporting}
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: "5px",
+                padding: "5px 13px",
+                borderRadius: "6px",
+                background: "#8b5cf6",
+                color: "#ffffff",
+                border: "none",
+                fontSize: "11px",
+                fontWeight: 700,
+                cursor: !duration || isExporting ? "not-allowed" : "pointer",
+                opacity: !duration || isExporting ? 0.5 : 1,
+                boxShadow: "0 2px 8px rgba(139, 92, 246, 0.3)",
+                whiteSpace: "nowrap"
+              }}
             >
-              <Share2 size={16} /> Export
+              <Share2 size={12} />
+              <span>Export</span>
             </button>
           </div>
         </header>
