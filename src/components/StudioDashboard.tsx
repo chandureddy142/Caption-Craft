@@ -153,7 +153,7 @@ export const StudioDashboard: React.FC<StudioDashboardProps> = ({ onOpenFile, on
             width: "34px",
             height: "34px",
             borderRadius: "8px",
-            background: "linear-gradient(135deg, #00d6a0 0%, #00a87d 100%)",
+            background: "linear-gradient(135deg, #3b82f6 0%, #00a87d 100%)",
             color: "#050a08",
             display: "grid",
             placeItems: "center",
@@ -170,8 +170,8 @@ export const StudioDashboard: React.FC<StudioDashboardProps> = ({ onOpenFile, on
               fontSize: "10px",
               padding: "2px 7px",
               borderRadius: "4px",
-              background: "rgba(0, 214, 160, 0.12)",
-              color: "#00d6a0",
+              background: "rgba(59, 130, 246, 0.12)",
+              color: "#3b82f6",
               fontWeight: 700,
               letterSpacing: "0.04em"
             }}>
@@ -192,7 +192,7 @@ export const StudioDashboard: React.FC<StudioDashboardProps> = ({ onOpenFile, on
             fontSize: "11px",
             color: "#8c9b93"
           }}>
-            <Cpu size={13} color="#00d6a0" />
+            <Cpu size={13} color="#3b82f6" />
             <span>WebGPU local mode</span>
           </div>
 
@@ -205,7 +205,7 @@ export const StudioDashboard: React.FC<StudioDashboardProps> = ({ onOpenFile, on
                 borderRadius: "50%",
                 background: "#122019",
                 border: "2px solid #1c3227",
-                color: "#00d6a0",
+                color: "#3b82f6",
                 display: "grid",
                 placeItems: "center",
                 fontSize: "13px",
@@ -239,7 +239,7 @@ export const StudioDashboard: React.FC<StudioDashboardProps> = ({ onOpenFile, on
                     height: "34px",
                     borderRadius: "50%",
                     background: "#162820",
-                    color: "#00d6a0",
+                    color: "#3b82f6",
                     display: "grid",
                     placeItems: "center",
                     fontWeight: 700,
@@ -259,7 +259,7 @@ export const StudioDashboard: React.FC<StudioDashboardProps> = ({ onOpenFile, on
 
                 <div style={{ padding: "8px 10px", background: "#0e1a14", borderRadius: "8px", border: "1px solid #16261e", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                   <span style={{ fontSize: "11px", color: "#8c9b93" }}>plan</span>
-                  <span style={{ fontSize: "11px", color: "#00d6a0", fontWeight: 700, display: "flex", alignItems: "center", gap: "4px" }}>
+                  <span style={{ fontSize: "11px", color: "#3b82f6", fontWeight: 700, display: "flex", alignItems: "center", gap: "4px" }}>
                     <CheckCircle2 size={12} /> creator free
                   </span>
                 </div>
@@ -306,8 +306,8 @@ export const StudioDashboard: React.FC<StudioDashboardProps> = ({ onOpenFile, on
         }}>
           <div>
             <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "8px" }}>
-              <Sparkles size={16} color="#00d6a0" />
-              <span style={{ fontSize: "12px", color: "#00d6a0", fontWeight: 700 }}>
+              <Sparkles size={16} color="#3b82f6" />
+              <span style={{ fontSize: "12px", color: "#3b82f6", fontWeight: 700 }}>
                 telugu & tenglish kinetic captions
               </span>
             </div>
@@ -335,8 +335,8 @@ export const StudioDashboard: React.FC<StudioDashboardProps> = ({ onOpenFile, on
               }}
             />
             <button style={{
-              background: "#00d6a0",
-              color: "#050b08",
+              background: "#3b82f6",
+              color: "#ffffff",
               border: "none",
               padding: "12px 24px",
               borderRadius: "10px",
@@ -346,7 +346,7 @@ export const StudioDashboard: React.FC<StudioDashboardProps> = ({ onOpenFile, on
               alignItems: "center",
               gap: "8px",
               cursor: "pointer",
-              boxShadow: "0 4px 16px rgba(0, 214, 160, 0.3)"
+              boxShadow: "0 4px 16px rgba(59, 130, 246, 0.3)"
             }}>
               <UploadCloud size={16} />
               <span>new caption project</span>
@@ -367,7 +367,7 @@ export const StudioDashboard: React.FC<StudioDashboardProps> = ({ onOpenFile, on
               onClick={() => setActiveTab("projects")}
               style={{
                 background: activeTab === "projects" ? "#162820" : "transparent",
-                color: activeTab === "projects" ? "#00d6a0" : "#9ca3af",
+                color: activeTab === "projects" ? "#3b82f6" : "#9ca3af",
                 border: "none",
                 padding: "8px 18px",
                 borderRadius: "7px",
@@ -382,7 +382,7 @@ export const StudioDashboard: React.FC<StudioDashboardProps> = ({ onOpenFile, on
               onClick={() => setActiveTab("exports")}
               style={{
                 background: activeTab === "exports" ? "#162820" : "transparent",
-                color: activeTab === "exports" ? "#00d6a0" : "#9ca3af",
+                color: activeTab === "exports" ? "#3b82f6" : "#9ca3af",
                 border: "none",
                 padding: "8px 18px",
                 borderRadius: "7px",
@@ -402,9 +402,9 @@ export const StudioDashboard: React.FC<StudioDashboardProps> = ({ onOpenFile, on
                   key={lang}
                   onClick={() => setSelectedLang(lang)}
                   style={{
-                    background: selectedLang === lang ? "#00d6a0" : "#0d1612",
+                    background: selectedLang === lang ? "#3b82f6" : "#0d1612",
                     color: selectedLang === lang ? "#040806" : "#8a9b92",
-                    border: "1px solid " + (selectedLang === lang ? "#00d6a0" : "#172720"),
+                    border: "1px solid " + (selectedLang === lang ? "#3b82f6" : "#172720"),
                     padding: "5px 12px",
                     borderRadius: "6px",
                     fontSize: "11px",
@@ -482,13 +482,13 @@ export const StudioDashboard: React.FC<StudioDashboardProps> = ({ onOpenFile, on
                     width: "42px",
                     height: "42px",
                     borderRadius: "50%",
-                    background: "rgba(0, 214, 160, 0.14)",
-                    border: "1px solid rgba(0, 214, 160, 0.3)",
+                    background: "rgba(59, 130, 246, 0.14)",
+                    border: "1px solid rgba(59, 130, 246, 0.3)",
                     display: "grid",
                     placeItems: "center",
-                    color: "#00d6a0"
+                    color: "#3b82f6"
                   }}>
-                    <Play size={18} fill="#00d6a0" />
+                    <Play size={18} fill="#3b82f6" />
                   </div>
 
                   <span style={{
@@ -514,8 +514,8 @@ export const StudioDashboard: React.FC<StudioDashboardProps> = ({ onOpenFile, on
                     fontWeight: 700,
                     padding: "3px 8px",
                     borderRadius: "4px",
-                    background: item.language === "Telugu" ? "rgba(0, 214, 160, 0.18)" : "rgba(255, 255, 255, 0.09)",
-                    color: item.language === "Telugu" ? "#00d6a0" : "#e5e7eb"
+                    background: item.language === "Telugu" ? "rgba(59, 130, 246, 0.18)" : "rgba(255, 255, 255, 0.09)",
+                    color: item.language === "Telugu" ? "#3b82f6" : "#e5e7eb"
                   }}>
                     {item.language}
                   </span>
@@ -560,7 +560,7 @@ export const StudioDashboard: React.FC<StudioDashboardProps> = ({ onOpenFile, on
                     paddingTop: "12px",
                     borderTop: "1px solid #111e17"
                   }}>
-                    <span style={{ fontSize: "12px", color: "#00d6a0", fontWeight: 700 }}>
+                    <span style={{ fontSize: "12px", color: "#3b82f6", fontWeight: 700 }}>
                       open studio editor →
                     </span>
                     <button
@@ -594,13 +594,13 @@ export const StudioDashboard: React.FC<StudioDashboardProps> = ({ onOpenFile, on
               <tbody>
                 <tr style={{ borderBottom: "1px solid #101a14" }}>
                   <td style={{ padding: "14px 18px", color: "#fff", fontWeight: 600 }}>Insta Reel - Tech Tips Telugu</td>
-                  <td style={{ padding: "14px 18px", color: "#00d6a0" }}>Telugu Lipi</td>
+                  <td style={{ padding: "14px 18px", color: "#3b82f6" }}>Telugu Lipi</td>
                   <td style={{ padding: "14px 18px", color: "#9ca3af" }}>SRT, VTT, MP4 1080p</td>
                   <td style={{ padding: "14px 18px" }}>
                     <button style={{
                       background: "#111f19",
                       border: "1px solid #1e362b",
-                      color: "#00d6a0",
+                      color: "#3b82f6",
                       padding: "6px 12px",
                       borderRadius: "6px",
                       fontSize: "11px",

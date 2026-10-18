@@ -34,12 +34,12 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onStart }) => {
       <style>{`
         :root {
           color-scheme: dark;
-          --bg-page: #0B0F0E;
-          --surface: #111715;
-          --surface-elevated: #151D19;
-          --border: #26312C;
-          --accent: #00D6A0;
-          --accent-hover: #00B987;
+          --bg-page: #0b0d11;
+          --surface: #131720;
+          --surface-elevated: #1a202c;
+          --border: #252b39;
+          --accent: #3b82f6;
+          --accent-hover: #2563eb;
           --text-primary: #F3F6F4;
           --text-secondary: #A0AAA5;
           --text-muted: #737F79;
@@ -72,8 +72,8 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onStart }) => {
           font-size: 12px;
           font-weight: 600;
           color: var(--accent);
-          background: rgba(0, 214, 160, 0.08);
-          border: 1px solid rgba(0, 214, 160, 0.22);
+          background: rgba(59, 130, 246, 0.08);
+          border: 1px solid rgba(59, 130, 246, 0.22);
           padding: 4px 12px;
           border-radius: 999px;
           margin-bottom: 20px;
@@ -327,8 +327,8 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onStart }) => {
           font-size: 13px;
           font-weight: 800;
           color: var(--accent);
-          background: rgba(0, 214, 160, 0.08);
-          border: 1px solid rgba(0, 214, 160, 0.25);
+          background: rgba(59, 130, 246, 0.08);
+          border: 1px solid rgba(59, 130, 246, 0.25);
           width: 28px;
           height: 28px;
           border-radius: 999px;
@@ -501,7 +501,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onStart }) => {
                 width: "5px",
                 height: "5px",
                 borderRadius: "50%",
-                background: "#26312C"
+                background: "#252b39"
               }} />
 
               {/* Inner Screen Display */}
@@ -511,7 +511,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onStart }) => {
                 background: "#050807",
                 borderRadius: "10px",
                 overflow: "hidden",
-                border: "1px solid #26312C",
+                border: "1px solid #252b39",
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
@@ -540,18 +540,18 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onStart }) => {
                   bottom: "16px",
                   right: "16px",
                   background: "rgba(5, 8, 7, 0.85)",
-                  border: "1px solid #26312C",
+                  border: "1px solid #252b39",
                   borderRadius: "999px",
                   padding: "5px 14px",
                   fontSize: "11px",
                   fontWeight: 700,
-                  color: "#00D6A0",
+                  color: "#3b82f6",
                   display: "flex",
                   alignItems: "center",
                   gap: "6px",
                   backdropFilter: "blur(8px)"
                 }}>
-                  <span style={{ width: "6px", height: "6px", borderRadius: "50%", background: "#00D6A0" }} />
+                  <span style={{ width: "6px", height: "6px", borderRadius: "50%", background: "#3b82f6" }} />
                   <span>playing: {activeTab} workspace</span>
                 </div>
               </div>
@@ -575,8 +575,8 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onStart }) => {
               width: "120px",
               height: "44px",
               background: "linear-gradient(180deg, #161d19 0%, #0d1210 100%)",
-              borderLeft: "1px solid #26312C",
-              borderRight: "1px solid #26312C"
+              borderLeft: "1px solid #252b39",
+              borderRight: "1px solid #252b39"
             }} />
 
             {/* Monitor Stand Base */}
@@ -584,7 +584,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onStart }) => {
               width: "280px",
               height: "12px",
               background: "#161d19",
-              border: "1px solid #26312C",
+              border: "1px solid #252b39",
               borderRadius: "6px 6px 0 0",
               boxShadow: "0 10px 30px rgba(0, 0, 0, 0.5)"
             }} />
@@ -781,18 +781,18 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onStart }) => {
                   width: "36px",
                   height: "36px",
                   borderRadius: "10px",
-                  background: "rgba(0, 214, 160, 0.12)",
-                  border: "1px solid #00D6A0",
-                  color: "#00D6A0",
+                  background: "rgba(59, 130, 246, 0.12)",
+                  border: "1px solid #3b82f6",
+                  color: "#3b82f6",
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
-                  boxShadow: "0 0 16px rgba(0, 214, 160, 0.2)"
+                  boxShadow: "0 0 16px rgba(59, 130, 246, 0.2)"
                 }}>
                   <Volume2 size={18} />
                 </div>
                 <div style={{ display: "flex", flexDirection: "column" }}>
-                  <span style={{ fontSize: "11px", fontWeight: 800, color: "#00D6A0", textTransform: "uppercase", letterSpacing: "0.08em" }}>input</span>
+                  <span style={{ fontSize: "11px", fontWeight: 800, color: "#3b82f6", textTransform: "uppercase", letterSpacing: "0.08em" }}>input</span>
                   <span style={{ fontSize: "12px", color: "var(--text-secondary)", fontWeight: 600 }}>raw audio/video</span>
                 </div>
               </div>
@@ -800,20 +800,20 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onStart }) => {
               {/* Right: Video Output Marker */}
               <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
                 <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end" }}>
-                  <span style={{ fontSize: "11px", fontWeight: 800, color: "#00D6A0", textTransform: "uppercase", letterSpacing: "0.08em" }}>output</span>
+                  <span style={{ fontSize: "11px", fontWeight: 800, color: "#3b82f6", textTransform: "uppercase", letterSpacing: "0.08em" }}>output</span>
                   <span style={{ fontSize: "12px", color: "var(--text-secondary)", fontWeight: 600 }}>captioned reel</span>
                 </div>
                 <div style={{
                   width: "36px",
                   height: "36px",
                   borderRadius: "10px",
-                  background: "rgba(0, 214, 160, 0.12)",
-                  border: "1px solid #00D6A0",
-                  color: "#00D6A0",
+                  background: "rgba(59, 130, 246, 0.12)",
+                  border: "1px solid #3b82f6",
+                  color: "#3b82f6",
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
-                  boxShadow: "0 0 16px rgba(0, 214, 160, 0.2)"
+                  boxShadow: "0 0 16px rgba(59, 130, 246, 0.2)"
                 }}>
                   <Video size={18} />
                 </div>
@@ -828,7 +828,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onStart }) => {
                 left: "24px",
                 right: "24px",
                 height: "2px",
-                background: "linear-gradient(90deg, #00D6A0 0%, #00D6A0 80%, rgba(38, 49, 44, 0.6) 100%)",
+                background: "linear-gradient(90deg, #3b82f6 0%, #3b82f6 80%, rgba(38, 49, 44, 0.6) 100%)",
                 zIndex: 0
               }} />
 
@@ -845,9 +845,9 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onStart }) => {
                     width: "44px",
                     height: "44px",
                     borderRadius: "50%",
-                    background: "#0B0F0E",
-                    border: "2px solid #00D6A0",
-                    color: "#00D6A0",
+                    background: "#0b0d11",
+                    border: "2px solid #3b82f6",
+                    color: "#3b82f6",
                     display: "flex",
                     alignItems: "center",
                     justifyContent: "center",
@@ -857,7 +857,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onStart }) => {
                   }}>
                     01
                   </div>
-                  <div style={{ fontSize: "11px", fontWeight: 700, color: "#00D6A0", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: "6px" }}>
+                  <div style={{ fontSize: "11px", fontWeight: 700, color: "#3b82f6", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: "6px" }}>
                     client-side decode
                   </div>
                   <h3 style={{ fontSize: "18px", fontWeight: 800, color: "var(--text-primary)", margin: "0 0 8px 0" }}>
@@ -877,9 +877,9 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onStart }) => {
                     width: "44px",
                     height: "44px",
                     borderRadius: "50%",
-                    background: "#0B0F0E",
-                    border: "2px solid #00D6A0",
-                    color: "#00D6A0",
+                    background: "#0b0d11",
+                    border: "2px solid #3b82f6",
+                    color: "#3b82f6",
                     display: "flex",
                     alignItems: "center",
                     justifyContent: "center",
@@ -889,7 +889,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onStart }) => {
                   }}>
                     02
                   </div>
-                  <div style={{ fontSize: "11px", fontWeight: 700, color: "#00D6A0", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: "6px" }}>
+                  <div style={{ fontSize: "11px", fontWeight: 700, color: "#3b82f6", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: "6px" }}>
                     whisper speech ai
                   </div>
                   <h3 style={{ fontSize: "18px", fontWeight: 800, color: "var(--text-primary)", margin: "0 0 8px 0" }}>
@@ -909,9 +909,9 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onStart }) => {
                     width: "44px",
                     height: "44px",
                     borderRadius: "50%",
-                    background: "#0B0F0E",
-                    border: "2px solid #00D6A0",
-                    color: "#00D6A0",
+                    background: "#0b0d11",
+                    border: "2px solid #3b82f6",
+                    color: "#3b82f6",
                     display: "flex",
                     alignItems: "center",
                     justifyContent: "center",
@@ -921,7 +921,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onStart }) => {
                   }}>
                     03
                   </div>
-                  <div style={{ fontSize: "11px", fontWeight: 700, color: "#00D6A0", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: "6px" }}>
+                  <div style={{ fontSize: "11px", fontWeight: 700, color: "#3b82f6", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: "6px" }}>
                     kinetic styling
                   </div>
                   <h3 style={{ fontSize: "18px", fontWeight: 800, color: "var(--text-primary)", margin: "0 0 8px 0" }}>
@@ -941,9 +941,9 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onStart }) => {
                     width: "44px",
                     height: "44px",
                     borderRadius: "50%",
-                    background: "#0B0F0E",
-                    border: "2px solid #00D6A0",
-                    color: "#00D6A0",
+                    background: "#0b0d11",
+                    border: "2px solid #3b82f6",
+                    color: "#3b82f6",
                     display: "flex",
                     alignItems: "center",
                     justifyContent: "center",
@@ -953,7 +953,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onStart }) => {
                   }}>
                     04
                   </div>
-                  <div style={{ fontSize: "11px", fontWeight: 700, color: "#00D6A0", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: "6px" }}>
+                  <div style={{ fontSize: "11px", fontWeight: 700, color: "#3b82f6", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: "6px" }}>
                     final output
                   </div>
                   <h3 style={{ fontSize: "18px", fontWeight: 800, color: "var(--text-primary)", margin: "0 0 8px 0" }}>
@@ -976,8 +976,8 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onStart }) => {
         <div className="cc-container">
           <div style={{ marginBottom: "48px" }}>
             <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "12px" }}>
-              <span style={{ width: "16px", height: "2px", background: "#00D6A0" }} />
-              <span style={{ fontSize: "11px", fontWeight: 800, color: "#00D6A0", letterSpacing: "0.12em", textTransform: "uppercase" }}>
+              <span style={{ width: "16px", height: "2px", background: "#3b82f6" }} />
+              <span style={{ fontSize: "11px", fontWeight: 800, color: "#3b82f6", letterSpacing: "0.12em", textTransform: "uppercase" }}>
                 the difference
               </span>
             </div>
@@ -1000,7 +1000,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onStart }) => {
               <thead>
                 <tr style={{ borderBottom: "1px solid var(--border)" }}>
                   <th style={{ padding: "20px 24px", width: "30%" }} />
-                  <th style={{ padding: "20px 24px", color: "#00D6A0", fontSize: "14px", fontWeight: 800, width: "38%" }}>
+                  <th style={{ padding: "20px 24px", color: "#3b82f6", fontSize: "14px", fontWeight: 800, width: "38%" }}>
                     CaptionCraft
                   </th>
                   <th style={{ padding: "20px 24px", color: "var(--text-muted)", fontSize: "13px", fontWeight: 600, width: "32%" }}>
@@ -1015,7 +1015,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onStart }) => {
                   </td>
                   <td style={{ padding: "20px 24px", color: "var(--text-primary)", fontSize: "13.5px" }}>
                     <div style={{ display: "flex", alignItems: "flex-start", gap: "10px" }}>
-                      <Check size={16} color="#00D6A0" style={{ marginTop: "2px", flexShrink: 0 }} />
+                      <Check size={16} color="#3b82f6" style={{ marginTop: "2px", flexShrink: 0 }} />
                       <span>calibrated for south indian phonetics, slang, and english blends</span>
                     </div>
                   </td>
@@ -1030,7 +1030,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onStart }) => {
                   </td>
                   <td style={{ padding: "20px 24px", color: "var(--text-primary)", fontSize: "13.5px" }}>
                     <div style={{ display: "flex", alignItems: "flex-start", gap: "10px" }}>
-                      <Check size={16} color="#00D6A0" style={{ marginTop: "2px", flexShrink: 0 }} />
+                      <Check size={16} color="#3b82f6" style={{ marginTop: "2px", flexShrink: 0 }} />
                       <span>live in telugu and expanding to hindi, tamil, kannada, malayalam</span>
                     </div>
                   </td>
@@ -1045,7 +1045,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onStart }) => {
                   </td>
                   <td style={{ padding: "20px 24px", color: "var(--text-primary)", fontSize: "13.5px" }}>
                     <div style={{ display: "flex", alignItems: "flex-start", gap: "10px" }}>
-                      <Check size={16} color="#00D6A0" style={{ marginTop: "2px", flexShrink: 0 }} />
+                      <Check size={16} color="#3b82f6" style={{ marginTop: "2px", flexShrink: 0 }} />
                       <span>toggle effortlessly between native lipi, phonetic tenglish, and english</span>
                     </div>
                   </td>
@@ -1060,7 +1060,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onStart }) => {
                   </td>
                   <td style={{ padding: "20px 24px", color: "var(--text-primary)", fontSize: "13.5px" }}>
                     <div style={{ display: "flex", alignItems: "flex-start", gap: "10px" }}>
-                      <Check size={16} color="#00D6A0" style={{ marginTop: "2px", flexShrink: 0 }} />
+                      <Check size={16} color="#3b82f6" style={{ marginTop: "2px", flexShrink: 0 }} />
                       <span>preserves compound matras, ottulu, and vertical ligatures cleanly</span>
                     </div>
                   </td>
@@ -1075,7 +1075,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onStart }) => {
                   </td>
                   <td style={{ padding: "20px 24px", color: "var(--text-primary)", fontSize: "13.5px" }}>
                     <div style={{ display: "flex", alignItems: "flex-start", gap: "10px" }}>
-                      <Check size={16} color="#00D6A0" style={{ marginTop: "2px", flexShrink: 0 }} />
+                      <Check size={16} color="#3b82f6" style={{ marginTop: "2px", flexShrink: 0 }} />
                       <span>transcription happens right on your device using WebGPU whisper</span>
                     </div>
                   </td>
@@ -1090,7 +1090,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onStart }) => {
                   </td>
                   <td style={{ padding: "20px 24px", color: "var(--text-primary)", fontSize: "13.5px" }}>
                     <div style={{ display: "flex", alignItems: "flex-start", gap: "10px" }}>
-                      <Check size={16} color="#00D6A0" style={{ marginTop: "2px", flexShrink: 0 }} />
+                      <Check size={16} color="#3b82f6" style={{ marginTop: "2px", flexShrink: 0 }} />
                       <span>public beta is 100% free with upcoming creator plans in ₹ via UPI</span>
                     </div>
                   </td>
@@ -1121,11 +1121,11 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onStart }) => {
                   width: "32px",
                   height: "32px",
                   borderRadius: "8px",
-                  background: "#00D6A0",
+                  background: "#3b82f6",
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
-                  color: "#050807",
+                  color: "#ffffff",
                   fontWeight: 900,
                   fontSize: "14px"
                 }}>
@@ -1174,9 +1174,9 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onStart }) => {
                 languages
               </div>
               <ul style={{ listStyle: "none", padding: 0, margin: 0, display: "flex", flexDirection: "column", gap: "12px", fontSize: "13px", color: "var(--text-secondary)" }}>
-                <li><span style={{ color: "#00D6A0" }}>● </span>telugu captions</li>
-                <li><span style={{ color: "#00D6A0" }}>● </span>tenglish phonetic</li>
-                <li><span style={{ color: "#00D6A0" }}>● </span>english captions</li>
+                <li><span style={{ color: "#3b82f6" }}>● </span>telugu captions</li>
+                <li><span style={{ color: "#3b82f6" }}>● </span>tenglish phonetic</li>
+                <li><span style={{ color: "#3b82f6" }}>● </span>english captions</li>
                 <li style={{ color: "var(--text-muted)" }}>hindi captions soon</li>
                 <li style={{ color: "var(--text-muted)" }}>tamil captions soon</li>
               </ul>
@@ -1210,7 +1210,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onStart }) => {
             marginBottom: "32px"
           }}>
             <div>
-              <div style={{ fontSize: "11px", fontWeight: 800, color: "#00D6A0", letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: "12px" }}>
+              <div style={{ fontSize: "11px", fontWeight: 800, color: "#3b82f6", letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: "12px" }}>
                 secure by design
               </div>
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px", fontSize: "12px" }}>
@@ -1230,12 +1230,12 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onStart }) => {
                 <span style={{ fontSize: "11px", fontWeight: 800, color: "var(--text-muted)", letterSpacing: "0.08em", textTransform: "uppercase" }}>
                   payments roadmap
                 </span>
-                <span style={{ fontSize: "10px", background: "rgba(0, 214, 160, 0.12)", color: "#00D6A0", padding: "2px 6px", borderRadius: "4px", fontWeight: 700 }}>
+                <span style={{ fontSize: "10px", background: "rgba(59, 130, 246, 0.12)", color: "#3b82f6", padding: "2px 6px", borderRadius: "4px", fontWeight: 700 }}>
                   coming soon
                 </span>
               </div>
               <div style={{ display: "flex", gap: "8px", flexWrap: "wrap", alignItems: "center" }}>
-                <span style={{ padding: "4px 10px", background: "#161e1b", border: "1px solid var(--border)", borderRadius: "6px", fontSize: "11px", fontWeight: 800, color: "#00D6A0" }}>UPI</span>
+                <span style={{ padding: "4px 10px", background: "#161e1b", border: "1px solid var(--border)", borderRadius: "6px", fontSize: "11px", fontWeight: 800, color: "#3b82f6" }}>UPI</span>
                 <span style={{ padding: "4px 10px", background: "#161e1b", border: "1px solid var(--border)", borderRadius: "6px", fontSize: "11px", fontWeight: 700, color: "var(--text-primary)" }}>Razorpay</span>
                 <span style={{ padding: "4px 10px", background: "#161e1b", border: "1px solid var(--border)", borderRadius: "6px", fontSize: "11px", fontWeight: 700, color: "var(--text-primary)" }}>RuPay</span>
                 <span style={{ padding: "4px 10px", background: "#161e1b", border: "1px solid var(--border)", borderRadius: "6px", fontSize: "11px", fontWeight: 700, color: "var(--text-primary)" }}>Cards</span>
@@ -1263,7 +1263,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onStart }) => {
             </div>
             <div style={{ display: "flex", alignItems: "center", gap: "16px" }}>
               <span>public beta active</span>
-              <span style={{ color: "#00D6A0" }}>● all systems operational</span>
+              <span style={{ color: "#3b82f6" }}>● all systems operational</span>
             </div>
           </div>
         </div>

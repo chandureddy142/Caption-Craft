@@ -25,8 +25,8 @@ export default function SiteLayout(): ReactElement {
               width: "38px",
               height: "38px",
               borderRadius: "10px",
-              background: "#00e5a0",
-              color: "#050807",
+              background: "#3b82f6",
+              color: "#ffffff",
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
@@ -36,7 +36,7 @@ export default function SiteLayout(): ReactElement {
             <div>
               <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
                 <span style={{ fontWeight: 700, fontSize: "16px", letterSpacing: "-0.01em" }}>CaptionCraft</span>
-                <span style={{ fontSize: "10px", padding: "2px 6px", background: "rgba(0, 229, 160, 0.12)", color: "#00e5a0", borderRadius: "999px", border: "1px solid rgba(0, 229, 160, 0.25)", fontWeight: 600 }}>telugu ai</span>
+                <span style={{ fontSize: "10px", padding: "2px 6px", background: "rgba(59, 130, 246, 0.12)", color: "#3b82f6", borderRadius: "999px", border: "1px solid rgba(59, 130, 246, 0.25)", fontWeight: 600 }}>telugu ai</span>
               </div>
               <span style={{ display: "block", fontSize: "11px", color: "rgba(255, 255, 255, 0.45)" }}>smart captions for telugu creators</span>
             </div>
@@ -44,13 +44,13 @@ export default function SiteLayout(): ReactElement {
 
           {/* Nav links */}
           <nav style={{ display: "flex", alignItems: "center", gap: "28px" }}>
-            <NavLink to="/" style={({ isActive }) => ({ textDecoration: "none", fontSize: "14px", fontWeight: 500, color: isActive ? "#00e5a0" : "rgba(255, 255, 255, 0.7)", transition: "color 0.2s" })}>
+            <NavLink to="/" style={({ isActive }) => ({ textDecoration: "none", fontSize: "14px", fontWeight: 500, color: isActive ? "#3b82f6" : "rgba(255, 255, 255, 0.7)", transition: "color 0.2s" })}>
               home
             </NavLink>
-            <NavLink to="/templates" style={({ isActive }) => ({ textDecoration: "none", fontSize: "14px", fontWeight: 500, color: isActive ? "#00e5a0" : "rgba(255, 255, 255, 0.7)", transition: "color 0.2s" })}>
+            <NavLink to="/templates" style={({ isActive }) => ({ textDecoration: "none", fontSize: "14px", fontWeight: 500, color: isActive ? "#3b82f6" : "rgba(255, 255, 255, 0.7)", transition: "color 0.2s" })}>
               templates
             </NavLink>
-            <NavLink to="/pricing" style={({ isActive }) => ({ textDecoration: "none", fontSize: "14px", fontWeight: 500, color: isActive ? "#00e5a0" : "rgba(255, 255, 255, 0.7)", transition: "color 0.2s" })}>
+            <NavLink to="/pricing" style={({ isActive }) => ({ textDecoration: "none", fontSize: "14px", fontWeight: 500, color: isActive ? "#3b82f6" : "rgba(255, 255, 255, 0.7)", transition: "color 0.2s" })}>
               pricing
             </NavLink>
           </nav>
@@ -102,15 +102,15 @@ export default function SiteLayout(): ReactElement {
               type="button"
               onClick={() => navigate("/studio")}
               style={{
-                background: "#00e5a0",
+                background: "#3b82f6",
                 border: "none",
                 borderRadius: "10px",
                 padding: "8px 18px",
                 fontSize: "13px",
                 fontWeight: 700,
-                color: "#050807",
+                color: "#ffffff",
                 cursor: "pointer",
-                boxShadow: "0 0 20px rgba(0, 229, 160, 0.25)"
+                boxShadow: "0 0 20px rgba(59, 130, 246, 0.25)"
               }}
             >
               open studio →

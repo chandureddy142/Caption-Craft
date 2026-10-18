@@ -4,8 +4,7 @@ import {
   Download, 
   FileText, 
   Film, 
-  Layers, 
-  Sliders, 
+Sliders, 
   Sparkles, 
   Volume2, 
   VolumeX, 
@@ -152,7 +151,7 @@ export function ExportPage({
   return (
     <div style={{
       minHeight: "100vh",
-      background: "#080b0e",
+      background: "#0b0d11",
       color: "#f3f4f6",
       fontFamily: "Inter, -apple-system, BlinkMacSystemFont, sans-serif",
       padding: "20px 36px 40px",
@@ -202,7 +201,7 @@ export function ExportPage({
       }}>
         <div>
           <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-            <span style={{ fontSize: "11px", fontWeight: 700, color: "#8b5cf6", letterSpacing: "0.06em", textTransform: "uppercase" }}>
+            <span style={{ fontSize: "11px", fontWeight: 700, color: "#3b82f6", letterSpacing: "0.06em", textTransform: "uppercase" }}>
               Studio Export
             </span>
             <span style={{ color: "#374151" }}>•</span>
@@ -224,7 +223,7 @@ export function ExportPage({
           fontSize: "12px",
           color: "#94a3b8"
         }}>
-          <Sparkles size={14} color="#8b5cf6" />
+          <Sparkles size={14} color="#3b82f6" />
           <span>Output: <strong style={{ color: "#fff" }}>{dimensions.width} × {dimensions.height}</strong></span>
           <span style={{ color: "#334155" }}>|</span>
           <span>{duration > 0 ? `${duration.toFixed(1)}s` : "Source duration"}</span>
@@ -241,8 +240,8 @@ export function ExportPage({
       }}>
         {/* LEFT COLUMN: RENDER SETTINGS */}
         <section style={{
-          background: "#0c1117",
-          border: "1px solid #182230",
+          background: "#131720",
+          border: "1px solid rgba(255, 255, 255, 0.08)",
           borderRadius: "14px",
           padding: "24px",
           display: "flex",
@@ -250,7 +249,7 @@ export function ExportPage({
           gap: "22px"
         }}>
           <div style={{ display: "flex", alignItems: "center", gap: "8px", borderBottom: "1px solid #151e2b", paddingBottom: "12px" }}>
-            <Sliders size={16} color="#8b5cf6" />
+            <Sliders size={16} color="#3b82f6" />
             <span style={{ fontSize: "13px", fontWeight: 700, color: "#f3f4f6" }}>Render Settings</span>
           </div>
 
@@ -270,9 +269,9 @@ export function ExportPage({
                     onClick={() => setResolution(val)}
                     style={{
                       padding: "10px 0",
-                      background: isSelected ? "rgba(139, 92, 246, 0.16)" : "#101622",
-                      border: isSelected ? "1.5px solid #8b5cf6" : "1px solid #1c2635",
-                      color: isSelected ? "#c4b5fd" : "#94a3b8",
+                      background: isSelected ? "rgba(59, 130, 246, 0.14)" : "#181f2a",
+                      border: isSelected ? "1.5px solid #3b82f6" : "1px solid #1c2635",
+                      color: isSelected ? "#93c5fd" : "#94a3b8",
                       borderRadius: "8px",
                       fontSize: "12px",
                       fontWeight: 700,
@@ -281,7 +280,7 @@ export function ExportPage({
                     }}
                   >
                     <div>{val}</div>
-                    <div style={{ fontSize: "10px", fontWeight: 500, color: isSelected ? "#a78bfa" : "#64748b", marginTop: "2px" }}>
+                    <div style={{ fontSize: "10px", fontWeight: 500, color: isSelected ? "#60a5fa" : "#64748b", marginTop: "2px" }}>
                       {EXPORT_RESOLUTION_PRESETS[val].label}
                     </div>
                   </button>
@@ -310,8 +309,8 @@ export function ExportPage({
                       justifyContent: "space-between",
                       padding: "10px 14px",
                       borderRadius: "8px",
-                      background: isSelected ? "rgba(139, 92, 246, 0.14)" : "#101622",
-                      border: isSelected ? "1.5px solid #8b5cf6" : "1px solid #1c2635",
+                      background: isSelected ? "rgba(59, 130, 246, 0.12)" : "#181f2a",
+                      border: isSelected ? "1.5px solid #3b82f6" : "1px solid #1c2635",
                       color: isSelected ? "#ffffff" : "#94a3b8",
                       cursor: busy ? "not-allowed" : "pointer",
                       fontSize: "12px",
@@ -319,7 +318,7 @@ export function ExportPage({
                     }}
                   >
                     <span>{item.label}</span>
-                    <span style={{ fontSize: "10px", color: isSelected ? "#c4b5fd" : "#64748b", padding: "2px 6px", background: "rgba(0,0,0,0.3)", borderRadius: "4px" }}>
+                    <span style={{ fontSize: "10px", color: isSelected ? "#93c5fd" : "#64748b", padding: "2px 6px", background: "rgba(0,0,0,0.3)", borderRadius: "4px" }}>
                       {item.iconLabel}
                     </span>
                   </button>
@@ -347,8 +346,8 @@ export function ExportPage({
                         flex: 1,
                         padding: "8px 0",
                         borderRadius: "7px",
-                        background: isSelected ? "#8b5cf6" : "#101622",
-                        border: isSelected ? "1px solid #a855f7" : "1px solid #1c2635",
+                        background: isSelected ? "#3b82f6" : "#181f2a",
+                        border: isSelected ? "1px solid #3b82f6" : "1px solid #1c2635",
                         color: isSelected ? "#ffffff" : "#94a3b8",
                         fontSize: "12px",
                         fontWeight: 700,
@@ -374,7 +373,7 @@ export function ExportPage({
                   width: "100%",
                   padding: "9px 12px",
                   borderRadius: "7px",
-                  background: "#101622",
+                  background: "#181f2a",
                   border: "1px solid #1c2635",
                   color: "#f3f4f6",
                   fontSize: "12px",
@@ -399,7 +398,7 @@ export function ExportPage({
             <div style={{
               display: "flex",
               alignItems: "center",
-              background: "#101622",
+              background: "#181f2a",
               border: "1px solid #1c2635",
               borderRadius: "8px",
               padding: "0 12px"
@@ -434,14 +433,14 @@ export function ExportPage({
               alignItems: "center",
               justifyContent: "space-between",
               padding: "10px 14px",
-              background: "#101622",
+              background: "#181f2a",
               border: "1px solid #1c2635",
               borderRadius: "8px",
               cursor: busy ? "not-allowed" : "pointer",
               marginTop: "4px"
             }}>
               <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-                {includeAudio ? <Volume2 size={16} color="#8b5cf6" /> : <VolumeX size={16} color="#64748b" />}
+                {includeAudio ? <Volume2 size={16} color="#3b82f6" /> : <VolumeX size={16} color="#64748b" />}
                 <div>
                   <div style={{ fontSize: "12px", fontWeight: 600, color: "#f3f4f6" }}>Include Master Audio</div>
                   <div style={{ fontSize: "11px", color: "#64748b" }}>Export with voiceover and background track</div>
@@ -452,7 +451,7 @@ export function ExportPage({
                 checked={includeAudio}
                 disabled={busy}
                 onChange={event => setIncludeAudio(event.target.checked)}
-                style={{ width: "16px", height: "16px", accentColor: "#8b5cf6", cursor: "pointer" }}
+                style={{ width: "16px", height: "16px", accentColor: "#3b82f6", cursor: "pointer" }}
               />
             </label>
           </div>
@@ -463,8 +462,8 @@ export function ExportPage({
           
           {/* PREVIEW + CAPCUT-STYLE OUTLINE PROGRESS BOX */}
           <div style={{
-            background: "#0c1117",
-            border: "1px solid #182230",
+            background: "#131720",
+            border: "1px solid rgba(255, 255, 255, 0.08)",
             borderRadius: "14px",
             padding: "20px",
             display: "flex",
@@ -475,7 +474,7 @@ export function ExportPage({
           }}>
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", width: "100%" }}>
               <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                <Film size={15} color="#8b5cf6" />
+                <Film size={15} color="#3b82f6" />
                 <span style={{ fontSize: "13px", fontWeight: 700, color: "#f3f4f6" }}>Master Preview</span>
               </div>
               <span style={{ fontSize: "11px", color: "#64748b", fontWeight: 600 }}>
@@ -489,9 +488,9 @@ export function ExportPage({
               padding: "4px",
               borderRadius: "14px",
               background: busy
-                ? `conic-gradient(#8b5cf6 ${progress * 3.6}deg, #d946ef ${progress * 3.6}deg, rgba(255, 255, 255, 0.08) 0deg)`
+                ? `conic-gradient(#3b82f6 ${progress * 3.6}deg, #d946ef ${progress * 3.6}deg, rgba(255, 255, 255, 0.08) 0deg)`
                 : "rgba(255, 255, 255, 0.1)",
-              boxShadow: busy ? "0 0 20px rgba(139, 92, 246, 0.45)" : "none",
+              boxShadow: busy ? "0 0 20px rgba(59, 130, 246, 0.35)" : "none",
               transition: "box-shadow 0.3s ease"
             }}>
               <div style={{
@@ -511,7 +510,7 @@ export function ExportPage({
                   position: "absolute",
                   inset: 0,
                   opacity: 0.25,
-                  backgroundImage: "radial-gradient(#8b5cf6 1px, transparent 1px)",
+                  backgroundImage: "radial-gradient(#3b82f6 1px, transparent 1px)",
                   backgroundSize: "12px 12px"
                 }} />
 
@@ -551,7 +550,7 @@ export function ExportPage({
                     <span style={{ fontSize: "28px", fontWeight: 900, color: "#ffffff", letterSpacing: "-0.03em" }}>
                       {progress}%
                     </span>
-                    <span style={{ fontSize: "11px", color: "#c4b5fd", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.06em" }}>
+                    <span style={{ fontSize: "11px", color: "#93c5fd", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.06em" }}>
                       Rendering...
                     </span>
                     <button
@@ -621,13 +620,13 @@ export function ExportPage({
                 width: "100%",
                 padding: "14px",
                 borderRadius: "10px",
-                background: busy || !formatSupported ? "#1e293b" : "linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%)",
+                background: busy || !formatSupported ? "#1e293b" : "linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)",
                 color: "#ffffff",
                 border: "none",
                 fontSize: "14px",
                 fontWeight: 700,
                 cursor: busy || !formatSupported ? "not-allowed" : "pointer",
-                boxShadow: busy || !formatSupported ? "none" : "0 4px 18px rgba(139, 92, 246, 0.4)",
+                boxShadow: busy || !formatSupported ? "none" : "0 4px 18px rgba(59, 130, 246, 0.35)",
                 transition: "all 0.15s ease"
               }}
             >
@@ -639,8 +638,8 @@ export function ExportPage({
 
           {/* Subtitle Interchange Downloads */}
           <div style={{
-            background: "#0c1117",
-            border: "1px solid #182230",
+            background: "#131720",
+            border: "1px solid rgba(255, 255, 255, 0.08)",
             borderRadius: "14px",
             padding: "18px",
             display: "flex",
@@ -648,7 +647,7 @@ export function ExportPage({
             gap: "12px"
           }}>
             <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-              <FileText size={16} color="#8b5cf6" />
+              <FileText size={16} color="#3b82f6" />
               <span style={{ fontSize: "13px", fontWeight: 700, color: "#f3f4f6" }}>Subtitle Interchanges</span>
             </div>
 
@@ -663,7 +662,7 @@ export function ExportPage({
                   gap: "10px",
                   padding: "10px 12px",
                   borderRadius: "8px",
-                  background: "#101622",
+                  background: "#181f2a",
                   border: "1px solid #1c2635",
                   color: "#e5e7eb",
                   cursor: busy || subtitles.length === 0 ? "not-allowed" : "pointer",
@@ -687,14 +686,14 @@ export function ExportPage({
                   gap: "10px",
                   padding: "10px 12px",
                   borderRadius: "8px",
-                  background: "#101622",
+                  background: "#181f2a",
                   border: "1px solid #1c2635",
                   color: "#e5e7eb",
                   cursor: busy || subtitles.length === 0 ? "not-allowed" : "pointer",
                   textAlign: "left"
                 }}
               >
-                <FileText size={16} color="#a855f7" />
+                <FileText size={16} color="#3b82f6" />
                 <div>
                   <div style={{ fontSize: "12px", fontWeight: 700 }}>Download VTT</div>
                   <div style={{ fontSize: "10px", color: "#64748b" }}>Web & HTML5 standard</div>

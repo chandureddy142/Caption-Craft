@@ -428,9 +428,9 @@ export const Sidebar: React.FC<SidebarProps> = ({
               disabled={selectedLayer !== "caption" || (!copiedCaption && !hasSelectedSubtitle)}
               title={copiedCaption ? "Click to paste caption at needle position" : "Copy selected caption"}
               style={{
-                background: copiedCaption ? "rgba(139, 92, 246, 0.28)" : undefined,
-                color: copiedCaption ? "#c084fc" : undefined,
-                border: copiedCaption ? "1px solid #8b5cf6" : undefined,
+                background: copiedCaption ? "rgba(59, 130, 246, 0.28)" : undefined,
+                color: copiedCaption ? "#93c5fd" : undefined,
+                border: copiedCaption ? "1px solid #3b82f6" : undefined,
               }}
             >
               {copiedCaption ? <ClipboardCheck size={14} /> : <Copy size={14} />}
@@ -493,7 +493,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
             gap: "6px",
           }}
         >
-          <Search size={14} style={{ color: searchQuery ? "#c084fc" : "rgba(255, 255, 255, 0.35)", flexShrink: 0 }} />
+          <Search size={14} style={{ color: searchQuery ? "#93c5fd" : "rgba(255, 255, 255, 0.35)", flexShrink: 0 }} />
 
           <input
             type="text"
@@ -552,7 +552,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 fontSize: "0.68rem",
                 fontFamily: "monospace",
                 fontWeight: 600,
-                color: matchedSubtitles.length ? "#34d399" : "#f87171",
+                color: matchedSubtitles.length ? "#60a5fa" : "#f87171",
                 background: matchedSubtitles.length ? "rgba(52, 211, 153, 0.12)" : "rgba(248, 113, 113, 0.12)",
                 padding: "2px 5px",
                 borderRadius: "4px",
@@ -631,7 +631,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 flex: 1,
                 height: "32px",
                 borderRadius: "5px",
-                background: isPlaying ? "rgba(239, 68, 68, 0.16)" : "#8b5cf6",
+                background: isPlaying ? "rgba(239, 68, 68, 0.16)" : "#3b82f6",
                 border: isPlaying ? "1px solid rgba(239, 68, 68, 0.4)" : "none",
                 color: "#ffffff",
                 display: "flex",
@@ -664,9 +664,9 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 flex: 1,
                 height: "32px",
                 borderRadius: "5px",
-                background: activeAudioTarget === "music" ? "rgba(52, 211, 153, 0.16)" : "rgba(139, 92, 246, 0.16)",
-                border: activeAudioTarget === "music" ? "1px solid rgba(52, 211, 153, 0.45)" : "1px solid rgba(139, 92, 246, 0.45)",
-                color: activeAudioTarget === "music" ? "#34d399" : "#c084fc",
+                background: activeAudioTarget === "music" ? "rgba(52, 211, 153, 0.16)" : "rgba(59, 130, 246, 0.16)",
+                border: activeAudioTarget === "music" ? "1px solid rgba(52, 211, 153, 0.45)" : "1px solid rgba(59, 130, 246, 0.45)",
+                color: activeAudioTarget === "music" ? "#60a5fa" : "#93c5fd",
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
@@ -694,7 +694,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 alignItems: "center",
               }}
             >
-              <span style={{ color: "#c084fc" }}>{formatDuration(currentTime)}</span>
+              <span style={{ color: "#93c5fd" }}>{formatDuration(currentTime)}</span>
               <span style={{ margin: "0 2px", color: "rgba(255, 255, 255, 0.35)" }}>/</span>
               <span>{formatDuration(duration || mediaDuration)}</span>
             </div>
@@ -757,7 +757,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 }}
                 style={{
                   flex: 1,
-                  accentColor: activeAudioTarget === "music" ? "#34d399" : "#8b5cf6",
+                  accentColor: activeAudioTarget === "music" ? "#60a5fa" : "#3b82f6",
                   cursor: "pointer",
                   height: "4px",
                 }}
