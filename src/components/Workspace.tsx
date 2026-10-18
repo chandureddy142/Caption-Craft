@@ -3,10 +3,11 @@ import type { CanvasSettings, Subtitle, CaptionLanguage, ExportResolutionPreset 
 import { getSubtitleCanvasLayout, renderSubtitlesToCanvas } from "../utils/SubtitleRenderer";
 import { getPlatformSafeZone } from "../utils/creatorTools";
 import { getCaptionText } from "../utils/transliterate";
+import AnimatedTemplatePreview from "./AnimatedTemplatePreview";
 import {
+  CAPTION_SECTIONS,
   CAPTION_TEMPLATES,
   applyTemplateToSettings,
-  type CaptionTemplateDefinition,
 } from "../utils/captionTemplates";
 import {
   drawBackgroundToCanvas,
@@ -109,143 +110,6 @@ interface WorkspaceProps {
 
 
 
-interface AnimatedTemplatePreviewProps {
-  template: CaptionTemplateDefinition;
-  isHovered: boolean;
-}
-
-const AnimatedTemplatePreview: React.FC<AnimatedTemplatePreviewProps> = ({ template, isHovered }) => {
-  const words = ["Caption", "Craft"];
-  const patterns = template.wordPatterns || [];
-  const baseSettings = template.settings || ({} as any);
-
-  // Active word index during hover simulation:
-  // -1: idle (both shown in base template state)
-  //  0: word 0 active
-  //  1: word 1 active
-  const [activeWordIndex, setActiveWordIndex] = useState<number>(-1);
-
-  useEffect(() => {
-    if (!isHovered) {
-      setActiveWordIndex(-1);
-      return undefined;
-    }
-
-    let t1: NodeJS.Timeout;
-    let t2: NodeJS.Timeout;
-    let t3: NodeJS.Timeout;
-
-    const cycle = () => {
-      setActiveWordIndex(0); // Word 0 active
-      t1 = setTimeout(() => {
-        setActiveWordIndex(1); // Word 1 active
-        t2 = setTimeout(() => {
-          setActiveWordIndex(-1); // Hold full phrase
-          t3 = setTimeout(cycle, 450); // Pause before repeating loop
-        }, 850);
-      }, 500);
-    };
-
-    cycle();
-
-    return () => {
-      clearTimeout(t1);
-      clearTimeout(t2);
-      clearTimeout(t3);
-      setActiveWordIndex(-1);
-    };
-  }, [isHovered]);
-
-  return (
-    <div
-      style={{
-        width: "100%",
-        height: "66px",
-        background: "linear-gradient(180deg, #0c0f15 0%, #07090d 100%)",
-        borderRadius: "8px",
-        border: "1px solid rgba(255, 255, 255, 0.08)",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        gap: "6px",
-        padding: "4px 8px",
-        position: "relative",
-        overflow: "hidden",
-      }}
-    >
-      {words.map((word, idx) => {
-        const rule = patterns[idx] || ({} as any);
-        const isActive = activeWordIndex === idx;
-
-        // Exact font resolution matching SubtitleRenderer.ts
-        const fontFamily = rule.fontFamily || baseSettings.fontFamily || "sans-serif";
-        const fontWeight = rule.fontWeight || baseSettings.fontWeight || "700";
-        const fontStyle = rule.fontStyle || "normal";
-        const isUppercase = rule.uppercase || baseSettings.textTransform === "uppercase";
-        const displayWord = isUppercase ? word.toUpperCase() : word;
-
-        // Color resolution
-        let textColor = rule.textColor;
-        if (!textColor) {
-          textColor = idx === 1 ? (baseSettings.highlightColor || "#ffffff") : (baseSettings.textColor || "#ffffff");
-        }
-        if (isActive && baseSettings.highlightColor) {
-          textColor = baseSettings.highlightColor;
-        }
-
-        // Bounding box styling matching canvas roundRect & padding
-        const hasBox = Boolean(rule.backgroundColor);
-        const backgroundColor = rule.backgroundColor || "transparent";
-        const borderRadius = rule.borderRadius ? `${rule.borderRadius}px` : "0px";
-        const padX = hasBox ? (rule.paddingX ?? 8) * 0.75 : 0;
-        const padY = hasBox ? (rule.paddingY ?? 3) * 0.75 : 0;
-
-        // Rotation matching canvas rotation
-        const rotationDeg = rule.rotation || 0;
-        const transform = rotationDeg !== 0 ? `rotate(${rotationDeg}deg)` : undefined;
-
-        // Text stroke matching canvas strokeText
-        const outlineColor = rule.outlineColor || baseSettings.strokeColor || "#000000";
-        const outlineWidth = rule.outlineWidth ?? (baseSettings.style === "outline" ? 2 : 0);
-        let textStroke: string | undefined = undefined;
-        if (outlineWidth > 0 && outlineColor) {
-          textStroke = `-${outlineWidth}px -${outlineWidth}px 0 ${outlineColor}, ${outlineWidth}px -${outlineWidth}px 0 ${outlineColor}, -${outlineWidth}px ${outlineWidth}px 0 ${outlineColor}, ${outlineWidth}px ${outlineWidth}px 0 ${outlineColor}`;
-        }
-
-        // Glow shadow matching canvas neon-glow / shadowBlur
-        let glowShadow: string | undefined = undefined;
-        if (baseSettings.shadowColor && baseSettings.shadowBlur) {
-          glowShadow = `0 0 ${Math.min(14, baseSettings.shadowBlur)}px ${baseSettings.shadowColor}`;
-        }
-        const textShadow = [textStroke, glowShadow].filter(Boolean).join(", ") || undefined;
-
-        return (
-          <span
-            key={idx}
-            style={{
-              fontFamily,
-              fontWeight,
-              fontStyle,
-              color: textColor,
-              backgroundColor,
-              borderRadius,
-              padding: hasBox ? `${padY}px ${padX}px` : undefined,
-              transform,
-              textShadow,
-              fontSize: rule.fontSizeMultiplier ? `${0.86 * rule.fontSizeMultiplier}rem` : "0.86rem",
-              lineHeight: 1.15,
-              display: "inline-block",
-              transition: "color 0.18s ease, transform 0.18s ease",
-            }}
-          >
-            {displayWord}
-          </span>
-        );
-      })}
-    </div>
-  );
-};
-
 export const Workspace: React.FC<WorkspaceProps> = ({
   captionSearchQuery = "",
   videoFile,
@@ -299,8 +163,8 @@ export const Workspace: React.FC<WorkspaceProps> = ({
     if (!q) return true;
     const text = normalizeCaption(captionText);
     if (text.includes(q)) return true;
-    const qWords = q.split(/s+/).filter(Boolean);
-    const textWords = text.split(/s+/).filter(Boolean);
+    const qWords = q.split(/\s+/).filter(Boolean);
+    const textWords = text.split(/\s+/).filter(Boolean);
     return qWords.some(qw => textWords.some(tw => tw.includes(qw) || qw.includes(tw)));
   };
 const [selectedSegmentId, setSelectedSegmentId] = useState<string | null>(null);
@@ -435,7 +299,7 @@ const [selectedSegmentId, setSelectedSegmentId] = useState<string | null>(null);
       const totalDuration = segEnd - seg.start;
       const ratio = firstHalfDuration / totalDuration;
 
-      const words = (seg.text || "").trim().split(/s+/);
+      const words = (seg.text || "").trim().split(/\s+/);
       const splitPoint = Math.max(1, Math.min(words.length - 1, Math.round(words.length * ratio)));
 
       const firstText = words.slice(0, splitPoint).join(" ") || seg.text;
@@ -2588,14 +2452,7 @@ const [selectedSegmentId, setSelectedSegmentId] = useState<string | null>(null);
 
           {activeCatalogTab === "templates" && (
             <div className="catalog-pane" style={{ display: "flex", flexDirection: "column", gap: "20px", padding: "4px 0" }}>
-              {[
-                { key: "trending", title: "trending" },
-                { key: "classic", title: "classic (simple)" },
-                { key: "animations", title: "animations" },
-                { key: "transitions", title: "transitions" },
-                { key: "boxes", title: "boxes" },
-                { key: "typo", title: "typo" },
-              ].map(section => {
+              {CAPTION_SECTIONS.map(section => {
                 const groupTemplates = CAPTION_TEMPLATES.filter(t => t.category === section.key);
                 if (groupTemplates.length === 0) return null;
                 return (
@@ -2623,6 +2480,8 @@ const [selectedSegmentId, setSelectedSegmentId] = useState<string | null>(null);
                             aria-pressed={isSelected}
                             onMouseEnter={() => setHoveredTemplateId(template.id)}
                             onMouseLeave={() => setHoveredTemplateId(null)}
+                            onFocus={() => setHoveredTemplateId(template.id)}
+                            onBlur={() => setHoveredTemplateId(null)}
                             onClick={() => setSettings(applyTemplateToSettings(settings, template.id))}
                             style={{
                               background: isSelected ? "rgba(139, 92, 246, 0.16)" : "#14171c",

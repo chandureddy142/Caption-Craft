@@ -1,1478 +1,1272 @@
-import React, { useState } from "react";
+import React, {  useState  } from "react";
 import {
-  Sparkles,
   ShieldCheck,
-  Zap,
   Languages,
+  Zap,
   ArrowRight,
-  UploadCloud,
-  CheckCircle2,
   Sliders,
   Type,
   Eye,
   Film,
   Check,
-  ChevronRight,
+  Upload,
+  Volume2,
+  Video
 } from "lucide-react";
 
 interface LandingPageProps {
   onStart: () => void;
 }
 
-interface DemoWord {
-  text: string;
-  highlight: boolean;
-  pill?: string;
-  darkText?: boolean;
-}
-
 export const LandingPage: React.FC<LandingPageProps> = ({ onStart }) => {
+  const navigate = (path: string) => { if (path === "/templates" || path === "/studio") { onStart(); } else { window.location.hash = path; } };
   const [activeTab, setActiveTab] = useState<"tenglish" | "telugu" | "english">("tenglish");
-  const [billingCycle, setBillingCycle] = useState<"monthly" | "yearly">("monthly");
-  const [emailInput, setEmailInput] = useState("");
-  const [signedUp, setSignedUp] = useState(false);
 
-  const demoPhrases: Record<"tenglish" | "telugu" | "english", DemoWord[]> = {
-    tenglish: [
-      { text: "ee video ni", highlight: false },
-      { text: "kacchithamga", highlight: true, pill: "#ec4899" },
-      { text: "save cheskondi", highlight: false }
-    ],
-    telugu: [
-      { text: "ఈ వీడియో ని", highlight: false },
-      { text: "తప్పకుండా", highlight: true, pill: "#ffd000", darkText: true },
-      { text: "సేవ్ చేసుకోండి", highlight: false }
-    ],
-    english: [
-      { text: "make sure you", highlight: false },
-      { text: "save this reel", highlight: true, pill: "#8b5cf6" },
-      { text: "right now", highlight: false }
-    ]
-  };
-
+  
   const scrollTo = (id: string) => {
     const el = document.getElementById(id);
     if (el) {
       el.scrollIntoView({ behavior: "smooth" });
     }
   };
-
-  const handleSignUp = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (emailInput.trim()) {
-      setSignedUp(true);
-      setTimeout(() => {
-        onStart();
-      }, 1200);
-    }
-  };
-
   return (
-    <div className="cc-root">
+    <div className="cc-page">
       <style>{`
-        :root { color-scheme: dark; }
-        html {
-          scroll-behavior: smooth !important;
-          overflow-y: auto !important;
-          height: auto !important;
+        :root {
+          color-scheme: dark;
+          --bg-page: #0B0F0E;
+          --surface: #111715;
+          --surface-elevated: #151D19;
+          --border: #26312C;
+          --accent: #00D6A0;
+          --accent-hover: #00B987;
+          --text-primary: #F3F6F4;
+          --text-secondary: #A0AAA5;
+          --text-muted: #737F79;
         }
-        body {
-          margin: 0;
-          min-height: 100%;
-          height: auto !important;
-          overflow-x: hidden !important;
-          overflow-y: auto !important;
-          background: #050807;
+
+        .cc-page {
+          background-color: var(--bg-page);
+          color: var(--text-primary);
           font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Inter", sans-serif;
-        }
-        #root {
+          line-height: 1.5;
           min-height: 100vh;
-          height: auto !important;
-          overflow: visible !important;
         }
-        .cc-root {
-          --cc-accent: #00e5a0;
-          min-height: 100vh;
-          height: auto !important;
-          overflow-x: clip !important;
-          overflow-y: visible !important;
-          background: #050807;
-          color: #f4f7f6;
+
+        .cc-container {
+          max-width: 1200px;
+          margin: 0 auto;
+          padding: 0 24px;
+        }
+
+        .cc-section {
+          padding: 88px 0;
+          position: relative;
+        }
+
+        /* typography */
+        .cc-eyebrow {
+          display: inline-flex;
+          align-items: center;
+          gap: 8px;
+          font-size: 12px;
+          font-weight: 600;
+          color: var(--accent);
+          background: rgba(0, 214, 160, 0.08);
+          border: 1px solid rgba(0, 214, 160, 0.22);
+          padding: 4px 12px;
+          border-radius: 999px;
+          margin-bottom: 20px;
+          letter-spacing: 0.02em;
+        }
+
+        .cc-h1 {
+          font-size: clamp(48px, 6.5vw, 84px);
+          font-weight: 900;
+          line-height: 1.05;
+          letter-spacing: -0.04em;
+          margin: 0 0 24px;
+          color: var(--text-primary);
+        }
+
+        .cc-h1-accent {
+          color: var(--accent);
+        }
+
+        .cc-lead {
+          font-size: clamp(18px, 1.6vw, 22px);
+          color: var(--text-secondary);
           line-height: 1.6;
-          letter-spacing: -0.015em;
-          padding-top: 0 !important;
+          margin: 0 auto 40px;
+          max-width: 760px;
         }
 
-        /* 1. Fixed Header */
-        .cc-nav {
-          position: fixed !important;
-          top: 0 !important;
-          left: 0 !important;
-          right: 0 !important;
-          width: 100% !important;
-          box-sizing: border-box !important;
-          z-index: 1000 !important;
-          padding: 14px clamp(18px, 5vw, 76px);
-          background: rgba(5, 8, 7, 0.88);
-          border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-          backdrop-filter: blur(18px);
-          -webkit-backdrop-filter: blur(18px);
-          display: flex;
-          align-items: center;
-          justify-content: space-between;
-        }
-        .cc-root > .cc-nav + section#home {
-          padding-top: 152px !important;
-        }
-        .cc-root [id="demo"],
-        .cc-root [id="templates"],
-        .cc-root [id="how-it-works"],
-        .cc-root [id="pricing"],
-        .cc-root [id="signup"] {
-          scroll-margin-top: 86px !important;
+        .cc-section-title {
+          font-size: clamp(28px, 3.4vw, 40px);
+          font-weight: 800;
+          letter-spacing: -0.025em;
+          margin: 0 0 12px;
+          color: var(--text-primary);
         }
 
-        .cc-brand {
-          display: flex;
-          align-items: center;
-          gap: 12px;
-          cursor: pointer;
-          user-select: none;
+        .cc-section-sub {
+          font-size: 15px;
+          color: var(--text-secondary);
+          max-width: 580px;
+          margin: 0 auto;
+          line-height: 1.6;
         }
-        .cc-brand-badge {
-          width: 36px;
-          height: 36px;
+
+        /* button system */
+        .cc-btn-primary {
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          gap: 8px;
+          background: var(--accent);
+          color: #050807;
+          font-weight: 700;
+          font-size: 14px;
+          padding: 12px 22px;
           border-radius: 10px;
-          background: linear-gradient(135deg, #00e5a0, #0aa879);
-          color: #04110c;
-          box-shadow: 0 0 28px rgba(0, 229, 160, 0.25);
+          border: none;
+          cursor: pointer;
+          transition: background-color 0.15s ease;
+          text-decoration: none;
+        }
+        .cc-btn-primary:hover {
+          background: var(--accent-hover);
+        }
+
+        .cc-btn-secondary {
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          gap: 8px;
+          background: transparent;
+          color: var(--text-primary);
+          font-weight: 600;
+          font-size: 14px;
+          padding: 12px 22px;
+          border-radius: 10px;
+          border: 1px solid var(--border);
+          cursor: pointer;
+          transition: border-color 0.15s ease, background-color 0.15s ease;
+        }
+        .cc-btn-secondary:hover {
+          border-color: rgba(255, 255, 255, 0.25);
+          background: rgba(255, 255, 255, 0.03);
+        }
+
+        /* hero grid */
+        .cc-hero-grid {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          text-align: center;
+          max-width: 960px;
+          margin: 0 auto;
+        }
+
+        .cc-hero-proof {
           display: flex;
           align-items: center;
           justify-content: center;
-          font-weight: 900;
-          font-size: 14px;
+          gap: 28px;
+          margin-top: 48px;
+          padding-top: 28px;
+          border-top: 1px solid var(--border);
+          flex-wrap: wrap;
         }
-        .cc-brand-text {
-          display: flex;
-          flex-direction: column;
-        }
-        .cc-brand-row {
+
+        .cc-proof-item {
           display: flex;
           align-items: center;
           gap: 8px;
-        }
-        .cc-brand-name {
-          font-size: 17px;
-          font-weight: 800;
-          color: #ffffff;
-          letter-spacing: -0.02em;
-        }
-        .cc-pill-tag {
-          font-size: 9px;
-          text-transform: uppercase;
-          font-weight: 800;
-          letter-spacing: 0.08em;
-          padding: 2px 7px;
-          border-radius: 9999px;
-          color: #00e5a0;
-          background: rgba(0, 229, 160, 0.08);
-          border: 1px solid rgba(0, 229, 160, 0.25);
-        }
-        .cc-brand-sub {
-          font-size: 11px;
-          color: #8c9c96;
+          font-size: 13px;
           font-weight: 500;
+          color: var(--text-secondary);
         }
 
-        .cc-menu {
-          display: flex;
-          align-items: center;
-          gap: clamp(14px, 2.3vw, 32px);
+        /* mockup */
+        .cc-mockup-frame {
+          width: 100%;
+          max-width: 330px;
+          margin: 0 auto;
+          background: var(--surface);
+          border: 1px solid var(--border);
+          border-radius: 28px;
+          padding: 12px;
+          box-shadow: 0 24px 60px rgba(0, 0, 0, 0.45);
         }
-        .cc-menu-link {
-          background: none;
+
+        .cc-mockup-screen {
+          border-radius: 20px;
+          background: #070B09;
+          overflow: hidden;
+          border: 1px solid rgba(255, 255, 255, 0.04);
+        }
+
+        .cc-mockup-video {
+          height: 380px;
+          position: relative;
+          background: linear-gradient(180deg, #121A16 0%, #080D0B 100%);
+          display: flex;
+          flex-direction: column;
+          justify-content: flex-end;
+          padding: 24px 16px;
+        }
+
+        .cc-mockup-caption {
+          background: rgba(11, 15, 14, 0.92);
+          border: 1px solid var(--border);
+          border-radius: 12px;
+          padding: 12px;
+          text-align: center;
+          backdrop-filter: blur(8px);
+        }
+
+        .cc-caption-text {
+          font-size: 16px;
+          font-weight: 800;
+          letter-spacing: -0.01em;
+        }
+
+        .cc-caption-highlight {
+          background: var(--accent);
+          color: #050807;
+          padding: 2px 8px;
+          border-radius: 6px;
+          display: inline-block;
+          margin: 0 4px;
+        }
+
+        /* demo section */
+        .cc-demo-card {
+          background: var(--surface);
+          border: 1px solid var(--border);
+          border-radius: 16px;
+          padding: 32px;
+          max-width: 840px;
+          margin: 36px auto 0;
+          text-align: center;
+        }
+
+        .cc-tab-bar {
+          display: inline-flex;
+          background: var(--bg-page);
+          border: 1px solid var(--border);
+          border-radius: 999px;
+          padding: 4px;
+          gap: 4px;
+          margin-bottom: 32px;
+        }
+
+        .cc-tab-btn {
+          background: transparent;
           border: none;
-          color: #9ca9a4;
+          color: var(--text-secondary);
           font-size: 13px;
           font-weight: 600;
-          cursor: pointer;
-          transition: color 0.18s ease;
-          padding: 6px 0;
-          text-transform: capitalize;
-        }
-        .cc-menu-link:hover {
-          color: #00e5a0;
-        }
-        .cc-nav-actions {
-          display: flex;
-          align-items: center;
-          gap: 12px;
-        }
-        .cc-btn-ghost {
-          background: rgba(255, 255, 255, 0.035);
-          border: 1px solid rgba(255, 255, 255, 0.12);
-          color: #e2e8f0;
-          padding: 8px 16px;
-          border-radius: 9px;
-          font-size: 13px;
-          font-weight: 600;
+          padding: 8px 18px;
+          border-radius: 999px;
           cursor: pointer;
           transition: all 0.15s ease;
         }
-        .cc-btn-ghost:hover {
-          background: rgba(255, 255, 255, 0.08);
-          border-color: rgba(255, 255, 255, 0.22);
-        }
-        .cc-btn-solid {
-          background: #00e5a0;
-          color: #03120c;
-          border: none;
-          padding: 9px 18px;
-          border-radius: 9px;
-          font-size: 13px;
-          font-weight: 700;
-          cursor: pointer;
-          display: flex;
-          align-items: center;
-          gap: 6px;
-          box-shadow: 0 8px 26px rgba(0, 229, 160, 0.18);
-          transition: all 0.18s ease;
-        }
-        .cc-btn-solid:hover {
-          background: #21f5b4;
-          transform: translateY(-1px);
+
+        .cc-tab-btn.active {
+          background: var(--accent);
+          color: #050807;
         }
 
-        /* 2. Hero Section */
-        .cc-hero-wrap {
-          min-height: min(740px, calc(100vh - 62px));
-          box-sizing: border-box;
-          position: relative;
-          padding: clamp(64px, 8vw, 112px) clamp(20px, 7vw, 110px) 72px;
-          display: grid;
-          grid-template-columns: minmax(0, 1.05fr) minmax(300px, 0.85fr);
-          align-items: center;
-          gap: clamp(36px, 7vw, 100px);
-          text-align: left;
-          isolation: isolate;
-        }
-        .cc-hero-glow-1 {
-          position: absolute;
-          top: 45%;
-          left: 72%;
-          width: 520px;
-          height: 520px;
-          background: radial-gradient(circle, rgba(0, 229, 160, 0.13), rgba(0, 130, 100, 0.04) 45%, transparent 72%);
-          filter: blur(75px);
-          z-index: -1;
-          pointer-events: none;
-        }
-        .cc-hero-content {
-          width: 100%;
-          max-width: 690px;
-          min-width: 0;
-        }
-        .cc-badge-chip {
-          display: inline-flex;
-          align-items: center;
-          gap: 8px;
-          padding: 6px 14px;
-          border-radius: 9999px;
-          color: #00e5a0;
-          background: rgba(0, 229, 160, 0.08);
-          border: 1px solid rgba(0, 229, 160, 0.24);
-          font-size: 12px;
-          font-weight: 600;
-          margin-bottom: 24px;
-        }
-        .cc-h1 {
-          max-width: 760px;
-          margin: 0 0 22px;
-          font-size: clamp(42px, 5.2vw, 72px);
-          line-height: 1.05;
-          letter-spacing: -0.055em;
-          font-weight: 850;
-        }
-        .cc-h1-gradient {
-          background: linear-gradient(105deg, #00e5a0 4%, #8affd9 58%, #d6fff0 100%);
-          -webkit-background-clip: text;
-          background-clip: text;
-          -webkit-text-fill-color: transparent;
-        }
-        .cc-lead {
-          max-width: 580px;
-          margin: 0 0 30px;
-          color: #9ca9a4;
-          font-size: clamp(15px, 1.35vw, 17px);
-          line-height: 1.8;
-        }
-        .cc-hero-btns {
-          display: flex;
-          align-items: center;
-          justify-content: flex-start;
-          margin-bottom: 24px;
-          gap: 12px;
-          flex-wrap: wrap;
-        }
-        .cc-cta-primary {
-          background: #00e5a0;
-          color: #03120c;
-          padding: 13px 22px;
-          min-height: 48px;
-          border-radius: 10px;
-          font-size: 15px;
-          font-weight: 800;
-          border: none;
-          cursor: pointer;
-          display: flex;
-          align-items: center;
-          gap: 9px;
-          box-shadow: 0 8px 26px rgba(0, 229, 160, 0.18);
-          transition: all 0.18s ease;
-        }
-        .cc-cta-primary:hover {
-          background: #21f5b4;
-          transform: translateY(-2px);
-        }
-        .cc-cta-secondary {
-          background: rgba(255, 255, 255, 0.035);
-          border: 1px solid rgba(255, 255, 255, 0.14);
-          color: #e2e8f0;
-          padding: 13px 22px;
-          min-height: 48px;
-          font-size: 15px;
-          font-weight: 700;
-          border-radius: 10px;
-          cursor: pointer;
-          display: flex;
-          align-items: center;
-          gap: 8px;
-          transition: background 0.18s ease;
-        }
-        .cc-cta-secondary:hover {
-          background: rgba(255, 255, 255, 0.08);
-        }
-        .cc-trust-row {
-          max-width: 680px;
-          display: grid;
-          grid-template-columns: repeat(2, minmax(0, 1fr));
-          gap: 9px;
-        }
-        .cc-trust-box {
-          display: flex;
-          align-items: center;
-          justify-content: flex-start;
-          gap: 8px;
-          padding: 10px 12px;
-          border-radius: 10px;
-          border: 1px solid rgba(255, 255, 255, 0.07);
-          background: rgba(255, 255, 255, 0.025);
-          font-size: 12px;
-          font-weight: 600;
-          color: #bdc8c3;
-        }
-
-        /* Hero visual phone scene */
-        .cc-hero-visual {
-          position: relative;
-          min-height: 470px;
+        .cc-preview-box {
+          min-height: 140px;
           display: flex;
           align-items: center;
           justify-content: center;
-          isolation: isolate;
-        }
-        .cc-phone-frame {
-          position: relative;
-          z-index: 2;
-          width: min(100%, 294px);
-          padding: 9px;
-          border-radius: 34px;
-          background: linear-gradient(145deg, #39433f, #101513 38%, #29332e);
-          border: 1px solid rgba(255, 255, 255, 0.2);
-          box-shadow: 0 30px 90px rgba(0, 0, 0, 0.62), 0 0 70px rgba(0, 229, 160, 0.1);
-          transform: rotate(2deg);
-        }
-        .cc-phone-screen {
-          overflow: hidden;
-          border-radius: 26px;
-          background: #101815;
-          border: 1px solid rgba(255, 255, 255, 0.09);
-        }
-        .cc-preview-topline {
-          height: 38px;
-          display: flex;
-          align-items: center;
-          gap: 7px;
-          padding: 0 12px;
-          color: #a9b9b2;
-          font-size: 8px;
-          font-weight: 800;
-          letter-spacing: 0.12em;
-        }
-        .cc-preview-topline span:last-child {
-          margin-left: auto;
-          color: #75867e;
-        }
-        .cc-live-dot {
-          width: 6px;
-          height: 6px;
-          border-radius: 50%;
-          background: #00e5a0;
-          box-shadow: 0 0 10px #00e5a0;
-        }
-        .cc-video-scene {
-          height: 370px;
-          position: relative;
-          overflow: hidden;
-          background: radial-gradient(ellipse at 50% 30%, #294b43 0%, #142a25 38%, #09100e 78%);
-        }
-        .cc-scene-light {
-          position: absolute;
-          border-radius: 50%;
-          filter: blur(24px);
-          opacity: 0.75;
-        }
-        .cc-scene-light-one {
-          width: 140px;
-          height: 190px;
-          background: #14775b;
-          top: 4%;
-          left: -28px;
-        }
-        .cc-scene-light-two {
-          width: 120px;
-          height: 180px;
-          background: #205b50;
-          top: 18%;
-          right: -36px;
-        }
-        .cc-scene-person {
-          position: absolute;
-          width: 150px;
-          height: 255px;
-          bottom: -35px;
-          left: 50%;
-          transform: translateX(-50%);
-          border-radius: 70px 70px 18px 18px;
-          background: linear-gradient(90deg, #17211e, #d0d9d3 36%, #f0f4ee 58%, #5a7168);
-          box-shadow: 0 -10px 40px rgba(0, 0, 0, 0.24);
-        }
-        .cc-scene-person:before {
-          content: "";
-          position: absolute;
-          width: 86px;
-          height: 105px;
-          top: -78px;
-          left: 33px;
-          border-radius: 48% 48% 44% 44%;
-          background: linear-gradient(90deg, #17211e, #a8b7ad 55%, #273b33);
-          box-shadow: 0 -10px 0 9px #111b17;
-        }
-        .cc-scene-person span {
-          position: absolute;
-          left: 17px;
-          right: 17px;
-          top: 48px;
-          height: 130px;
-          border-radius: 18px;
-          background: linear-gradient(110deg, transparent 20%, rgba(255, 255, 255, 0.4) 50%, transparent 80%);
-        }
-        .cc-scene-mic {
-          position: absolute;
-          top: 45%;
-          left: -8px;
-          width: 105px;
-          height: 15px;
-          border-radius: 12px;
-          background: linear-gradient(#353f3a, #070a09);
-          transform: rotate(-8deg);
-          box-shadow: 0 5px 12px #050806;
-        }
-        .cc-scene-mic i {
-          position: absolute;
-          right: -8px;
-          top: -5px;
-          width: 26px;
-          height: 25px;
-          border-radius: 8px;
-          background: #00d99a;
-          border: 2px solid #182a23;
-        }
-        .cc-preview-caption {
-          position: absolute;
-          z-index: 3;
-          left: 10px;
-          right: 10px;
-          bottom: 43px;
-          text-align: center;
-          font-size: 15px;
-          font-weight: 900;
-          line-height: 1.4;
-          transform: rotate(-2deg);
-        }
-        .cc-preview-caption span {
-          display: inline-block;
-          color: #07120d;
-          background: #f3fff9;
-          padding: 5px 8px;
-          border-radius: 4px 4px 0 4px;
-        }
-        .cc-preview-caption strong {
-          display: inline-block;
-          color: #07120d;
-          background: #00e5a0;
-          padding: 5px 8px;
-          border-radius: 0 4px 4px 0;
-        }
-        .cc-preview-controls {
-          display: flex;
-          align-items: center;
-          gap: 10px;
-          padding: 12px;
-          color: #a6b8af;
-          font-size: 9px;
-        }
-        .cc-preview-controls > span:first-child {
-          color: #00e5a0;
-        }
-        .cc-preview-track {
-          flex: 1;
-          height: 3px;
-          background: #34433b;
-          border-radius: 9px;
-          overflow: hidden;
-        }
-        .cc-preview-track i {
-          display: block;
-          height: 100%;
-          width: 42%;
-          background: #00e5a0;
-          border-radius: 9px;
-        }
-        .cc-preview-orbit {
-          position: absolute;
-          border: 1px solid rgba(0, 229, 160, 0.13);
-          border-radius: 50%;
-          z-index: -1;
-        }
-        .cc-preview-orbit-one {
-          width: 420px;
-          height: 420px;
-        }
-        .cc-preview-orbit-two {
-          width: 340px;
-          height: 340px;
-          border-style: dashed;
-          opacity: 0.55;
-        }
-        .cc-floating-chip {
-          position: absolute;
-          z-index: 3;
-          display: flex;
-          align-items: center;
-          gap: 8px;
-          padding: 11px 14px;
-          border: 1px solid rgba(255, 255, 255, 0.12);
-          border-radius: 12px;
-          background: rgba(13, 22, 18, 0.92);
-          box-shadow: 0 12px 32px rgba(0, 0, 0, 0.32);
-          color: #d9e6df;
-          font-size: 11px;
-          font-weight: 700;
-          backdrop-filter: blur(14px);
-        }
-        .cc-floating-chip svg {
-          color: #00e5a0;
-        }
-        .cc-floating-language {
-          top: 18%;
-          left: -4%;
-        }
-        .cc-floating-sync {
-          bottom: 16%;
-          right: -7%;
-        }
-
-        /* Common wrappers */
-        .cc-section-dark {
-          background: #080d0b;
-          border-top: 1px solid rgba(255, 255, 255, 0.07);
-          border-bottom: 1px solid rgba(255, 255, 255, 0.07);
-        }
-        .cc-wrap {
-          padding: 84px 24px;
-          max-width: 1120px;
-          margin: 0 auto;
-          box-sizing: border-box;
-        }
-        .cc-head-center {
-          text-align: center;
-          margin-bottom: 44px;
-        }
-        .cc-subtag {
-          font-size: 11px;
-          font-weight: 800;
-          color: #00e5a0;
-          letter-spacing: 0.12em;
-          text-transform: uppercase;
-        }
-        .cc-title {
-          font-size: clamp(24px, 3.8vw, 36px);
-          font-weight: 900;
-          letter-spacing: -0.04em;
-          margin: 8px 0 10px 0;
-          color: #ffffff;
-        }
-        .cc-desc {
-          font-size: 14px;
-          color: #9ca9a4;
-          max-width: 600px;
-          margin: 0 auto;
-          line-height: 1.6;
-        }
-
-        /* Demo Tab Pill */
-        .cc-demo-container {
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          max-width: 720px;
-          margin: 0 auto;
-        }
-        .cc-tab-pill-bar {
-          display: inline-flex;
-          background: #0c1511;
-          border: 1px solid rgba(255, 255, 255, 0.1);
-          border-radius: 12px;
-          padding: 4px;
-          gap: 6px;
-          margin-bottom: 28px;
-        }
-        .cc-tab-item {
-          background: transparent;
-          border: none;
-          color: #9ca9a4;
-          font-size: 12px;
-          font-weight: 700;
-          padding: 8px 18px;
-          border-radius: 9px;
-          cursor: pointer;
-          transition: all 0.18s ease;
-        }
-        .cc-tab-item.active {
-          background: #00e5a0;
-          color: #04130d;
-          box-shadow: 0 2px 14px rgba(0, 229, 160, 0.18);
-        }
-        .cc-demo-mockup {
-          background: radial-gradient(ellipse at top, rgba(0, 229, 160, 0.08), #0a100d 65%);
-          border: 1px solid rgba(0, 229, 160, 0.2);
-          border-radius: 20px;
-          padding: 48px 32px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          min-height: 160px;
-          width: 100%;
-          position: relative;
-          box-shadow: 0 14px 40px rgba(0, 0, 0, 0.55);
-          box-sizing: border-box;
-        }
-        .cc-mockup-watermark {
-          position: absolute;
-          bottom: 12px;
-          right: 18px;
-          font-size: 11px;
-          color: #64748b;
-          font-family: monospace;
-        }
-
-        /* Templates */
-        .cc-templates-grid {
-          display: grid;
-          grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
-          gap: 14px;
-        }
-        .cc-tmpl-card {
-          background: #0b110e;
-          border: 1px solid rgba(255, 255, 255, 0.08);
-          border-radius: 14px;
-          padding: 16px;
-          display: flex;
-          flex-direction: column;
-          gap: 12px;
-          transition: transform 0.18s ease, border-color 0.18s ease;
-        }
-        .cc-tmpl-card:hover {
-          transform: translateY(-3px);
-          border-color: rgba(0, 229, 160, 0.3);
-        }
-        .cc-tmpl-preview {
-          height: 72px;
-          border-radius: 10px;
-          background: #06080d;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          font-weight: 900;
-          font-size: 13px;
-          border: 1px solid rgba(255, 255, 255, 0.05);
-        }
-
-        /* Features */
-        .cc-features-grid {
-          display: grid;
-          grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
-          gap: 20px;
-        }
-        .cc-feat-card {
-          background: #0b110e;
-          border: 1px solid rgba(255, 255, 255, 0.08);
-          border-radius: 16px;
-          padding: 26px;
-          display: flex;
-          flex-direction: column;
-          gap: 12px;
-          transition: border-color 0.18s ease;
-        }
-        .cc-feat-card:hover {
-          border-color: rgba(0, 229, 160, 0.3);
-        }
-        .cc-feat-icon {
-          width: 44px;
-          height: 44px;
-          border-radius: 12px;
-          color: #00e5a0;
-          background: rgba(0, 229, 160, 0.08);
-          border: 1px solid rgba(0, 229, 160, 0.2);
-          display: flex;
-          align-items: center;
-          justify-content: center;
-        }
-        .cc-feat-title {
-          font-size: 16px;
-          font-weight: 800;
-          color: #ffffff;
-        }
-        .cc-feat-text {
-          font-size: 13px;
-          color: #9ca9a4;
-          line-height: 1.6;
-        }
-
-        /* Steps */
-        .cc-steps-row {
-          display: grid;
-          grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
-          gap: 20px;
-        }
-        .cc-step-box {
-          background: #0b110e;
-          border: 1px solid rgba(255, 255, 255, 0.08);
-          border-radius: 16px;
           padding: 24px;
-        }
-        .cc-step-index {
-          font-size: 32px;
-          font-weight: 900;
-          color: rgba(0, 229, 160, 0.35);
-          line-height: 1;
-          margin-bottom: 12px;
+          background: #070B09;
+          border: 1px solid var(--border);
+          border-radius: 12px;
         }
 
-        /* Pricing */
-        .cc-pricing-toggle {
+        /* grid cards */
+        .cc-grid-3 {
+          display: grid;
+          grid-template-columns: repeat(3, minmax(0, 1fr));
+          gap: 20px;
+          margin-top: 48px;
+        }
+
+        .cc-card {
+          background: var(--surface);
+          border: 1px solid var(--border);
+          border-radius: 14px;
+          padding: 28px;
+          transition: border-color 0.15s ease;
+        }
+        .cc-card:hover {
+          border-color: rgba(255, 255, 255, 0.2);
+        }
+
+        .cc-icon-box {
+          width: 40px;
+          height: 40px;
+          border-radius: 10px;
+          background: var(--surface-elevated);
+          border: 1px solid var(--border);
+          color: var(--accent);
           display: flex;
           align-items: center;
           justify-content: center;
-          gap: 12px;
-          margin-bottom: 38px;
+          margin-bottom: 20px;
         }
-        .cc-pricing-grid {
-          display: grid;
-          grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-          gap: 22px;
-          max-width: 980px;
-          margin: 0 auto;
+
+        /* workflow numbers */
+        .cc-step-num {
+          font-size: 13px;
+          font-weight: 800;
+          color: var(--accent);
+          background: rgba(0, 214, 160, 0.08);
+          border: 1px solid rgba(0, 214, 160, 0.25);
+          width: 28px;
+          height: 28px;
+          border-radius: 999px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          margin-bottom: 18px;
         }
+
+        /* pricing */
+        .cc-pricing-toggle {
+          display: inline-flex;
+          align-items: center;
+          gap: 8px;
+          background: var(--surface);
+          border: 1px solid var(--border);
+          padding: 4px 6px;
+          border-radius: 999px;
+          margin-top: 24px;
+        }
+
         .cc-plan-card {
-          background: #0b110e;
-          border: 1px solid rgba(255, 255, 255, 0.08);
-          border-radius: 20px;
-          padding: 32px 28px;
+          background: var(--surface);
+          border: 1px solid var(--border);
+          border-radius: 14px;
+          padding: 28px;
           display: flex;
           flex-direction: column;
           position: relative;
         }
-        .cc-plan-card.featured {
-          background: linear-gradient(180deg, #10231b, #0b110e);
-          border-color: rgba(0, 229, 160, 0.4);
-          box-shadow: 0 12px 36px rgba(0, 229, 160, 0.07);
-        }
-        .cc-plan-popular {
-          position: absolute;
-          top: -12px;
-          left: 50%;
-          transform: translateX(-50%);
-          background: #00e5a0;
-          color: #03120c;
-          font-size: 10px;
-          font-weight: 800;
-          text-transform: uppercase;
-          letter-spacing: 0.08em;
-          padding: 4px 12px;
-          border-radius: 9999px;
-        }
-        .cc-price-figure {
-          font-size: 40px;
-          font-weight: 900;
-          color: #ffffff;
-          line-height: 1;
-          margin: 16px 0 8px 0;
-        }
-        .cc-price-period {
-          font-size: 13px;
-          color: #9ca9a4;
-          font-weight: 500;
-        }
-        .cc-plan-perks {
-          list-style: none;
-          padding: 0;
-          margin: 24px 0 32px 0;
-          display: flex;
-          flex-direction: column;
-          gap: 12px;
-        }
-        .cc-perk-item {
-          display: flex;
-          align-items: center;
-          gap: 10px;
-          font-size: 13px;
-          color: #cbd5e1;
+
+        .cc-plan-card.recommended {
+          border-color: var(--accent);
+          background: var(--surface-elevated);
         }
 
-        /* Sign up */
-        .cc-signup-shell {
-          background: radial-gradient(ellipse at top, rgba(0, 229, 160, 0.09), #0b110e 70%);
-          border: 1px solid rgba(0, 229, 160, 0.2);
-          border-radius: 24px;
-          padding: 52px 32px;
+        .cc-plan-badge {
+          position: absolute;
+          top: -10px;
+          right: 20px;
+          background: var(--accent);
+          color: #050807;
+          font-size: 11px;
+          font-weight: 700;
+          padding: 2px 10px;
+          border-radius: 999px;
+        }
+
+        /* signup */
+        .cc-cta-box {
+          background: var(--surface);
+          border: 1px solid var(--border);
+          border-radius: 18px;
+          padding: 56px 32px;
+          text-align: center;
           max-width: 820px;
           margin: 0 auto;
-          text-align: center;
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          box-shadow: 0 18px 48px rgba(0, 0, 0, 0.5);
-        }
-        .cc-signup-form {
-          display: flex;
-          align-items: center;
-          gap: 10px;
-          width: 100%;
-          max-width: 480px;
-          margin-top: 20px;
-          flex-wrap: wrap;
-        }
-        .cc-input {
-          flex: 1;
-          min-width: 240px;
-          background: #080a11;
-          border: 1px solid rgba(255, 255, 255, 0.15);
-          color: #ffffff;
-          font-size: 14px;
-          padding: 13px 18px;
-          border-radius: 11px;
-          outline: none;
-          transition: border-color 0.18s ease;
-        }
-        .cc-input:focus {
-          border-color: #00e5a0;
         }
 
-        /* Footer */
-        .cc-footer {
-          background: #050807;
-          border-top: 1px solid rgba(255, 255, 255, 0.07);
-          padding: 32px 24px;
-          text-align: center;
-          font-size: 13px;
-          color: #64748b;
-        }
-
-        @media (max-width: 980px) {
-          .cc-hero-wrap {
-            grid-template-columns: minmax(0, 1fr) minmax(250px, 0.75fr);
-            gap: 28px;
-            padding-left: 28px;
-            padding-right: 28px;
-          }
-          .cc-h1 {
-            font-size: clamp(38px, 5.3vw, 58px);
-          }
-          .cc-floating-language { left: -8%; }
-          .cc-floating-sync { right: -9%; }
-        }
-
-        @media (max-width: 760px) {
-          .cc-nav { padding: 10px 16px; }
-          .cc-brand-sub { display: none; }
-          .cc-nav-actions { gap: 8px; }
-          .cc-nav-actions .cc-btn-ghost { display: none; }
-          .cc-hero-wrap {
-            min-height: auto;
+        @media (max-width: 900px) {
+          .cc-hero-grid {
             grid-template-columns: minmax(0, 1fr);
-            gap: 34px;
-            padding: 58px 20px 54px;
+            gap: 48px;
           }
-          .cc-root > .cc-nav + section#home {
-            padding-top: 118px !important;
-          }
-          .cc-hero-content {
-            max-width: 680px;
-            margin: 0 auto;
-          }
-          .cc-h1 {
-            font-size: clamp(40px, 9vw, 62px);
-          }
-          .cc-lead {
-            font-size: 15px;
-          }
-          .cc-hero-visual {
-            min-height: 430px;
-          }
-          .cc-phone-frame {
-            width: 252px;
-          }
-          .cc-video-scene {
-            height: 320px;
-          }
-          .cc-floating-language {
-            top: 16%;
-            left: max(0px, calc(50% - 190px));
-          }
-          .cc-floating-sync {
-            bottom: 12%;
-            right: max(0px, calc(50% - 190px));
-          }
-          .cc-preview-orbit-one {
-            width: 340px;
-            height: 340px;
-          }
-          .cc-preview-orbit-two {
-            width: 285px;
-            height: 285px;
-          }
-          .cc-features-grid,
-          .cc-steps-row,
-          .cc-pricing-grid {
+          .cc-grid-3 {
             grid-template-columns: minmax(0, 1fr);
-          }
-          .cc-trust-row {
-            grid-template-columns: repeat(2, minmax(0, 1fr));
-          }
-          .cc-trust-box {
-            font-size: 10px;
-            gap: 6px;
-          }
-          .cc-wrap {
-            padding: 58px 20px;
-          }
-          .cc-menu {
-            display: none !important;
-          }
-        }
-
-        @media (max-width: 420px) {
-          .cc-brand-name {
-            font-size: 15px;
-          }
-          .cc-pill-tag {
-            display: none;
-          }
-          .cc-nav-actions .cc-btn-solid {
-            padding: 9px 12px;
-            font-size: 11px;
-          }
-          .cc-h1 {
-            font-size: 39px;
-          }
-          .cc-badge-chip {
-            font-size: 10px;
-            padding: 6px 10px;
-          }
-          .cc-hero-btns {
-            align-items: stretch;
-            flex-direction: column;
-          }
-          .cc-cta-primary,
-          .cc-cta-secondary {
-            justify-content: center;
-            width: 100%;
-            box-sizing: border-box;
-          }
-          .cc-trust-row {
-            grid-template-columns: minmax(0, 1fr);
-          }
-          .cc-signup-shell {
-            padding: 34px 18px;
-          }
-          .cc-input {
-            min-width: 0;
-            width: 100%;
-            box-sizing: border-box;
           }
         }
       `}</style>
 
-      {/* 1. Fixed Navbar */}
-      <header className="cc-nav">
-        <div className="cc-brand" onClick={() => scrollTo("home")}>
-          <div className="cc-brand-badge">CC</div>
-          <div className="cc-brand-text">
-            <div className="cc-brand-row">
-              <span className="cc-brand-name">CaptionCraft</span>
-              <span className="cc-pill-tag">telugu ai</span>
-            </div>
-            <span className="cc-brand-sub">smart captions for telugu creators</span>
-          </div>
-        </div>
-
-        <nav className="cc-menu">
-          <button className="cc-menu-link" onClick={() => scrollTo("home")}>home</button>
-          <button className="cc-menu-link" onClick={() => scrollTo("demo")}>demo</button>
-          <button className="cc-menu-link" onClick={() => scrollTo("templates")}>templates</button>
-          <button className="cc-menu-link" onClick={() => scrollTo("features")}>features</button>
-          <button className="cc-menu-link" onClick={() => scrollTo("how-it-works")}>how it works</button>
-          <button className="cc-menu-link" onClick={() => scrollTo("pricing")}>pricing</button>
-        </nav>
-
-        <div className="cc-nav-actions">
-          <button onClick={() => scrollTo("signup")} className="cc-btn-ghost">sign in</button>
-          <button onClick={onStart} className="cc-btn-solid">
-            <span>open studio</span>
-            <ArrowRight size={14} />
-          </button>
-        </div>
-      </header>
-
-      {/* 2. Hero Section */}
-      <section id="home" className="cc-hero-wrap">
-        <div className="cc-hero-glow-1" />
-        <div className="cc-hero-content">
-          <div className="cc-badge-chip">
-            <Sparkles size={14} color="#00e5a0" />
-            <span>tailored for instagram reels & youtube shorts creators</span>
-          </div>
-
-          <h1 className="cc-h1">
-            viral captions for <br />
-            <span className="cc-h1-gradient">telugu, tenglish & english videos.</span>
-          </h1>
-
-          <p className="cc-lead">
-            stop using western caption apps that break telugu letters or turn conversational tenglish audio into broken words. CaptionCraft auto-syncs word-by-word subtitles right inside your browser with zero watermark.
-          </p>
-
-          <div className="cc-hero-btns">
-            <button onClick={onStart} className="cc-cta-primary">
-              <UploadCloud size={18} />
-              <span>start captioning free</span>
-            </button>
-            <button onClick={() => scrollTo("demo")} className="cc-cta-secondary">
-              <Eye size={18} color="#00e5a0" />
-              <span>try interactive preview</span>
-            </button>
-          </div>
-
-          <div className="cc-trust-row">
-            <div className="cc-trust-box">
-              <ShieldCheck size={16} color="#00e5a0" />
-              <span>100% private in browser</span>
-            </div>
-            <div className="cc-trust-box">
-              <Languages size={16} color="#00e5a0" />
-              <span>telugu lipi & transliteration</span>
-            </div>
-            <div className="cc-trust-box">
-              <Zap size={16} color="#00e5a0" />
-              <span>word-by-word kinetic sync</span>
-            </div>
-            <div className="cc-trust-box">
-              <CheckCircle2 size={16} color="#00e5a0" />
-              <span>no watermark or signup lock</span>
-            </div>
-          </div>
-        </div>
-
-        {/* Visual Phone Frame */}
-        <div className="cc-hero-visual" aria-label="CaptionCraft caption preview">
-          <div className="cc-preview-orbit cc-preview-orbit-one" />
-          <div className="cc-preview-orbit cc-preview-orbit-two" />
-          <div className="cc-phone-frame">
-            <div className="cc-phone-screen">
-              <div className="cc-preview-topline">
-                <span className="cc-live-dot" /> CAPTIONCRAFT STUDIO <span>•••</span>
+      {/* 1. Hero */}
+      <section id="home" className="cc-section" style={{ paddingTop: "64px" }}>
+        <div className="cc-container">
+          <div className="cc-hero-grid">
+            <div style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
+              <div className="cc-eyebrow">
+                <span>Designed for Telugu, Tenglish & English Creators</span>
               </div>
-              <div className="cc-video-scene">
-                <div className="cc-scene-light cc-scene-light-one" />
-                <div className="cc-scene-light cc-scene-light-two" />
-                <div className="cc-scene-person"><span /></div>
-                <div className="cc-scene-mic"><i /></div>
-                <div className="cc-preview-caption">
-                  <span>మాటలు కాదు,</span><strong> IMPACT ✦</strong>
+
+              <h1 className="cc-h1">
+                Captions that speak <br />
+                <span className="cc-h1-accent">your language.</span>
+              </h1>
+
+              <p className="cc-lead">
+                Create stylish, editable captions for your videos. Switch between Telugu script, Tenglish, and English, refine your subtitles, and export content ready for your next Reel or Short.
+              </p>
+
+              <div style={{ display: "flex", gap: "16px", flexWrap: "wrap", justifyContent: "center" }}>
+                <button onClick={onStart} className="cc-btn-primary" style={{ padding: "14px 28px", fontSize: "16px" }}>
+                  <Upload size={18} />
+                  <span>Start Captioning Free</span>
+                </button>
+                <button onClick={() => scrollTo("demo")} className="cc-btn-secondary" style={{ padding: "14px 26px", fontSize: "16px" }}>
+                  <span>Explore the Demo</span>
+                </button>
+              </div>
+
+              <div className="cc-hero-proof">
+                <div className="cc-proof-item" style={{ fontSize: "14px" }}>
+                  <ShieldCheck size={18} color="var(--accent)" />
+                  <span>100% Private in Browser</span>
+                </div>
+                <div className="cc-proof-item" style={{ fontSize: "14px" }}>
+                  <Languages size={18} color="var(--accent)" />
+                  <span>Native Lipi & Phonetic</span>
+                </div>
+                <div className="cc-proof-item" style={{ fontSize: "14px" }}>
+                  <Zap size={18} color="var(--accent)" />
+                  <span>Word-by-Word Kinetic Sync</span>
                 </div>
               </div>
-              <div className="cc-preview-controls">
-                <span>▶</span>
-                <div className="cc-preview-track"><i /></div>
-                <span>00:08</span>
-              </div>
             </div>
-          </div>
-          <div className="cc-floating-chip cc-floating-language">
-            <Languages size={15} /> తెలుగు · Tenglish
-          </div>
-          <div className="cc-floating-chip cc-floating-sync">
-            <Zap size={15} /> Word-level sync
           </div>
         </div>
       </section>
 
-      {/* 3. Demo Interactive Section */}
-      <div id="demo" className="cc-section-dark">
-        <section className="cc-wrap">
-          <div className="cc-head-center">
-            <span className="cc-subtag">real-time sample</span>
-            <h2 className="cc-title">switch scripts in one click</h2>
-            <p className="cc-desc">see how spoken telugu audio renders seamlessly across scripts with kinetic word highlights.</p>
-          </div>
+      {/* 2. Demo Section */}
+      <section id="demo" className="cc-section">
+        <div className="cc-container">
+          <div style={{ textAlign: "center", marginBottom: "32px" }}>
+            <div className="cc-eyebrow">
+              <span>interactive product tour</span>
+            </div>
+            <h2 className="cc-section-title">see CaptionCraft in action</h2>
+            <p className="cc-section-sub">preview how word-level sync and typography adapt effortlessly across english, telugu, and tenglish.</p>
 
-          <div className="cc-demo-container">
-            <div className="cc-tab-pill-bar">
-              {(["tenglish", "telugu", "english"] as const).map(tab => (
+            {/* Language Switcher Buttons */}
+            <div className="cc-tab-bar" style={{ marginTop: "24px" }}>
+              {(["english", "telugu", "tenglish"] as const).map(tab => (
                 <button
                   key={tab}
+                  type="button"
                   onClick={() => setActiveTab(tab)}
-                  className={`cc-tab-item ${activeTab === tab ? "active" : ""}`}
+                  className={`cc-tab-btn ${activeTab === tab ? "active" : ""}`}
+                  style={{ textTransform: "capitalize" }}
                 >
-                  {tab === "tenglish" && "tenglish (romanized)"}
-                  {tab === "telugu" && "తెలుగు (native script)"}
                   {tab === "english" && "english"}
+                  {tab === "telugu" && "తెలుగు (telugu)"}
+                  {tab === "tenglish" && "tenglish"}
                 </button>
               ))}
             </div>
+          </div>
 
-            <div className="cc-demo-mockup">
-              <div style={{ display: "flex", flexWrap: "wrap", gap: "10px", justifyContent: "center", alignItems: "center" }}>
-                {demoPhrases[activeTab].map((item, i) => (
-                  <span
-                    key={i}
-                    style={{
-                      backgroundColor: item.highlight ? item.pill : "transparent",
-                      color: item.highlight && item.darkText ? "#111827" : "#ffffff",
-                      borderRadius: item.highlight ? "8px" : "0px",
-                      padding: item.highlight ? "5px 14px" : "0px",
-                      transform: item.highlight ? "scale(1.05) rotate(-1.5deg)" : "none",
-                      fontWeight: 900,
-                      fontSize: "26px",
-                      textShadow: item.highlight ? "none" : "-2px -2px 0 #000, 2px -2px 0 #000, -2px 2px 0 #000, 2px 2px 0 #000",
-                      transition: "all 0.18s ease"
-                    }}
-                  >
-                    {item.text}
-                  </span>
-                ))}
+          {/* Desktop Computer Monitor Frame */}
+          <div style={{
+            maxWidth: "960px",
+            margin: "0 auto",
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center"
+          }}>
+            {/* Monitor Outer Bezel */}
+            <div style={{
+              width: "100%",
+              background: "#161d19",
+              border: "2px solid #2d3b34",
+              borderRadius: "18px 18px 6px 6px",
+              padding: "12px 12px 18px 12px",
+              boxShadow: "0 28px 70px rgba(0, 0, 0, 0.7)",
+              position: "relative"
+            }}>
+              {/* Webcam Dot */}
+              <div style={{
+                position: "absolute",
+                top: "6px",
+                left: "50%",
+                transform: "translateX(-50%)",
+                width: "5px",
+                height: "5px",
+                borderRadius: "50%",
+                background: "#26312C"
+              }} />
+
+              {/* Inner Screen Display */}
+              <div style={{
+                width: "100%",
+                aspectRatio: "16 / 9",
+                background: "#050807",
+                borderRadius: "10px",
+                overflow: "hidden",
+                border: "1px solid #26312C",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                position: "relative"
+              }}>
+                <video
+                  key={activeTab}
+                  src={`/media/demo-${activeTab}.mp4`}
+                  autoPlay
+                  loop
+                  muted
+                  playsInline
+                  style={{
+                    width: "100%",
+                    height: "100%",
+                    objectFit: "contain",
+                    display: "block"
+                  }}
+                >
+                  your browser does not support the video tag.
+                </video>
+
+                {/* Script Indicator Pill */}
+                <div style={{
+                  position: "absolute",
+                  bottom: "16px",
+                  right: "16px",
+                  background: "rgba(5, 8, 7, 0.85)",
+                  border: "1px solid #26312C",
+                  borderRadius: "999px",
+                  padding: "5px 14px",
+                  fontSize: "11px",
+                  fontWeight: 700,
+                  color: "#00D6A0",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "6px",
+                  backdropFilter: "blur(8px)"
+                }}>
+                  <span style={{ width: "6px", height: "6px", borderRadius: "50%", background: "#00D6A0" }} />
+                  <span>playing: {activeTab} workspace</span>
+                </div>
               </div>
-              <span className="cc-mockup-watermark">preset: boxes-pink-bubble</span>
+
+              {/* Monitor Bottom Chin Logo */}
+              <div style={{
+                textAlign: "center",
+                fontSize: "10px",
+                color: "#737F79",
+                fontWeight: 800,
+                letterSpacing: "0.15em",
+                marginTop: "8px",
+                textTransform: "uppercase"
+              }}>
+                CaptionCraft Display
+              </div>
             </div>
-          </div>
-        </section>
-      </div>
 
-      {/* 4. Templates Section */}
-      <section id="templates" className="cc-wrap">
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", marginBottom: "36px", flexWrap: "wrap", gap: "14px" }}>
-          <div>
-            <span className="cc-subtag">38+ animation templates</span>
-            <h2 className="cc-title">tailored for viral short-form retention</h2>
-            <p className="cc-desc">every preset is tuned for high-energy vertical reels, bounce physics, and neon glow effects.</p>
+            {/* Monitor Stand Neck */}
+            <div style={{
+              width: "120px",
+              height: "44px",
+              background: "linear-gradient(180deg, #161d19 0%, #0d1210 100%)",
+              borderLeft: "1px solid #26312C",
+              borderRight: "1px solid #26312C"
+            }} />
+
+            {/* Monitor Stand Base */}
+            <div style={{
+              width: "280px",
+              height: "12px",
+              background: "#161d19",
+              border: "1px solid #26312C",
+              borderRadius: "6px 6px 0 0",
+              boxShadow: "0 10px 30px rgba(0, 0, 0, 0.5)"
+            }} />
           </div>
-          <button onClick={onStart} className="cc-btn-solid">
-            <span>open all in studio</span>
-            <ArrowRight size={14} />
-          </button>
         </div>
+      </section>
 
-        <div className="cc-templates-grid">
-          {[
-            { cat: "trending", title: "hormozi punch", border: "#f59e0b" },
-            { cat: "boxes", title: "pink bubble", border: "#ec4899" },
-            { cat: "boxes", title: "yellow marker", border: "#eab308" },
-            { cat: "animations", title: "neon glow", border: "#00e5a0" },
-            { cat: "transitions", title: "split stagger", border: "#0aa879" },
-            { cat: "typo", title: "serif luxury", border: "#78716c" }
-          ].map((item, idx) => (
-            <div key={idx} className="cc-tmpl-card" style={{ borderTop: `2px solid ${item.border}` }}>
-              <div className="cc-tmpl-preview">
-                <span>Caption Craft</span>
+      {/* 3. Templates Section */}
+      <section id="templates" className="cc-section">
+        <div className="cc-container">
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", flexWrap: "wrap", gap: "20px", marginBottom: "40px" }}>
+            <div>
+              <div className="cc-eyebrow" style={{ marginBottom: "12px" }}>
+                <span>kinetic typography library</span>
               </div>
+              <h2 className="cc-section-title" style={{ margin: 0 }}>
+                caption styles engineered for high retention
+              </h2>
+              <p className="cc-section-sub" style={{ margin: "8px 0 0", maxWidth: "620px" }}>
+                stop using plain subtitles that viewers ignore. CaptionCraft presets are tuned with hook physics, dynamic word emphasis, and safe regional typography.
+              </p>
+            </div>
+            <button onClick={() => navigate("/templates")} className="cc-btn-primary" style={{ padding: "12px 24px" }}>
+              <span>explore all 42 presets</span>
+              <ArrowRight size={15} />
+            </button>
+          </div>
+
+          <div className="cc-grid-3">
+            <div className="cc-card" style={{ display: "flex", flexDirection: "column", justifyContent: "space-between" }}>
               <div>
-                <span style={{ fontSize: "9px", fontWeight: 800, color: item.border, textTransform: "uppercase", letterSpacing: "0.08em", display: "block" }}>
-                  {item.cat}
-                </span>
-                <span style={{ fontSize: "12px", fontWeight: 700, color: "#f1f5f9" }}>
-                  {item.title}
-                </span>
+                <div style={{ fontSize: "11px", fontWeight: 800, color: "var(--accent)", letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: "12px" }}>
+                  retention physics
+                </div>
+                <h3 style={{ fontSize: "20px", fontWeight: 800, color: "var(--text-primary)", margin: "0 0 10px 0" }}>
+                  kinetic word hooks
+                </h3>
+                <p style={{ fontSize: "14px", color: "var(--text-secondary)", lineHeight: 1.6, margin: 0 }}>
+                  every spoken punchline scales, bounces, or lights up in sync with speech tempo. Keep viewers locked to the screen during critical opening hooks on reels and shorts.
+                </p>
+              </div>
+              <div style={{ marginTop: "24px", paddingTop: "16px", borderTop: "1px solid var(--border)", display: "flex", gap: "8px", flexWrap: "wrap" }}>
+                <span style={{ fontSize: "11px", background: "rgba(255, 255, 255, 0.04)", padding: "3px 8px", borderRadius: "6px", color: "var(--text-muted)" }}>hormozi punch</span>
+                <span style={{ fontSize: "11px", background: "rgba(255, 255, 255, 0.04)", padding: "3px 8px", borderRadius: "6px", color: "var(--text-muted)" }}>neon glow</span>
+                <span style={{ fontSize: "11px", background: "rgba(255, 255, 255, 0.04)", padding: "3px 8px", borderRadius: "6px", color: "var(--text-muted)" }}>split stagger</span>
               </div>
             </div>
-          ))}
-        </div>
-      </section>
 
-      {/* 5. Features Section */}
-      <div id="features" className="cc-section-dark">
-        <section className="cc-wrap">
-          <div className="cc-head-center">
-            <span className="cc-subtag">client-side advantages</span>
-            <h2 className="cc-title">why top telugu creators pick CaptionCraft</h2>
-          </div>
-
-          <div className="cc-features-grid">
-            <div className="cc-feat-card">
-              <div className="cc-feat-icon"><Languages size={20} /></div>
-              <h3 className="cc-feat-title">tenglish & telugu transliteration</h3>
-              <p className="cc-feat-text">switch between native telugu script and clean phonetic tenglish without manual typing. Slang and regional idioms are transcribed naturally.</p>
+            <div className="cc-card" style={{ display: "flex", flexDirection: "column", justifyContent: "space-between" }}>
+              <div>
+                <div style={{ fontSize: "11px", fontWeight: 800, color: "var(--accent)", letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: "12px" }}>
+                  zero font breakage
+                </div>
+                <h3 style={{ fontSize: "20px", fontWeight: 800, color: "var(--text-primary)", margin: "0 0 10px 0" }}>
+                  safe regional ligatures
+                </h3>
+                <p style={{ fontSize: "14px", color: "var(--text-secondary)", lineHeight: 1.6, margin: 0 }}>
+                  western subtitle apps frequently cut off complex telugu ottulu, matras, and compound glyphs. Our cascade keeps regional fonts intact with crisp vector bounds.
+                </p>
+              </div>
+              <div style={{ marginTop: "24px", paddingTop: "16px", borderTop: "1px solid var(--border)", display: "flex", gap: "8px", flexWrap: "wrap" }}>
+                <span style={{ fontSize: "11px", background: "rgba(255, 255, 255, 0.04)", padding: "3px 8px", borderRadius: "6px", color: "var(--text-muted)" }}>telugu lipi</span>
+                <span style={{ fontSize: "11px", background: "rgba(255, 255, 255, 0.04)", padding: "3px 8px", borderRadius: "6px", color: "var(--text-muted)" }}>phonetic tenglish</span>
+                <span style={{ fontSize: "11px", background: "rgba(255, 255, 255, 0.04)", padding: "3px 8px", borderRadius: "6px", color: "var(--text-muted)" }}>mandali font</span>
+              </div>
             </div>
 
-            <div className="cc-feat-card">
-              <div className="cc-feat-icon"><ShieldCheck size={20} /></div>
-              <h3 className="cc-feat-title">local webgpu whisper engine</h3>
-              <p className="cc-feat-text">transcription runs inside your web browser. Your video never uploads to an external server; no bandwidth wait times and absolute data privacy.</p>
+            <div className="cc-card" style={{ display: "flex", flexDirection: "column", justifyContent: "space-between" }}>
+              <div>
+                <div style={{ fontSize: "11px", fontWeight: 800, color: "var(--accent)", letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: "12px" }}>
+                  instant tuning
+                </div>
+                <h3 style={{ fontSize: "20px", fontWeight: 800, color: "var(--text-primary)", margin: "0 0 10px 0" }}>
+                  one click full apply
+                </h3>
+                <p style={{ fontSize: "14px", color: "var(--text-secondary)", lineHeight: 1.6, margin: 0 }}>
+                  pick a preset once and every timeline segment inherits the animation curve, padding, and border glow instantly. Fine-tune any word without resetting the project[cite: 1].
+                </p>
+              </div>
+              <div style={{ marginTop: "24px", paddingTop: "16px", borderTop: "1px solid var(--border)", display: "flex", gap: "8px", flexWrap: "wrap" }}>
+                <span style={{ fontSize: "11px", background: "rgba(255, 255, 255, 0.04)", padding: "3px 8px", borderRadius: "6px", color: "var(--text-muted)" }}>custom palette</span>
+                <span style={{ fontSize: "11px", background: "rgba(255, 255, 255, 0.04)", padding: "3px 8px", borderRadius: "6px", color: "var(--text-muted)" }}>box padding</span>
+                <span style={{ fontSize: "11px", background: "rgba(255, 255, 255, 0.04)", padding: "3px 8px", borderRadius: "6px", color: "var(--text-muted)" }}>live re-render</span>
+              </div>
             </div>
-
-            <div className="cc-feat-card">
-              <div className="cc-feat-icon"><Sliders size={20} /></div>
-              <h3 className="cc-feat-title">word-by-word timeline editing</h3>
-              <p className="cc-feat-text">nudge word timestamps down to the millisecond. Split phrases, retune styling, and sync emphasis boxes with the speaker rhythm.</p>
-            </div>
-
-            <div className="cc-feat-card">
-              <div className="cc-feat-icon"><Type size={20} /></div>
-              <h3 className="cc-feat-title">safe typography for compound ligatures</h3>
-              <p className="cc-feat-text">custom font cascade prevents telugu ottulu and matras from breaking or cutting off across canvas margins.</p>
-            </div>
-
-            <div className="cc-feat-card">
-              <div className="cc-feat-icon"><Eye size={20} /></div>
-              <h3 className="cc-feat-title">reels & shorts safe zone overlays</h3>
-              <p className="cc-feat-text">preview real mobile interface masks for instagram reels and youtube shorts so captions never get obscured by usernames or buttons.</p>
-            </div>
-
-            <div className="cc-feat-card">
-              <div className="cc-feat-icon"><Film size={20} /></div>
-              <h3 className="cc-feat-title">fast local canvas mp4 rendering</h3>
-              <p className="cc-feat-text">render high-definition burned-in video directly from the browser canvas or download standard srt files in seconds.</p>
-            </div>
-          </div>
-        </section>
-      </div>
-
-      {/* 6. How it works */}
-      <section id="how-it-works" className="cc-wrap">
-        <div className="cc-head-center">
-          <span className="cc-subtag">3 simple steps</span>
-          <h2 className="cc-title">how to create captions</h2>
-          <p className="cc-desc">from raw video clip to viral post in under 3 minutes.</p>
-        </div>
-
-        <div className="cc-steps-row">
-          <div className="cc-step-box">
-            <div className="cc-step-index">01</div>
-            <h4 style={{ fontWeight: 800, fontSize: "15px", marginBottom: "8px" }}>upload media</h4>
-            <p style={{ fontSize: "13px", color: "#9ca9a4", lineHeight: 1.6 }}>
-              drag and drop any audio or video file; audio extraction begins immediately in your browser tab.
-            </p>
-          </div>
-
-          <div className="cc-step-box">
-            <div className="cc-step-index">02</div>
-            <h4 style={{ fontWeight: 800, fontSize: "15px", marginBottom: "8px" }}>select script & preset</h4>
-            <p style={{ fontSize: "13px", color: "#9ca9a4", lineHeight: 1.6 }}>
-              choose telugu, tenglish, or english, then apply any of the 38+ presets with custom boxes and glow.
-            </p>
-          </div>
-
-          <div className="cc-step-box">
-            <div className="cc-step-index">03</div>
-            <h4 style={{ fontWeight: 800, fontSize: "15px", marginBottom: "8px" }}>export watermark-free</h4>
-            <p style={{ fontSize: "13px", color: "#9ca9a4", lineHeight: 1.6 }}>
-              preview frame-by-frame with safe zones and download high-resolution video directly to your desktop.
-            </p>
           </div>
         </div>
       </section>
 
-      {/* 7. Pricing Section */}
-      <div id="pricing" className="cc-section-dark">
-        <section className="cc-wrap">
-          <div className="cc-head-center">
-            <span className="cc-subtag">transparent creator pricing</span>
-            <h2 className="cc-title">simple, affordable plans for creators</h2>
-            <p className="cc-desc">use the free tier locally forever, or upgrade for cloud whisper models and 4k exports.</p>
+      {/* 4. Features Section */}
+      <section id="features" className="cc-section">
+        <div className="cc-container">
+          <div style={{ textAlign: "center", marginBottom: "48px" }}>
+            <div className="cc-eyebrow">
+              <span>engine advantages</span>
+            </div>
+            <h2 className="cc-section-title">built specifically for indian creators</h2>
+            <p className="cc-section-sub">
+              engineered from the ground up for regional phonetics, ligature accuracy, and fast in-browser generation.
+            </p>
           </div>
 
-          <div className="cc-pricing-toggle">
-            <span style={{ fontSize: "13px", color: billingCycle === "monthly" ? "#ffffff" : "#64748b", fontWeight: 700 }}>monthly</span>
-            <button
-              onClick={() => setBillingCycle(prev => prev === "monthly" ? "yearly" : "monthly")}
-              style={{
-                width: "48px",
-                height: "26px",
-                borderRadius: "14px",
-                background: "#00e5a0",
-                border: "none",
+          <div className="cc-grid-3">
+            <div className="cc-card">
+              <div className="cc-icon-box"><Languages size={20} /></div>
+              <h3 style={{ fontSize: "17px", fontWeight: 800, margin: "0 0 8px 0", color: "var(--text-primary)" }}>
+                telugu & tenglish native engine
+              </h3>
+              <p style={{ fontSize: "13px", color: "var(--text-secondary)", margin: 0, lineHeight: 1.6 }}>
+                live today with full support for telugu lipi and phonetic conversational tenglish. Transcribe raw slang, regional idioms, and conversational audio without retyping.
+              </p>
+            </div>
+
+            <div className="cc-card">
+              <div className="cc-icon-box"><Type size={20} /></div>
+              <h3 style={{ fontSize: "17px", fontWeight: 800, margin: "0 0 8px 0", color: "var(--text-primary)" }}>
+                indian languages coming soon
+              </h3>
+              <p style={{ fontSize: "13px", color: "var(--text-secondary)", margin: 0, lineHeight: 1.6 }}>
+                our speech models are expanding across india. Hindi, tamil, kannada, and malayalam transcription workflows are currently training for upcoming updates.
+              </p>
+            </div>
+
+            <div className="cc-card">
+              <div className="cc-icon-box"><ShieldCheck size={20} /></div>
+              <h3 style={{ fontSize: "17px", fontWeight: 800, margin: "0 0 8px 0", color: "var(--text-primary)" }}>
+                private in-browser whisper
+              </h3>
+              <p style={{ fontSize: "13px", color: "var(--text-secondary)", margin: 0, lineHeight: 1.6 }}>
+                speech recognition executes directly inside your browser using WebGPU acceleration. Your raw video never uploads to an external server.
+              </p>
+            </div>
+
+            <div className="cc-card">
+              <div className="cc-icon-box"><Sliders size={20} /></div>
+              <h3 style={{ fontSize: "17px", fontWeight: 800, margin: "0 0 8px 0", color: "var(--text-primary)" }}>
+                precise word timing
+              </h3>
+              <p style={{ fontSize: "13px", color: "var(--text-secondary)", margin: 0, lineHeight: 1.6 }}>
+                nudge word boundaries down to milliseconds to match fast speech rhythms, cinematic pauses, and vertical video pacing.
+              </p>
+            </div>
+
+            <div className="cc-card">
+              <div className="cc-icon-box"><Eye size={20} /></div>
+              <h3 style={{ fontSize: "17px", fontWeight: 800, margin: "0 0 8px 0", color: "var(--text-primary)" }}>
+                safe zone overlays
+              </h3>
+              <p style={{ fontSize: "13px", color: "var(--text-secondary)", margin: 0, lineHeight: 1.6 }}>
+                preview mobile ui boundaries for instagram reels and youtube shorts so captions never get obscured by usernames, audio tags, or action buttons.
+              </p>
+            </div>
+
+            <div className="cc-card">
+              <div className="cc-icon-box"><Film size={20} /></div>
+              <h3 style={{ fontSize: "17px", fontWeight: 800, margin: "0 0 8px 0", color: "var(--text-primary)" }}>
+                high definition canvas export
+              </h3>
+              <p style={{ fontSize: "13px", color: "var(--text-secondary)", margin: 0, lineHeight: 1.6 }}>
+                render burnt-in 1080p and 4k vertical video directly from browser canvas, or export clean standard srt subtitle tracks in seconds.
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* 5. How It Works */}
+      <section id="how-it-works" className="cc-section">
+        <div className="cc-container">
+          <div style={{ textAlign: "center", marginBottom: "64px" }}>
+            <div className="cc-eyebrow">
+              <span>automated pipeline</span>
+            </div>
+            <h2 className="cc-section-title">from raw media to viral post</h2>
+            <p className="cc-section-sub">
+              how CaptionCraft extracts audio, generates regional transcripts, and burns kinetic styles.
+            </p>
+          </div>
+
+          {/* Minimalist Horizontal Process Timeline with Audio Input & Video Output */}
+          <div style={{ position: "relative", padding: "0 10px" }}>
+            
+            {/* Input & Output Node Markers on the Line */}
+            <div style={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              marginBottom: "12px",
+              padding: "0 4px"
+            }}>
+              {/* Left: Audio Input Marker */}
+              <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                <div style={{
+                  width: "36px",
+                  height: "36px",
+                  borderRadius: "10px",
+                  background: "rgba(0, 214, 160, 0.12)",
+                  border: "1px solid #00D6A0",
+                  color: "#00D6A0",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  boxShadow: "0 0 16px rgba(0, 214, 160, 0.2)"
+                }}>
+                  <Volume2 size={18} />
+                </div>
+                <div style={{ display: "flex", flexDirection: "column" }}>
+                  <span style={{ fontSize: "11px", fontWeight: 800, color: "#00D6A0", textTransform: "uppercase", letterSpacing: "0.08em" }}>input</span>
+                  <span style={{ fontSize: "12px", color: "var(--text-secondary)", fontWeight: 600 }}>raw audio/video</span>
+                </div>
+              </div>
+
+              {/* Right: Video Output Marker */}
+              <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end" }}>
+                  <span style={{ fontSize: "11px", fontWeight: 800, color: "#00D6A0", textTransform: "uppercase", letterSpacing: "0.08em" }}>output</span>
+                  <span style={{ fontSize: "12px", color: "var(--text-secondary)", fontWeight: 600 }}>captioned reel</span>
+                </div>
+                <div style={{
+                  width: "36px",
+                  height: "36px",
+                  borderRadius: "10px",
+                  background: "rgba(0, 214, 160, 0.12)",
+                  border: "1px solid #00D6A0",
+                  color: "#00D6A0",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  boxShadow: "0 0 16px rgba(0, 214, 160, 0.2)"
+                }}>
+                  <Video size={18} />
+                </div>
+              </div>
+            </div>
+
+            {/* Continuous Accent Connection Line */}
+            <div style={{ position: "relative", marginTop: "24px" }}>
+              <div style={{
+                position: "absolute",
+                top: "22px",
+                left: "24px",
+                right: "24px",
+                height: "2px",
+                background: "linear-gradient(90deg, #00D6A0 0%, #00D6A0 80%, rgba(38, 49, 44, 0.6) 100%)",
+                zIndex: 0
+              }} />
+
+              <div style={{
+                display: "grid",
+                gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
+                gap: "36px",
                 position: "relative",
-                cursor: "pointer",
-                padding: "3px"
-              }}
-            >
-              <div
-                style={{
-                  width: "20px",
-                  height: "20px",
-                  borderRadius: "50%",
-                  background: "#050807",
-                  transform: billingCycle === "yearly" ? "translateX(22px)" : "translateX(0px)",
-                  transition: "transform 0.18s ease"
-                }}
-              />
-            </button>
-            <span style={{ fontSize: "13px", color: billingCycle === "yearly" ? "#ffffff" : "#64748b", fontWeight: 700 }}>
-              yearly <span style={{ color: "#00e5a0", fontSize: "11px", fontWeight: 800 }}>save 20%</span>
-            </span>
+                zIndex: 1
+              }}>
+                {/* Step 1 */}
+                <div>
+                  <div style={{
+                    width: "44px",
+                    height: "44px",
+                    borderRadius: "50%",
+                    background: "#0B0F0E",
+                    border: "2px solid #00D6A0",
+                    color: "#00D6A0",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    fontWeight: 900,
+                    fontSize: "15px",
+                    marginBottom: "20px"
+                  }}>
+                    01
+                  </div>
+                  <div style={{ fontSize: "11px", fontWeight: 700, color: "#00D6A0", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: "6px" }}>
+                    client-side decode
+                  </div>
+                  <h3 style={{ fontSize: "18px", fontWeight: 800, color: "var(--text-primary)", margin: "0 0 8px 0" }}>
+                    upload media
+                  </h3>
+                  <p style={{ fontSize: "13px", color: "var(--text-secondary)", lineHeight: 1.6, margin: 0 }}>
+                    drop any video or audio file. Web audio extracts the sound stream instantly without server upload.
+                  </p>
+                  <div style={{ marginTop: "12px", fontSize: "12px", color: "var(--text-muted)", fontFamily: "monospace" }}>
+                    mp4 · mov · mp3 · wav
+                  </div>
+                </div>
+
+                {/* Step 2 */}
+                <div>
+                  <div style={{
+                    width: "44px",
+                    height: "44px",
+                    borderRadius: "50%",
+                    background: "#0B0F0E",
+                    border: "2px solid #00D6A0",
+                    color: "#00D6A0",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    fontWeight: 900,
+                    fontSize: "15px",
+                    marginBottom: "20px"
+                  }}>
+                    02
+                  </div>
+                  <div style={{ fontSize: "11px", fontWeight: 700, color: "#00D6A0", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: "6px" }}>
+                    whisper speech ai
+                  </div>
+                  <h3 style={{ fontSize: "18px", fontWeight: 800, color: "var(--text-primary)", margin: "0 0 8px 0" }}>
+                    choose language
+                  </h3>
+                  <p style={{ fontSize: "13px", color: "var(--text-secondary)", lineHeight: 1.6, margin: 0 }}>
+                    pick spoken audio language. Generates word-level timestamps in native script, phonetic tenglish, or english.
+                  </p>
+                  <div style={{ marginTop: "12px", fontSize: "12px", color: "var(--text-muted)", fontFamily: "monospace" }}>
+                    తెలుగు · tenglish · english
+                  </div>
+                </div>
+
+                {/* Step 3 */}
+                <div>
+                  <div style={{
+                    width: "44px",
+                    height: "44px",
+                    borderRadius: "50%",
+                    background: "#0B0F0E",
+                    border: "2px solid #00D6A0",
+                    color: "#00D6A0",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    fontWeight: 900,
+                    fontSize: "15px",
+                    marginBottom: "20px"
+                  }}>
+                    03
+                  </div>
+                  <div style={{ fontSize: "11px", fontWeight: 700, color: "#00D6A0", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: "6px" }}>
+                    kinetic styling
+                  </div>
+                  <h3 style={{ fontSize: "18px", fontWeight: 800, color: "var(--text-primary)", margin: "0 0 8px 0" }}>
+                    apply preset
+                  </h3>
+                  <p style={{ fontSize: "13px", color: "var(--text-secondary)", lineHeight: 1.6, margin: 0 }}>
+                    select any of the 42+ animations. Pop highlight, custom font scaling, and colors lock into vertical reels format.
+                  </p>
+                  <div style={{ marginTop: "12px", fontSize: "12px", color: "var(--text-muted)", fontFamily: "monospace" }}>
+                    42+ viral animations
+                  </div>
+                </div>
+
+                {/* Step 4 */}
+                <div>
+                  <div style={{
+                    width: "44px",
+                    height: "44px",
+                    borderRadius: "50%",
+                    background: "#0B0F0E",
+                    border: "2px solid #00D6A0",
+                    color: "#00D6A0",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    fontWeight: 900,
+                    fontSize: "15px",
+                    marginBottom: "20px"
+                  }}>
+                    04
+                  </div>
+                  <div style={{ fontSize: "11px", fontWeight: 700, color: "#00D6A0", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: "6px" }}>
+                    final output
+                  </div>
+                  <h3 style={{ fontSize: "18px", fontWeight: 800, color: "var(--text-primary)", margin: "0 0 8px 0" }}>
+                    export media
+                  </h3>
+                  <p style={{ fontSize: "13px", color: "var(--text-secondary)", lineHeight: 1.6, margin: 0 }}>
+                    render high-definition burned-in vertical video directly in your browser or download synced subtitle files.
+                  </p>
+                  <div style={{ marginTop: "12px", fontSize: "12px", color: "var(--text-muted)", fontFamily: "monospace" }}>
+                    1080p mp4 or srt
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+      {/* 6. Comparison Table Section */}
+      <section className="cc-section" style={{ borderTop: "1px solid var(--border)", background: "#080c0b" }}>
+        <div className="cc-container">
+          <div style={{ marginBottom: "48px" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "12px" }}>
+              <span style={{ width: "16px", height: "2px", background: "#00D6A0" }} />
+              <span style={{ fontSize: "11px", fontWeight: 800, color: "#00D6A0", letterSpacing: "0.12em", textTransform: "uppercase" }}>
+                the difference
+              </span>
+            </div>
+            <h2 style={{ fontSize: "clamp(32px, 4vw, 52px)", fontWeight: 900, letterSpacing: "-0.03em", color: "var(--text-primary)", margin: "0 0 16px 0", maxWidth: "780px", lineHeight: 1.1 }}>
+              why not just use any caption app?
+            </h2>
+            <p style={{ fontSize: "15px", color: "var(--text-secondary)", lineHeight: 1.6, maxWidth: "680px", margin: 0 }}>
+              western subtitle apps are built for clean american accents. Indian creators end up wasting more time fixing broken spellings and missing ottulu than creating videos.
+            </p>
           </div>
 
-          <div className="cc-pricing-grid">
-            <div className="cc-plan-card">
-              <span style={{ fontSize: "12px", fontWeight: 800, color: "#9ca9a4", textTransform: "uppercase" }}>starter</span>
-              <div className="cc-price-figure">₹0</div>
-              <span className="cc-price-period">free forever for individual creators</span>
+          {/* Comparison Table Container */}
+          <div style={{
+            background: "#0d1311",
+            border: "1px solid var(--border)",
+            borderRadius: "16px",
+            overflowX: "auto"
+          }}>
+            <table style={{ width: "100%", borderCollapse: "collapse", textAlign: "left", minWidth: "640px" }}>
+              <thead>
+                <tr style={{ borderBottom: "1px solid var(--border)" }}>
+                  <th style={{ padding: "20px 24px", width: "30%" }} />
+                  <th style={{ padding: "20px 24px", color: "#00D6A0", fontSize: "14px", fontWeight: 800, width: "38%" }}>
+                    CaptionCraft
+                  </th>
+                  <th style={{ padding: "20px 24px", color: "var(--text-muted)", fontSize: "13px", fontWeight: 600, width: "32%" }}>
+                    typical english-first tools
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr style={{ borderBottom: "1px solid rgba(255, 255, 255, 0.04)" }}>
+                  <td style={{ padding: "20px 24px", fontWeight: 700, color: "var(--text-primary)", fontSize: "14px" }}>
+                    tenglish & code-mixed speech
+                  </td>
+                  <td style={{ padding: "20px 24px", color: "var(--text-primary)", fontSize: "13.5px" }}>
+                    <div style={{ display: "flex", alignItems: "flex-start", gap: "10px" }}>
+                      <Check size={16} color="#00D6A0" style={{ marginTop: "2px", flexShrink: 0 }} />
+                      <span>calibrated for south indian phonetics, slang, and english blends</span>
+                    </div>
+                  </td>
+                  <td style={{ padding: "20px 24px", color: "var(--text-muted)", fontSize: "13px" }}>
+                    english-first models guess wildly and break words
+                  </td>
+                </tr>
 
-              <ul className="cc-plan-perks">
-                <li className="cc-perk-item"><Check size={16} color="#00e5a0" /> 100% in-browser local whisper</li>
-                <li className="cc-perk-item"><Check size={16} color="#00e5a0" /> telugu, tenglish & english support</li>
-                <li className="cc-perk-item"><Check size={16} color="#00e5a0" /> all 38+ animation presets</li>
-                <li className="cc-perk-item"><Check size={16} color="#00e5a0" /> zero watermark on exports</li>
-                <li className="cc-perk-item"><Check size={16} color="#00e5a0" /> 1080p canvas video rendering</li>
-              </ul>
+                <tr style={{ borderBottom: "1px solid rgba(255, 255, 255, 0.04)" }}>
+                  <td style={{ padding: "20px 24px", fontWeight: 700, color: "var(--text-primary)", fontSize: "14px" }}>
+                    indian languages roadmap
+                  </td>
+                  <td style={{ padding: "20px 24px", color: "var(--text-primary)", fontSize: "13.5px" }}>
+                    <div style={{ display: "flex", alignItems: "flex-start", gap: "10px" }}>
+                      <Check size={16} color="#00D6A0" style={{ marginTop: "2px", flexShrink: 0 }} />
+                      <span>live in telugu and expanding to hindi, tamil, kannada, malayalam</span>
+                    </div>
+                  </td>
+                  <td style={{ padding: "20px 24px", color: "var(--text-muted)", fontSize: "13px" }}>
+                    usually hindi at best, often english only
+                  </td>
+                </tr>
 
-              <button onClick={onStart} className="cc-btn-ghost" style={{ marginTop: "auto", width: "100%", padding: "12px" }}>
-                start free studio
-              </button>
-            </div>
+                <tr style={{ borderBottom: "1px solid rgba(255, 255, 255, 0.04)" }}>
+                  <td style={{ padding: "20px 24px", fontWeight: 700, color: "var(--text-primary)", fontSize: "14px" }}>
+                    script flexibility
+                  </td>
+                  <td style={{ padding: "20px 24px", color: "var(--text-primary)", fontSize: "13.5px" }}>
+                    <div style={{ display: "flex", alignItems: "flex-start", gap: "10px" }}>
+                      <Check size={16} color="#00D6A0" style={{ marginTop: "2px", flexShrink: 0 }} />
+                      <span>toggle effortlessly between native lipi, phonetic tenglish, and english</span>
+                    </div>
+                  </td>
+                  <td style={{ padding: "20px 24px", color: "var(--text-muted)", fontSize: "13px" }}>
+                    one rigid output with zero transliteration
+                  </td>
+                </tr>
 
-            <div className="cc-plan-card featured">
-              <div className="cc-plan-popular">most popular</div>
-              <span style={{ fontSize: "12px", fontWeight: 800, color: "#00e5a0", textTransform: "uppercase" }}>creator pro</span>
-              <div className="cc-price-figure">
-                {billingCycle === "monthly" ? "₹499" : "₹399"}
-                <span style={{ fontSize: "14px", color: "#9ca9a4", fontWeight: 500 }}>/month</span>
-              </div>
-              <span className="cc-price-period">billed {billingCycle === "yearly" ? "annually at ₹4,788" : "monthly"}</span>
+                <tr style={{ borderBottom: "1px solid rgba(255, 255, 255, 0.04)" }}>
+                  <td style={{ padding: "20px 24px", fontWeight: 700, color: "var(--text-primary)", fontSize: "14px" }}>
+                    regional typography bounds
+                  </td>
+                  <td style={{ padding: "20px 24px", color: "var(--text-primary)", fontSize: "13.5px" }}>
+                    <div style={{ display: "flex", alignItems: "flex-start", gap: "10px" }}>
+                      <Check size={16} color="#00D6A0" style={{ marginTop: "2px", flexShrink: 0 }} />
+                      <span>preserves compound matras, ottulu, and vertical ligatures cleanly</span>
+                    </div>
+                  </td>
+                  <td style={{ padding: "20px 24px", color: "var(--text-muted)", fontSize: "13px" }}>
+                    characters get clipped or render with broken font boxes
+                  </td>
+                </tr>
 
-              <ul className="cc-plan-perks">
-                <li className="cc-perk-item"><Check size={16} color="#00e5a0" /> everything in starter</li>
-                <li className="cc-perk-item"><Check size={16} color="#00e5a0" /> cloud gemini telugu transcription</li>
-                <li className="cc-perk-item"><Check size={16} color="#00e5a0" /> 4k 60fps video export support</li>
-                <li className="cc-perk-item"><Check size={16} color="#00e5a0" /> priority multi-speaker diarization</li>
-                <li className="cc-perk-item"><Check size={16} color="#00e5a0" /> custom brand fonts & color presets</li>
-              </ul>
+                <tr style={{ borderBottom: "1px solid rgba(255, 255, 255, 0.04)" }}>
+                  <td style={{ padding: "20px 24px", fontWeight: 700, color: "var(--text-primary)", fontSize: "14px" }}>
+                    data privacy
+                  </td>
+                  <td style={{ padding: "20px 24px", color: "var(--text-primary)", fontSize: "13.5px" }}>
+                    <div style={{ display: "flex", alignItems: "flex-start", gap: "10px" }}>
+                      <Check size={16} color="#00D6A0" style={{ marginTop: "2px", flexShrink: 0 }} />
+                      <span>transcription happens right on your device using WebGPU whisper</span>
+                    </div>
+                  </td>
+                  <td style={{ padding: "20px 24px", color: "var(--text-muted)", fontSize: "13px" }}>
+                    forces full video upload to foreign third party cloud servers
+                  </td>
+                </tr>
 
-              <button onClick={() => scrollTo("signup")} className="cc-btn-solid" style={{ marginTop: "auto", width: "100%", justifyContent: "center", padding: "12px" }}>
-                upgrade to pro
-              </button>
-            </div>
-
-            <div className="cc-plan-card">
-              <span style={{ fontSize: "12px", fontWeight: 800, color: "#9ca9a4", textTransform: "uppercase" }}>studio / agency</span>
-              <div className="cc-price-figure">
-                {billingCycle === "monthly" ? "₹1,499" : "₹1,199"}
-                <span style={{ fontSize: "14px", color: "#9ca9a4", fontWeight: 500 }}>/month</span>
-              </div>
-              <span className="cc-price-period">unlimited team members & batch rendering</span>
-
-              <ul className="cc-plan-perks">
-                <li className="cc-perk-item"><Check size={16} color="#00e5a0" /> batch captioning queue</li>
-                <li className="cc-perk-item"><Check size={16} color="#00e5a0" /> custom team preset library</li>
-                <li className="cc-perk-item"><Check size={16} color="#00e5a0" /> shared cloud workspace</li>
-                <li className="cc-perk-item"><Check size={16} color="#00e5a0" /> dedicated creator support</li>
-              </ul>
-
-              <button onClick={() => scrollTo("signup")} className="cc-btn-ghost" style={{ marginTop: "auto", width: "100%", padding: "12px" }}>
-                contact sales
-              </button>
-            </div>
-          </div>
-        </section>
-      </div>
-
-      {/* 8. Sign Up & Open Studio Card */}
-      <section id="signup" className="cc-wrap">
-        <div className="cc-signup-shell">
-          <span className="cc-subtag">start in seconds</span>
-          <h2 style={{ fontSize: "clamp(26px, 4vw, 38px)", fontWeight: 900, margin: "8px 0 12px 0", color: "#ffffff" }}>
-            ready to style your next video?
-          </h2>
-          <p style={{ fontSize: "14px", color: "#9ca9a4", maxWidth: "520px", margin: 0, lineHeight: 1.6 }}>
-            create an account to save custom presets across devices, or enter the studio immediately without signing up.
-          </p>
-
-          {signedUp ? (
-            <div style={{ display: "flex", alignItems: "center", gap: "8px", color: "#00e5a0", fontWeight: 700, marginTop: "24px", fontSize: "14px" }}>
-              <CheckCircle2 size={18} />
-              <span>welcome! opening studio now...</span>
-            </div>
-          ) : (
-            <form onSubmit={handleSignUp} className="cc-signup-form">
-              <input
-                type="email"
-                placeholder="enter your email address"
-                value={emailInput}
-                onChange={e => setEmailInput(e.target.value)}
-                required
-                className="cc-input"
-              />
-              <button type="submit" className="cc-btn-solid" style={{ padding: "13px 22px" }}>
-                <span>create account</span>
-                <ChevronRight size={16} />
-              </button>
-            </form>
-          )}
-
-          <div style={{ display: "flex", alignItems: "center", gap: "12px", marginTop: "26px" }}>
-            <span style={{ fontSize: "12px", color: "#64748b" }}>or skip registration</span>
-            <button
-              onClick={onStart}
-              style={{
-                background: "none",
-                border: "none",
-                color: "#00e5a0",
-                fontWeight: 700,
-                fontSize: "13px",
-                cursor: "pointer",
-                textDecoration: "underline"
-              }}
-            >
-              launch studio directly
-            </button>
+                <tr>
+                  <td style={{ padding: "20px 24px", fontWeight: 700, color: "var(--text-primary)", fontSize: "14px" }}>
+                    pricing built for india
+                  </td>
+                  <td style={{ padding: "20px 24px", color: "var(--text-primary)", fontSize: "13.5px" }}>
+                    <div style={{ display: "flex", alignItems: "flex-start", gap: "10px" }}>
+                      <Check size={16} color="#00D6A0" style={{ marginTop: "2px", flexShrink: 0 }} />
+                      <span>public beta is 100% free with upcoming creator plans in ₹ via UPI</span>
+                    </div>
+                  </td>
+                  <td style={{ padding: "20px 24px", color: "var(--text-muted)", fontSize: "13px" }}>
+                    expensive dollar subscriptions with automatic renewals
+                  </td>
+                </tr>
+              </tbody>
+            </table>
           </div>
         </div>
       </section>
 
-      {/* 9. Footer */}
-      <footer className="cc-footer">
-        <p>© 2026 CaptionCraft. Built with love for Telugu content creators.</p>
+      {/* 7. Comprehensive SaaS Footer */}
+      <footer style={{ background: "#050807", borderTop: "1px solid var(--border)", paddingTop: "64px", paddingBottom: "36px" }}>
+        <div className="cc-container">
+          {/* Main Footer Links Columns */}
+          <div style={{
+            display: "grid",
+            gridTemplateColumns: "1.5fr repeat(4, 1fr)",
+            gap: "40px",
+            marginBottom: "56px"
+          }}>
+            {/* Brand Column */}
+            <div>
+              <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "16px" }}>
+                <div style={{
+                  width: "32px",
+                  height: "32px",
+                  borderRadius: "8px",
+                  background: "#00D6A0",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  color: "#050807",
+                  fontWeight: 900,
+                  fontSize: "14px"
+                }}>
+                  cc
+                </div>
+                <span style={{ fontSize: "18px", fontWeight: 800, color: "var(--text-primary)" }}>CaptionCraft</span>
+              </div>
+              <p style={{ fontSize: "13px", color: "var(--text-secondary)", lineHeight: 1.6, maxWidth: "260px", margin: "0 0 16px 0" }}>
+                upload media, get accurate regional captions, and export ready-to-post reels. Built in India for Indian creators.
+              </p>
+              <div style={{ fontSize: "11px", color: "var(--text-muted)", lineHeight: 1.5 }}>
+                telugu lipi · phonetic tenglish · english · kinetic sync
+              </div>
+            </div>
+
+            {/* Column 1: Product */}
+            <div>
+              <div style={{ fontSize: "11px", fontWeight: 800, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: "18px" }}>
+                product
+              </div>
+              <ul style={{ listStyle: "none", padding: 0, margin: 0, display: "flex", flexDirection: "column", gap: "12px", fontSize: "13px" }}>
+                <li><button onClick={onStart} style={{ background: "none", border: "none", padding: 0, color: "var(--text-secondary)", cursor: "pointer" }}>open studio</button></li>
+                <li><button onClick={() => navigate("/templates")} style={{ background: "none", border: "none", padding: 0, color: "var(--text-secondary)", cursor: "pointer" }}>caption templates</button></li>
+                <li><button onClick={() => scrollTo("demo")} style={{ background: "none", border: "none", padding: 0, color: "var(--text-secondary)", cursor: "pointer" }}>interactive demo</button></li>
+                <li><button onClick={() => scrollTo("how-it-works")} style={{ background: "none", border: "none", padding: 0, color: "var(--text-secondary)", cursor: "pointer" }}>workflow pipeline</button></li>
+              </ul>
+            </div>
+
+            {/* Column 2: Use Cases */}
+            <div>
+              <div style={{ fontSize: "11px", fontWeight: 800, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: "18px" }}>
+                use cases
+              </div>
+              <ul style={{ listStyle: "none", padding: 0, margin: 0, display: "flex", flexDirection: "column", gap: "12px", fontSize: "13px", color: "var(--text-secondary)" }}>
+                <li>instagram reels</li>
+                <li>youtube shorts</li>
+                <li>podcast clips</li>
+                <li>regional ad creators</li>
+                <li>tech educators</li>
+              </ul>
+            </div>
+
+            {/* Column 3: Languages */}
+            <div>
+              <div style={{ fontSize: "11px", fontWeight: 800, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: "18px" }}>
+                languages
+              </div>
+              <ul style={{ listStyle: "none", padding: 0, margin: 0, display: "flex", flexDirection: "column", gap: "12px", fontSize: "13px", color: "var(--text-secondary)" }}>
+                <li><span style={{ color: "#00D6A0" }}>● </span>telugu captions</li>
+                <li><span style={{ color: "#00D6A0" }}>● </span>tenglish phonetic</li>
+                <li><span style={{ color: "#00D6A0" }}>● </span>english captions</li>
+                <li style={{ color: "var(--text-muted)" }}>hindi captions soon</li>
+                <li style={{ color: "var(--text-muted)" }}>tamil captions soon</li>
+              </ul>
+            </div>
+
+            {/* Column 4: Platform */}
+            <div>
+              <div style={{ fontSize: "11px", fontWeight: 800, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: "18px" }}>
+                platform
+              </div>
+              <ul style={{ listStyle: "none", padding: 0, margin: 0, display: "flex", flexDirection: "column", gap: "12px", fontSize: "13px", color: "var(--text-secondary)" }}>
+                <li>browser whisper</li>
+                <li>webGPU acceleration</li>
+                <li>safe zone checker</li>
+                <li>privacy policy</li>
+                <li>terms of service</li>
+              </ul>
+            </div>
+          </div>
+
+          {/* Trust & Security Banner */}
+          <div style={{
+            background: "#0c1210",
+            border: "1px solid var(--border)",
+            borderRadius: "14px",
+            padding: "24px 28px",
+            display: "grid",
+            gridTemplateColumns: "1.2fr 1fr",
+            gap: "28px",
+            alignItems: "center",
+            marginBottom: "32px"
+          }}>
+            <div>
+              <div style={{ fontSize: "11px", fontWeight: 800, color: "#00D6A0", letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: "12px" }}>
+                secure by design
+              </div>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px", fontSize: "12px" }}>
+                <div style={{ color: "var(--text-secondary)" }}>
+                  <span style={{ color: "var(--text-primary)", fontWeight: 700, display: "block" }}>in-device rendering</span>
+                  video files never leave your browser
+                </div>
+                <div style={{ color: "var(--text-secondary)" }}>
+                  <span style={{ color: "var(--text-primary)", fontWeight: 700, display: "block" }}>local WebGPU whisper</span>
+                  zero third-party audio logging
+                </div>
+              </div>
+            </div>
+
+            <div>
+              <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "12px" }}>
+                <span style={{ fontSize: "11px", fontWeight: 800, color: "var(--text-muted)", letterSpacing: "0.08em", textTransform: "uppercase" }}>
+                  payments roadmap
+                </span>
+                <span style={{ fontSize: "10px", background: "rgba(0, 214, 160, 0.12)", color: "#00D6A0", padding: "2px 6px", borderRadius: "4px", fontWeight: 700 }}>
+                  coming soon
+                </span>
+              </div>
+              <div style={{ display: "flex", gap: "8px", flexWrap: "wrap", alignItems: "center" }}>
+                <span style={{ padding: "4px 10px", background: "#161e1b", border: "1px solid var(--border)", borderRadius: "6px", fontSize: "11px", fontWeight: 800, color: "#00D6A0" }}>UPI</span>
+                <span style={{ padding: "4px 10px", background: "#161e1b", border: "1px solid var(--border)", borderRadius: "6px", fontSize: "11px", fontWeight: 700, color: "var(--text-primary)" }}>Razorpay</span>
+                <span style={{ padding: "4px 10px", background: "#161e1b", border: "1px solid var(--border)", borderRadius: "6px", fontSize: "11px", fontWeight: 700, color: "var(--text-primary)" }}>RuPay</span>
+                <span style={{ padding: "4px 10px", background: "#161e1b", border: "1px solid var(--border)", borderRadius: "6px", fontSize: "11px", fontWeight: 700, color: "var(--text-primary)" }}>Cards</span>
+              </div>
+              <div style={{ fontSize: "11px", color: "var(--text-muted)", marginTop: "8px", lineHeight: 1.5 }}>
+                beta is 100% free with no payment required. Upcoming creator plans will integrate direct UPI via Razorpay.
+              </div>
+            </div>
+          </div>
+
+          {/* Bottom Copyright Strip */}
+          <div style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            paddingTop: "20px",
+            borderTop: "1px solid rgba(255, 255, 255, 0.04)",
+            fontSize: "12px",
+            color: "var(--text-muted)",
+            flexWrap: "wrap",
+            gap: "12px"
+          }}>
+            <div>
+              © 2026 CaptionCraft. Built with ❤️ in India.
+            </div>
+            <div style={{ display: "flex", alignItems: "center", gap: "16px" }}>
+              <span>public beta active</span>
+              <span style={{ color: "#00D6A0" }}>● all systems operational</span>
+            </div>
+          </div>
+        </div>
       </footer>
     </div>
   );

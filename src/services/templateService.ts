@@ -1,4 +1,4 @@
-import { supabase } from '../lib/supabaseClient';
+import { supabase } from "../lib/supabase";
 import { CAPTION_TEMPLATES } from '../utils/captionTemplates';
 import type { CaptionCategory, CaptionTemplateDefinition, CanvasSettings, WordStyleRule } from '../types';
 

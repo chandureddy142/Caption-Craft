@@ -1,5 +1,8 @@
 // https://vite.dev/config/
 export default {
+  server: {
+    allowedHosts: true,
+  },
   esbuild: {
     rollupOptions: {
       onwarn(warning: any, warn: any) {

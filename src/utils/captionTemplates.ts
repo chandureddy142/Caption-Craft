@@ -3,21 +3,15 @@ import type {
   CaptionCategory,
   CaptionTemplateDefinition,
   CaptionTemplateId,
-  PreviewToken,
+  Subtitle,
   WordStyleRule,
 } from "../types";
-import type { CSSProperties } from "react";
 
 export type { CaptionTemplateDefinition, TemplatePreviewSample } from "../types";
 
 /* -------------------------------------------------------------------------- */
 /*  Constants                                                                 */
 /* -------------------------------------------------------------------------- */
-
-/** Every preset previews (and is tested with) this exact phrase. */
-export const PREVIEW_PHRASE = "Caption Craft";
-/** Base font size (px) used by the sidebar preview cards. */
-export const PREVIEW_FONT_PX = 17;
 
 export const CAPTION_SECTIONS: ReadonlyArray<{ key: CaptionCategory; title: string }> = [
   { key: "trending", title: "trending" },
@@ -54,6 +48,11 @@ interface TemplateSeed {
   font: string;
   /** Dual-word rule: [word 0 = base style, word 1 = accent / box / alt font]. */
   words: readonly [WordStyleRule, WordStyleRule];
+  /**
+   * 'accent' (default): word 0 flashes the accent colour while it is spoken.
+   * 'none': no spoken-word colour change (calm, simple presets).
+   */
+  spoken?: "accent" | "none";
   settings?: Partial<CanvasSettings>;
 }
 
@@ -66,7 +65,12 @@ function withOwnHighlight(rule: WordStyleRule): WordStyleRule {
 
 function define(seed: TemplateSeed): CaptionTemplateDefinition {
   const [first, second] = seed.words;
-  const wordPatterns: WordStyleRule[] = [withOwnHighlight(first), withOwnHighlight(second)];
+  const accent = second.backgroundColor ?? second.textColor ?? "#ffffff";
+  const firstRule = withOwnHighlight({
+    ...first,
+    highlightColor: first.highlightColor ?? (seed.spoken === "none" ? undefined : accent),
+  });
+  const wordPatterns: WordStyleRule[] = [firstRule, withOwnHighlight(second)];
   return {
     id: seed.id,
     name: seed.name,
@@ -93,6 +97,8 @@ function define(seed: TemplateSeed): CaptionTemplateDefinition {
 
 /* -------------------------------------------------------------------------- */
 /*  Catalog: 6 sections x 7 presets                                           */
+/*  Pixel values (outline, padding, radius, glow) are authored at a 26px      */
+/*  font and scale with the real font size inside the renderer.               */
 /* -------------------------------------------------------------------------- */
 
 export const CAPTION_TEMPLATES: CaptionTemplateDefinition[] = [
@@ -145,7 +151,7 @@ export const CAPTION_TEMPLATES: CaptionTemplateDefinition[] = [
       { textColor: "#fff7ed" },
       { textColor: "#fb923c", glowColor: "#f97316", glowBlur: 14 },
     ],
-    settings: { animation: "fade" },
+    settings: { animation: "slide-up" },
   }),
   define({
     id: "trending-cyan-neon", name: "cyan neon", category: "trending", badge: "neon",
@@ -168,55 +174,55 @@ export const CAPTION_TEMPLATES: CaptionTemplateDefinition[] = [
     settings: { animation: "fade" },
   }),
 
-  /* ---- 2) CLASSIC (SIMPLE) ---------------------------------------------- */
+  /* ---- 2) CLASSIC (SIMPLE): calm, no spoken-word colour change ----------- */
   define({
     id: "classic-white", name: "classic white", category: "classic", badge: "clean",
     description: "white text with a dark stroke.",
-    font: FONT.arial,
+    font: FONT.arial, spoken: "none",
     words: [{ textColor: "#ffffff" }, { textColor: "#ffffff" }],
-    settings: { fontSize: 24, verticalPosition: 0.82 },
+    settings: { fontSize: 24, verticalPosition: 0.82, animation: "fade" },
   }),
   define({
     id: "classic-yellow", name: "classic yellow", category: "classic", badge: "docu",
     description: "documentary yellow with a black outline.",
-    font: FONT.arial,
+    font: FONT.arial, spoken: "none",
     words: [{ textColor: "#fde047" }, { textColor: "#fde047" }],
-    settings: { fontSize: 24, verticalPosition: 0.82 },
+    settings: { fontSize: 24, verticalPosition: 0.82, animation: "fade" },
   }),
   define({
     id: "classic-cinema-serif", name: "cinema serif", category: "classic", badge: "film",
     description: "film-style serif subtitle.",
-    font: FONT.georgia,
+    font: FONT.georgia, spoken: "none",
     words: [{ textColor: "#f8fafc" }, { textColor: "#f8fafc" }],
-    settings: { fontSize: 25, fontWeight: "normal" },
+    settings: { fontSize: 25, fontWeight: "normal", animation: "fade" },
   }),
   define({
     id: "classic-soft-shadow", name: "soft shadow", category: "classic", badge: "soft",
     description: "no stroke, gentle drop shadow.",
-    font: FONT.trebuchet,
+    font: FONT.trebuchet, spoken: "none",
     words: [{ textColor: "#ffffff" }, { textColor: "#ffffff" }],
     settings: { style: "minimalist", animation: "hard-shadow", shadowColor: "rgba(0,0,0,0.75)", shadowOffsetX: 0, shadowOffsetY: 2, shadowBlur: 8 },
   }),
   define({
     id: "classic-typewriter", name: "typewriter", category: "classic", badge: "mono",
-    description: "monospace with a mint second word.",
-    font: FONT.courier,
+    description: "monospace letters type on, mint second word.",
+    font: FONT.courier, spoken: "none",
     words: [{ textColor: "#e5e7eb" }, { textColor: "#86efac" }],
     settings: { animation: "typewriter", fontSize: 24 },
   }),
   define({
     id: "classic-two-tone", name: "two tone", category: "classic", badge: "duo",
     description: "white and warm cream, same weight.",
-    font: FONT.verdana,
+    font: FONT.verdana, spoken: "none",
     words: [{ textColor: "#ffffff" }, { textColor: "#fde68a" }],
-    settings: { fontSize: 23 },
+    settings: { fontSize: 23, animation: "fade" },
   }),
   define({
     id: "classic-broadcast", name: "broadcast", category: "classic", badge: "news",
     description: "news-style serif, white then silver.",
-    font: FONT.times,
+    font: FONT.times, spoken: "none",
     words: [{ textColor: "#ffffff" }, { textColor: "#cbd5e1" }],
-    settings: { fontSize: 26 },
+    settings: { fontSize: 26, animation: "fade" },
   }),
 
   /* ---- 3) ANIMATIONS ---------------------------------------------------- */
@@ -229,9 +235,9 @@ export const CAPTION_TEMPLATES: CaptionTemplateDefinition[] = [
   }),
   define({
     id: "anim-karaoke-sweep", name: "karaoke sweep", category: "animations", badge: "karaoke",
-    description: "words light up as they are said.",
+    description: "colour sweeps across each word as it is said.",
     font: FONT.trebuchet,
-    words: [{ textColor: "#e2e8f0", highlightColor: "#ffffff" }, { textColor: "#38bdf8", highlightColor: "#bae6fd" }],
+    words: [{ textColor: "#e2e8f0", highlightColor: "#38bdf8" }, { textColor: "#e2e8f0", highlightColor: "#38bdf8" }],
     settings: { animation: "karaoke-sweep" },
   }),
   define({
@@ -243,14 +249,14 @@ export const CAPTION_TEMPLATES: CaptionTemplateDefinition[] = [
   }),
   define({
     id: "anim-typewriter", name: "type on", category: "animations", badge: "type",
-    description: "letters type in, green terminal accent.",
+    description: "letters type in with a terminal-green accent.",
     font: FONT.courier,
     words: [{ textColor: "#e5e7eb" }, { textColor: "#4ade80", highlightColor: "#bbf7d0" }],
     settings: { animation: "typewriter", fontSize: 24 },
   }),
   define({
     id: "anim-split-stagger", name: "split stagger", category: "animations", badge: "stagger",
-    description: "words stagger in one after another.",
+    description: "words rise in one after another.",
     font: FONT.arial,
     words: [{ textColor: "#f1f5f9" }, { textColor: "#f472b6" }],
     settings: { animation: "split-stagger" },
@@ -263,11 +269,11 @@ export const CAPTION_TEMPLATES: CaptionTemplateDefinition[] = [
     settings: { animation: "neon-glow", shadowColor: "#8b5cf6", fontSize: 24 },
   }),
   define({
-    id: "anim-soft-fade", name: "soft fade", category: "animations", badge: "fade",
-    description: "elegant serif that eases in, gold accent.",
+    id: "anim-gentle-settle", name: "gentle settle", category: "animations", badge: "settle",
+    description: "serif words ease down into place, gold italic accent.",
     font: FONT.georgia,
     words: [{ textColor: "#f8fafc" }, { textColor: "#fcd34d", fontStyle: "italic" }],
-    settings: { animation: "fade" },
+    settings: { animation: "settle" },
   }),
 
   /* ---- 4) TRANSITIONS --------------------------------------------------- */
@@ -280,14 +286,14 @@ export const CAPTION_TEMPLATES: CaptionTemplateDefinition[] = [
   }),
   define({
     id: "trans-slide-left", name: "slide left", category: "transitions", badge: "slide",
-    description: "caption glides in from the right edge.",
+    description: "caption glides in from the right.",
     font: FONT.arial,
     words: [{ textColor: "#ffffff" }, { textColor: "#fda4af" }],
     settings: { animation: "slide-left" },
   }),
   define({
     id: "trans-zoom-in", name: "zoom in", category: "transitions", badge: "zoom",
-    description: "bold caption zooms to full size.",
+    description: "bold caption zooms gently to full size.",
     font: FONT.impact,
     words: [{ uppercase: true, textColor: "#ffffff" }, { uppercase: true, textColor: "#fbbf24" }],
     settings: { animation: "zoom-in" },
@@ -314,150 +320,155 @@ export const CAPTION_TEMPLATES: CaptionTemplateDefinition[] = [
     settings: { animation: "fade" },
   }),
   define({
-    id: "trans-stagger-mono", name: "stagger mono", category: "transitions", badge: "stagger",
-    description: "monospace words cascade in.",
+    id: "trans-stagger-mono", name: "meet in middle", category: "transitions", badge: "converge",
+    description: "word 1 slides from the left, word 2 from the right.",
     font: FONT.courier,
     words: [{ textColor: "#e2e8f0" }, { textColor: "#fb923c" }],
-    settings: { animation: "split-stagger", fontSize: 24 },
+    settings: { animation: "converge", fontSize: 24 },
   }),
 
-  /* ---- 5) BOXES: word 1 clean, word 2 gets its own box ------------------- */
+  /* ---- 5) BOXES: word 1 clean, word 2 gets its own animated box ---------- */
   define({
     id: "boxes-yellow-marker", name: "yellow marker", category: "boxes", badge: "marker",
-    description: "clean word, then a yellow highlighter strip.",
+    description: "highlighter strip wipes across word two.",
     font: FONT.arial,
     words: [
       { textColor: "#ffffff", outlineColor: "#000000", outlineWidth: 4 },
       { textColor: "#111111", backgroundColor: "#ffd000", borderRadius: 6, rotation: -2, paddingX: 10, paddingY: 4 },
     ],
-    settings: { style: "minimalist" },
+    settings: { style: "minimalist", animation: "box-wipe" },
   }),
   define({
     id: "boxes-purple-pill", name: "purple pill", category: "boxes", badge: "pill",
-    description: "fully rounded purple pill on word two.",
+    description: "rounded purple pill drops onto word two.",
     font: FONT.trebuchet,
     words: [
       { textColor: "#ffffff", outlineColor: "#000000", outlineWidth: 4 },
       { textColor: "#ffffff", backgroundColor: "#7c3aed", borderRadius: 40, paddingX: 14, paddingY: 4 },
     ],
-    settings: { style: "minimalist" },
+    settings: { style: "minimalist", animation: "box-drop" },
   }),
   define({
     id: "boxes-crimson-tag", name: "crimson tag", category: "boxes", badge: "breaking",
-    description: "breaking-news red tag, impact caps.",
+    description: "breaking-news tag slides in beside the setup word.",
     font: FONT.impact,
     words: [
       { uppercase: true, textColor: "#ffffff", outlineColor: "#000000", outlineWidth: 4 },
       { uppercase: true, textColor: "#ffffff", backgroundColor: "#dc2626", borderRadius: 4, paddingX: 10, paddingY: 4 },
     ],
-    settings: { style: "minimalist" },
+    settings: { style: "minimalist", animation: "box-slide" },
   }),
   define({
     id: "boxes-mint-label", name: "mint label", category: "boxes", badge: "label",
-    description: "fresh mint label with dark text.",
+    description: "mint label wipes in with dark text.",
     font: FONT.verdana,
     words: [
       { textColor: "#ffffff", outlineColor: "#000000", outlineWidth: 4 },
       { textColor: "#052e16", backgroundColor: "#34d399", borderRadius: 10, paddingX: 10, paddingY: 4 },
     ],
-    settings: { style: "minimalist", fontSize: 24 },
+    settings: { style: "minimalist", fontSize: 24, animation: "box-wipe" },
   }),
   define({
     id: "boxes-sky-chip", name: "sky chip", category: "boxes", badge: "chip",
-    description: "rounded sky-blue chip.",
+    description: "sky-blue chip drops in softly.",
     font: FONT.arial,
     words: [
       { textColor: "#ffffff", outlineColor: "#000000", outlineWidth: 4 },
       { textColor: "#082f49", backgroundColor: "#38bdf8", borderRadius: 14, paddingX: 12, paddingY: 4 },
     ],
-    settings: { style: "minimalist" },
+    settings: { style: "minimalist", animation: "box-drop" },
   }),
   define({
     id: "boxes-paper-card", name: "paper card", category: "boxes", badge: "card",
-    description: "white serif card, ink-black text.",
+    description: "white serif card eases into place.",
     font: FONT.georgia,
     words: [
       { textColor: "#ffffff", outlineColor: "#000000", outlineWidth: 4 },
       { textColor: "#111111", backgroundColor: "#ffffff", borderRadius: 8, paddingX: 12, paddingY: 4 },
     ],
-    settings: { style: "minimalist" },
+    settings: { style: "minimalist", animation: "settle" },
   }),
   define({
     id: "boxes-pink-bubble", name: "pink bubble", category: "boxes", badge: "bubble",
-    description: "playful tilted bubble.",
+    description: "playful tilted bubble drops in.",
     font: FONT.comic,
     words: [
       { textColor: "#ffffff", outlineColor: "#000000", outlineWidth: 4 },
       { textColor: "#ffffff", backgroundColor: "#f472b6", borderRadius: 22, rotation: 2, paddingX: 14, paddingY: 4 },
     ],
-    settings: { style: "minimalist" },
+    settings: { style: "minimalist", animation: "box-drop" },
   }),
 
   /* ---- 6) TYPO: distinct font pairings per word -------------------------- */
   define({
     id: "typo-rose-petal", name: "rose petal", category: "typo", badge: "serif+sans",
-    description: "italic serif paired with bold sans caps.",
+    description: "italic serif rises, bold sans follows.",
     font: FONT.georgia,
     words: [
       { fontFamily: FONT.georgia, fontStyle: "italic", fontWeight: "normal", textColor: "#fecdd3" },
       { fontFamily: FONT.arial, fontWeight: "900", uppercase: true, textColor: "#fb7185", fontSizeMultiplier: 0.95 },
     ],
+    settings: { animation: "rise" },
   }),
   define({
     id: "typo-scribble", name: "scribble", category: "typo", badge: "hand+impact",
-    description: "casual hand-written word, tilted impact word.",
+    description: "hand-written word meets a tilted impact word.",
     font: FONT.comic,
     words: [
       { fontFamily: FONT.comic, textColor: "#ffffff" },
       { fontFamily: FONT.impact, uppercase: true, textColor: "#fde047", rotation: -3, fontSizeMultiplier: 1.1 },
     ],
+    settings: { animation: "converge" },
   }),
   define({
     id: "typo-editorial", name: "editorial", category: "typo", badge: "magazine",
-    description: "palatino italic and underlined black-weight sans.",
+    description: "palatino italic, then a sans word that underlines itself.",
     font: FONT.palatino,
     words: [
       { fontFamily: FONT.palatino, fontStyle: "italic", fontWeight: "normal", textColor: "#fef9c3" },
       { fontFamily: FONT.arial, fontWeight: "900", uppercase: true, textColor: "#ffffff", underlineColor: "#ef4444", fontSizeMultiplier: 0.95 },
     ],
+    settings: { animation: "rise" },
   }),
   define({
     id: "typo-code-clean", name: "code clean", category: "typo", badge: "mono+sans",
-    description: "green monospace beside a clean sans word.",
+    description: "green monospace and a clean sans word converge.",
     font: FONT.courier,
     words: [
       { fontFamily: FONT.courier, textColor: "#86efac" },
       { fontFamily: FONT.trebuchet, textColor: "#ffffff" },
     ],
-    settings: { fontSize: 24 },
+    settings: { fontSize: 24, animation: "converge" },
   }),
   define({
     id: "typo-retro-ad", name: "retro ad", category: "typo", badge: "impact+serif",
-    description: "impact caps with a warm italic serif.",
+    description: "impact caps settle in, warm italic serif follows.",
     font: FONT.impact,
     words: [
       { fontFamily: FONT.impact, uppercase: true, textColor: "#fde047" },
       { fontFamily: FONT.georgia, fontStyle: "italic", fontWeight: "700", textColor: "#fb923c" },
     ],
+    settings: { animation: "settle" },
   }),
   define({
     id: "typo-mono-sans", name: "tech label", category: "typo", badge: "mono+sans",
-    description: "uppercase mono then cyan verdana.",
+    description: "uppercase mono drops in, cyan verdana follows.",
     font: FONT.courier,
     words: [
       { fontFamily: FONT.courier, uppercase: true, textColor: "#cbd5e1" },
       { fontFamily: FONT.verdana, textColor: "#22d3ee" },
     ],
-    settings: { fontSize: 24 },
+    settings: { fontSize: 24, animation: "drop" },
   }),
   define({
     id: "typo-serif-bold", name: "serif & slam", category: "typo", badge: "serif+impact",
-    description: "italic times beside a rose impact slam.",
+    description: "italic times rises, rose impact slams in.",
     font: FONT.times,
     words: [
       { fontFamily: FONT.times, fontStyle: "italic", textColor: "#e2e8f0" },
       { fontFamily: FONT.impact, uppercase: true, textColor: "#f43f5e", fontSizeMultiplier: 1.08 },
     ],
+    settings: { animation: "rise" },
   }),
 ];
 
@@ -475,14 +486,11 @@ export function getTemplatesByCategory(category: CaptionCategory): CaptionTempla
   return CAPTION_TEMPLATES.filter(template => template.category === category);
 }
 
-export function applyTemplateToSettings(
+/** The single place a template becomes canvas settings (video AND sidebar preview). */
+export function applyTemplateDefinition(
   current: CanvasSettings,
-  templateId: CaptionTemplateId,
+  template: CaptionTemplateDefinition,
 ): CanvasSettings {
-  const template = getTemplateById(templateId);
-  if (!template) {
-    return { ...current, selectedTemplateId: templateId };
-  }
   return {
     ...current,
     // Reset per-template extras so switching presets never leaks old shadows/animations.
@@ -497,89 +505,94 @@ export function applyTemplateToSettings(
     shadowOffsetY: undefined,
     ...template.settings,
     wordPatterns: template.wordPatterns ?? template.styleRules,
-    selectedTemplateId: templateId,
+    selectedTemplateId: template.id,
   };
 }
 
-/* -------------------------------------------------------------------------- */
-/*  Preview tokens (derived from the SAME wordPatterns the canvas uses)       */
-/* -------------------------------------------------------------------------- */
-
-function wordPreviewStyle(
-  settings: Partial<CanvasSettings>,
-  rule: WordStyleRule | undefined,
-): CSSProperties {
-  const canvasSize = (settings.fontSize ?? 26) * (rule?.fontSizeMultiplier ?? 1);
-  const k = PREVIEW_FONT_PX / (settings.fontSize ?? 26);
-  const style: CSSProperties = {
-    display: "inline-block",
-    whiteSpace: "nowrap",
-    lineHeight: 1.25,
-    fontFamily: rule?.fontFamily ?? settings.fontFamily ?? FONT.arial,
-    fontStyle: rule?.fontStyle ?? "normal",
-    fontWeight: rule?.fontWeight ?? settings.fontWeight ?? "700",
-    fontSize: `${PREVIEW_FONT_PX * (rule?.fontSizeMultiplier ?? 1)}px`,
-    color: rule?.textColor ?? rule?.color ?? settings.textColor ?? "#ffffff",
-  };
-
-  // Stroke: mirrors the canvas (centred stroke painted under the fill).
-  const strokeWidth =
-    rule?.outlineWidth ??
-    (settings.style === "outline"
-      ? settings.strokeWidth ?? Math.max(4, Math.round(canvasSize * 0.12))
-      : 0);
-  if (strokeWidth > 0) {
-    style.WebkitTextStroke = `${(strokeWidth * k).toFixed(2)}px ${rule?.outlineColor ?? settings.strokeColor ?? settings.boxColor ?? "#000000"}`;
-    style.paintOrder = "stroke fill";
+export function applyTemplateToSettings(
+  current: CanvasSettings,
+  templateId: CaptionTemplateId,
+): CanvasSettings {
+  const template = getTemplateById(templateId);
+  if (!template) {
+    return { ...current, selectedTemplateId: templateId };
   }
-
-  // Shadows: per-word glow + template-level hard/soft shadow.
-  const shadows: string[] = [];
-  if (rule?.glowColor) {
-    const blur = (rule.glowBlur ?? 16) * k;
-    shadows.push(`0 0 ${blur.toFixed(1)}px ${rule.glowColor}`, `0 0 ${(blur * 0.5).toFixed(1)}px ${rule.glowColor}`);
-  }
-  if (settings.animation === "hard-shadow") {
-    shadows.push(
-      `${((settings.shadowOffsetX ?? 6) * k).toFixed(1)}px ${((settings.shadowOffsetY ?? 6) * k).toFixed(1)}px ${((settings.shadowBlur ?? 0) * k).toFixed(1)}px ${settings.shadowColor ?? "#000000"}`,
-    );
-  }
-  if (shadows.length > 0) style.textShadow = shadows.join(", ");
-
-  if (rule?.backgroundColor) {
-    style.background = rule.backgroundColor;
-    style.borderRadius = `${((rule.borderRadius ?? 6) * k).toFixed(1)}px`;
-    style.padding = `${((rule.paddingY ?? 4) * k).toFixed(1)}px ${((rule.paddingX ?? 10) * k).toFixed(1)}px`;
-  }
-  if (rule?.underlineColor) {
-    style.textDecoration = "underline";
-    style.textDecorationColor = rule.underlineColor;
-    style.textDecorationThickness = "2px";
-    style.textUnderlineOffset = "3px";
-  }
-  if (rule?.rotation) style.transform = `rotate(${rule.rotation}deg)`;
-  return style;
+  return applyTemplateDefinition(current, template);
 }
+
+/* -------------------------------------------------------------------------- */
+/*  Sidebar preview: the card renders through the REAL canvas renderer, so    */
+/*  it can never drift from what the video shows. These helpers only describe */
+/*  the fake "spoken" caption used by the card.                               */
+/* -------------------------------------------------------------------------- */
+
+/** Canvas width (px) at which a preset's own fontSize looks right inside a card. */
+const PREVIEW_REFERENCE_WIDTH = 270;
+
+const PREVIEW_LEAD_IN = 0.7;     // caption enters (entry transition plays here)
+const PREVIEW_WORD_SECONDS = 0.6; // each word is "spoken" for this long
+const PREVIEW_HOLD = 0.8;        // full phrase held after the last word
+const PREVIEW_GAP = 0.3;         // blank pause before the loop restarts
+
+const PREVIEW_FIRST_END = PREVIEW_LEAD_IN + PREVIEW_WORD_SECONDS;
+const PREVIEW_SECOND_END = PREVIEW_FIRST_END + PREVIEW_WORD_SECONDS;
+const PREVIEW_CAPTION_END = PREVIEW_SECOND_END + PREVIEW_HOLD;
+const PREVIEW_LOOP_SECONDS = PREVIEW_CAPTION_END + PREVIEW_GAP;
 
 /**
- * Builds preview tokens for "Caption Craft". Uses manual `previewTokens` when a
- * template provides them; otherwise derives them from `wordPatterns`, so the
- * sidebar card and the canvas can never drift apart.
+ * Idle frame: entry transition finished, no word active yet -> the complete
+ * "Caption Craft" phrase in its base style (boxes, fonts and strokes visible).
  */
-export function getPreviewTokens(
+export const PREVIEW_IDLE_TIME = PREVIEW_LEAD_IN - 0.01;
+
+export const PREVIEW_SUBTITLES: Subtitle[] = [
+  {
+    id: "template-preview",
+    start: 0,
+    end: PREVIEW_CAPTION_END,
+    text: "Caption Craft",
+    words: [
+      { word: "Caption", start: PREVIEW_LEAD_IN, end: PREVIEW_FIRST_END },
+      { word: "Craft", start: PREVIEW_FIRST_END, end: PREVIEW_SECOND_END },
+    ],
+  },
+];
+
+/** Maps elapsed hover seconds to a frame time, or null during the loop pause. */
+export function getPreviewFrameTime(elapsedSeconds: number): number | null {
+  const t = elapsedSeconds % PREVIEW_LOOP_SECONDS;
+  return t <= PREVIEW_CAPTION_END ? t : null;
+}
+
+const PREVIEW_BASE_SETTINGS: CanvasSettings = {
+  aspectRatio: "16:9",
+  backgroundColor: "#000000",
+  backgroundTheme: "midnight",
+  backgroundOverlayOpacity: 0,
+  fitMode: "cover",
+  fontFamily: FONT.arial,
+  fontSize: 26,
+  textColor: "#ffffff",
+  highlightColor: "#ffffff",
+  boxColor: "#000000",
+  style: "outline",
+  verticalPosition: 0.5,
+  alignment: "center",
+  textBackground: false,
+};
+
+/** Template -> CanvasSettings for a card whose canvas is `canvasWidthPx` wide. */
+export function getPreviewSettings(
   template: CaptionTemplateDefinition,
-  phrase: string = PREVIEW_PHRASE,
-): PreviewToken[] {
-  if (template.previewTokens && template.previewTokens.length > 0) return template.previewTokens;
-  const rules = template.wordPatterns ?? template.styleRules ?? [];
-  return phrase.split(/\s+/).filter(Boolean).map((word, index) => {
-    const rule = rules.length > 0 ? rules[index % rules.length] : undefined;
-    const upper = Boolean(rule?.uppercase) || template.settings.textTransform === "uppercase";
-    return {
-      text: upper ? word.toUpperCase() : word,
-      style: wordPreviewStyle(template.settings, rule),
-    };
-  });
+  canvasWidthPx: number,
+): CanvasSettings {
+  const applied = applyTemplateDefinition(PREVIEW_BASE_SETTINGS, template);
+  return {
+    ...applied,
+    fontSize: applied.fontSize * (Math.max(1, canvasWidthPx) / PREVIEW_REFERENCE_WIDTH),
+    verticalPosition: 0.5,
+    alignment: "center",
+  };
 }
 
 /* -------------------------------------------------------------------------- */
