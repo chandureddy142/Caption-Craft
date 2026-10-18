@@ -9,6 +9,7 @@ import {
   Sparkles, 
   Volume2, 
   VolumeX, 
+  X,
   XCircle 
 } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -106,7 +107,11 @@ export function ExportPage({
     setError("");
     setProgress(0);
     try {
-      const blob = await renderExport(options, value => setProgress(Math.max(0, Math.min(100, value))), controller.signal);
+      const blob = await renderExport(
+        options,
+        value => setProgress(Math.max(0, Math.min(100, Math.round(value)))),
+        controller.signal
+      );
       if (controller.signal.aborted) return;
       downloadBlob(blob, options.filename);
       setProgress(100);
@@ -127,61 +132,85 @@ export function ExportPage({
     setProgress(0);
   };
 
+  const getPreviewAspectStyles = () => {
+    switch (selectedAspectRatio) {
+      case "9:16":
+        return { width: "160px", height: "284px" };
+      case "16:9":
+        return { width: "284px", height: "160px" };
+      case "1:1":
+        return { width: "200px", height: "200px" };
+      case "4:5":
+        return { width: "180px", height: "225px" };
+      default:
+        return { width: "160px", height: "284px" };
+    }
+  };
+
+  const previewDims = getPreviewAspectStyles();
+
   return (
     <div style={{
       minHeight: "100vh",
       background: "#080b0e",
       color: "#f3f4f6",
       fontFamily: "Inter, -apple-system, BlinkMacSystemFont, sans-serif",
-      padding: "24px 32px",
+      padding: "20px 36px 40px",
       boxSizing: "border-box"
     }}>
-      {/* 1. TOP BAR */}
+      {/* 1. TOP HEADER - ONLY BACK TO EDITOR BUTTON */}
       <header style={{
         display: "flex",
         alignItems: "center",
-        justifyContent: "space-between",
+        justifyContent: "flex-start",
         borderBottom: "1px solid #161e27",
-        paddingBottom: "18px",
-        marginBottom: "28px"
+        paddingBottom: "16px",
+        marginBottom: "24px"
       }}>
-        <div style={{ display: "flex", alignItems: "center", gap: "16px" }}>
-          {onBack && (
-            <button
-              type="button"
-              onClick={onBack}
-              disabled={busy}
-              style={{
-                display: "inline-flex",
-                alignItems: "center",
-                gap: "8px",
-                padding: "8px 14px",
-                borderRadius: "8px",
-                background: "#101620",
-                border: "1px solid #1e2836",
-                color: "#9ca3af",
-                fontSize: "13px",
-                fontWeight: 600,
-                cursor: busy ? "not-allowed" : "pointer"
-              }}
-            >
-              <ArrowLeft size={16} />
-              <span>Back to editor</span>
-            </button>
-          )}
+        {onBack && (
+          <button
+            type="button"
+            onClick={onBack}
+            disabled={busy}
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: "8px",
+              padding: "8px 14px",
+              borderRadius: "8px",
+              background: "#101620",
+              border: "1px solid #1e2836",
+              color: "#d1d5db",
+              fontSize: "13px",
+              fontWeight: 600,
+              cursor: busy ? "not-allowed" : "pointer"
+            }}
+          >
+            <ArrowLeft size={16} />
+            <span>Back to editor</span>
+          </button>
+        )}
+      </header>
 
-          <div>
-            <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-              <span style={{ fontSize: "11px", fontWeight: 700, color: "#8b5cf6", letterSpacing: "0.05em", textTransform: "uppercase" }}>
-                Studio Export
-              </span>
-              <span style={{ color: "#374151" }}>•</span>
-              <span style={{ fontSize: "11px", color: "#6b7280" }}>Final Master Delivery</span>
-            </div>
-            <h1 style={{ fontSize: "20px", fontWeight: 800, margin: "2px 0 0 0", color: "#ffffff", letterSpacing: "-0.02em" }}>
-              Export Project
-            </h1>
+      {/* 2. TITLE & OUTPUT INFO ROW (MOVED DOWN) */}
+      <div style={{
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "space-between",
+        maxWidth: "1180px",
+        margin: "0 auto 24px auto"
+      }}>
+        <div>
+          <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+            <span style={{ fontSize: "11px", fontWeight: 700, color: "#8b5cf6", letterSpacing: "0.06em", textTransform: "uppercase" }}>
+              Studio Export
+            </span>
+            <span style={{ color: "#374151" }}>•</span>
+            <span style={{ fontSize: "11px", color: "#6b7280" }}>Final Master Delivery</span>
           </div>
+          <h1 style={{ fontSize: "24px", fontWeight: 800, margin: "4px 0 0 0", color: "#ffffff", letterSpacing: "-0.02em" }}>
+            Export Project
+          </h1>
         </div>
 
         <div style={{
@@ -191,7 +220,7 @@ export function ExportPage({
           background: "#0d131a",
           border: "1px solid #1a2330",
           borderRadius: "8px",
-          padding: "6px 14px",
+          padding: "7px 16px",
           fontSize: "12px",
           color: "#94a3b8"
         }}>
@@ -200,9 +229,9 @@ export function ExportPage({
           <span style={{ color: "#334155" }}>|</span>
           <span>{duration > 0 ? `${duration.toFixed(1)}s` : "Source duration"}</span>
         </div>
-      </header>
+      </div>
 
-      {/* 2. TWO-COLUMN DASHBOARD */}
+      {/* 3. TWO-COLUMN DASHBOARD */}
       <div style={{
         display: "grid",
         gridTemplateColumns: "1.25fr 1fr",
@@ -299,7 +328,7 @@ export function ExportPage({
             </div>
           </div>
 
-          {/* Frame Rate & Format */}
+          {/* Frame Rate & Container Format in 2 cols */}
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "14px" }}>
             <div>
               <div style={{ fontSize: "12px", fontWeight: 600, color: "#9ca3af", marginBottom: "8px" }}>
@@ -362,7 +391,7 @@ export function ExportPage({
             </div>
           </div>
 
-          {/* Filename & Audio Track */}
+          {/* Filename & Audio Track Options */}
           <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
             <div style={{ fontSize: "12px", fontWeight: 600, color: "#9ca3af" }}>
               Export File Name
@@ -429,96 +458,153 @@ export function ExportPage({
           </div>
         </section>
 
-        {/* RIGHT COLUMN: ACTIONS & DOWNLOADS */}
+        {/* RIGHT COLUMN: PREVIEW WITH CAPCUT OUTLINE PROGRESS & ACTIONS */}
         <section style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
-          {/* Summary Preview Box */}
+          
+          {/* PREVIEW + CAPCUT-STYLE OUTLINE PROGRESS BOX */}
           <div style={{
             background: "#0c1117",
             border: "1px solid #182230",
             borderRadius: "14px",
-            padding: "22px",
+            padding: "20px",
             display: "flex",
             flexDirection: "column",
-            gap: "14px"
+            alignItems: "center",
+            gap: "16px",
+            position: "relative"
           }}>
-            <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-              <Layers size={16} color="#8b5cf6" />
-              <span style={{ fontSize: "13px", fontWeight: 700, color: "#f3f4f6" }}>Export Summary</span>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", width: "100%" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                <Film size={15} color="#8b5cf6" />
+                <span style={{ fontSize: "13px", fontWeight: 700, color: "#f3f4f6" }}>Master Preview</span>
+              </div>
+              <span style={{ fontSize: "11px", color: "#64748b", fontWeight: 600 }}>
+                {selectedAspectRatio} • {resolution}
+              </span>
             </div>
 
-            <div style={{ display: "flex", flexDirection: "column", gap: "8px", fontSize: "12px" }}>
-              <div style={{ display: "flex", justifyContent: "space-between", padding: "6px 0", borderBottom: "1px solid #151e2b" }}>
-                <span style={{ color: "#9ca3af" }}>File Name</span>
-                <span style={{ color: "#ffffff", fontWeight: 600 }}>{normalizeExportFilename(filename, format)}</span>
-              </div>
-              <div style={{ display: "flex", justifyContent: "space-between", padding: "6px 0", borderBottom: "1px solid #151e2b" }}>
-                <span style={{ color: "#9ca3af" }}>Dimensions</span>
-                <span style={{ color: "#ffffff", fontWeight: 600 }}>{dimensions.width} × {dimensions.height} ({selectedAspectRatio})</span>
-              </div>
-              <div style={{ display: "flex", justifyContent: "space-between", padding: "6px 0", borderBottom: "1px solid #151e2b" }}>
-                <span style={{ color: "#9ca3af" }}>Segments</span>
-                <span style={{ color: "#c4b5fd", fontWeight: 700 }}>{subtitles.length} kinetic caption blocks</span>
-              </div>
-              <div style={{ display: "flex", justifyContent: "space-between", padding: "6px 0" }}>
-                <span style={{ color: "#9ca3af" }}>Audio Pass</span>
-                <span style={{ color: includeAudio ? "#34d399" : "#f87171", fontWeight: 700 }}>
-                  {includeAudio ? "Included (stereo)" : "Muted"}
-                </span>
+            {/* VIDEO FRAME WITH CAPCUT ANIMATED CONIC PROGRESS BORDER */}
+            <div style={{
+              position: "relative",
+              padding: "4px",
+              borderRadius: "14px",
+              background: busy
+                ? `conic-gradient(#8b5cf6 ${progress * 3.6}deg, #d946ef ${progress * 3.6}deg, rgba(255, 255, 255, 0.08) 0deg)`
+                : "rgba(255, 255, 255, 0.1)",
+              boxShadow: busy ? "0 0 20px rgba(139, 92, 246, 0.45)" : "none",
+              transition: "box-shadow 0.3s ease"
+            }}>
+              <div style={{
+                ...previewDims,
+                background: "#05070a",
+                borderRadius: "10px",
+                overflow: "hidden",
+                position: "relative",
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "center",
+                justifyContent: "center",
+                border: "1px solid rgba(255, 255, 255, 0.05)"
+              }}>
+                {/* Subtle Film strip backdrop */}
+                <div style={{
+                  position: "absolute",
+                  inset: 0,
+                  opacity: 0.25,
+                  backgroundImage: "radial-gradient(#8b5cf6 1px, transparent 1px)",
+                  backgroundSize: "12px 12px"
+                }} />
+
+                {/* Subtitle badge indicator */}
+                <div style={{
+                  position: "absolute",
+                  bottom: "16px",
+                  padding: "4px 10px",
+                  borderRadius: "6px",
+                  background: "rgba(0, 0, 0, 0.75)",
+                  border: "1px solid rgba(255, 255, 255, 0.12)",
+                  fontSize: "10px",
+                  color: "#cbd5e1",
+                  maxWidth: "80%",
+                  whiteSpace: "nowrap",
+                  overflow: "hidden",
+                  textOverflow: "ellipsis",
+                  textAlign: "center"
+                }}>
+                  {subtitles.length > 0 ? subtitles[0].text : "Captions ready"}
+                </div>
+
+                {/* ACTIVE RENDERING OVERLAY (CAPCUT PROGRESS) */}
+                {busy && (
+                  <div style={{
+                    position: "absolute",
+                    inset: 0,
+                    background: "rgba(8, 11, 14, 0.82)",
+                    backdropFilter: "blur(4px)",
+                    display: "flex",
+                    flexDirection: "column",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    gap: "6px",
+                    zIndex: 10
+                  }}>
+                    <span style={{ fontSize: "28px", fontWeight: 900, color: "#ffffff", letterSpacing: "-0.03em" }}>
+                      {progress}%
+                    </span>
+                    <span style={{ fontSize: "11px", color: "#c4b5fd", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.06em" }}>
+                      Rendering...
+                    </span>
+                    <button
+                      type="button"
+                      onClick={cancel}
+                      style={{
+                        marginTop: "12px",
+                        display: "inline-flex",
+                        alignItems: "center",
+                        gap: "4px",
+                        padding: "4px 10px",
+                        borderRadius: "6px",
+                        background: "rgba(239, 68, 68, 0.2)",
+                        border: "1px solid rgba(239, 68, 68, 0.4)",
+                        color: "#fca5a5",
+                        fontSize: "11px",
+                        fontWeight: 600,
+                        cursor: "pointer"
+                      }}
+                    >
+                      <X size={12} />
+                      <span>Cancel</span>
+                    </button>
+                  </div>
+                )}
               </div>
             </div>
 
+            {/* STATUS NOTICES */}
             {format === "mp4" && (
-              <div style={{ padding: "10px 12px", background: "rgba(234, 179, 8, 0.08)", border: "1px solid rgba(234, 179, 8, 0.2)", borderRadius: "8px", fontSize: "11px", color: "#fde047", lineHeight: "1.4" }}>
+              <div style={{ width: "100%", padding: "10px 12px", background: "rgba(234, 179, 8, 0.08)", border: "1px solid rgba(234, 179, 8, 0.2)", borderRadius: "8px", fontSize: "11px", color: "#fde047", lineHeight: "1.4" }}>
                 {BROWSER_EXPORT_LIMITATION}
               </div>
             )}
 
             {!formatSupported && (
-              <div style={{ display: "flex", alignItems: "center", gap: "8px", padding: "10px 12px", background: "rgba(239, 68, 68, 0.1)", border: "1px solid rgba(239, 68, 68, 0.25)", borderRadius: "8px", fontSize: "12px", color: "#f87171" }}>
+              <div style={{ width: "100%", display: "flex", alignItems: "center", gap: "8px", padding: "10px 12px", background: "rgba(239, 68, 68, 0.1)", border: "1px solid rgba(239, 68, 68, 0.25)", borderRadius: "8px", fontSize: "12px", color: "#f87171" }}>
                 <XCircle size={16} />
                 <span>{availability.message ?? `${format.toUpperCase()} export is unavailable.`}</span>
               </div>
             )}
 
             {status === "error" && (
-              <div style={{ display: "flex", alignItems: "center", gap: "8px", padding: "10px 12px", background: "rgba(239, 68, 68, 0.1)", border: "1px solid rgba(239, 68, 68, 0.25)", borderRadius: "8px", fontSize: "12px", color: "#f87171" }}>
+              <div style={{ width: "100%", display: "flex", alignItems: "center", gap: "8px", padding: "10px 12px", background: "rgba(239, 68, 68, 0.1)", border: "1px solid rgba(239, 68, 68, 0.25)", borderRadius: "8px", fontSize: "12px", color: "#f87171" }}>
                 <XCircle size={16} />
                 <span>{error}</span>
               </div>
             )}
 
             {status === "success" && (
-              <div style={{ display: "flex", alignItems: "center", gap: "8px", padding: "10px 12px", background: "rgba(34, 197, 94, 0.1)", border: "1px solid rgba(34, 197, 94, 0.25)", borderRadius: "8px", fontSize: "12px", color: "#4ade80" }}>
+              <div style={{ width: "100%", display: "flex", alignItems: "center", gap: "8px", padding: "10px 12px", background: "rgba(34, 197, 94, 0.1)", border: "1px solid rgba(34, 197, 94, 0.25)", borderRadius: "8px", fontSize: "12px", color: "#4ade80" }}>
                 <CheckCircle2 size={16} />
                 <span>Video rendered and downloaded successfully!</span>
-              </div>
-            )}
-
-            {busy && (
-              <div style={{ display: "flex", flexDirection: "column", gap: "8px", padding: "12px", background: "#101622", borderRadius: "10px", border: "1px solid #1f2a3a" }}>
-                <div style={{ display: "flex", justifyContent: "space-between", fontSize: "12px" }}>
-                  <span style={{ color: "#9ca3af" }}>Rendering video stream...</span>
-                  <strong style={{ color: "#8b5cf6" }}>{Math.round(progress)}%</strong>
-                </div>
-                <div style={{ width: "100%", height: "6px", background: "#1b2330", borderRadius: "999px", overflow: "hidden" }}>
-                  <div style={{ width: `${progress}%`, height: "100%", background: "linear-gradient(90deg, #8b5cf6, #d946ef)", transition: "width 0.2s ease" }} />
-                </div>
-                <button
-                  type="button"
-                  onClick={cancel}
-                  style={{
-                    background: "transparent",
-                    border: "none",
-                    color: "#f87171",
-                    fontSize: "11px",
-                    fontWeight: 600,
-                    cursor: "pointer",
-                    alignSelf: "flex-end",
-                    marginTop: "4px"
-                  }}
-                >
-                  Cancel Render
-                </button>
               </div>
             )}
 
@@ -542,21 +628,21 @@ export function ExportPage({
                 fontWeight: 700,
                 cursor: busy || !formatSupported ? "not-allowed" : "pointer",
                 boxShadow: busy || !formatSupported ? "none" : "0 4px 18px rgba(139, 92, 246, 0.4)",
-                transition: "transform 0.15s ease"
+                transition: "all 0.15s ease"
               }}
             >
               <Film size={18} />
-              <span>{busy ? "Rendering project in browser…" : "Render and Download Video"}</span>
+              <span>{busy ? `Rendering (${progress}%)…` : "Render and Download Video"}</span>
               <Download size={16} />
             </button>
           </div>
 
-          {/* Subtitle Downloads */}
+          {/* Subtitle Interchange Downloads */}
           <div style={{
             background: "#0c1117",
             border: "1px solid #182230",
             borderRadius: "14px",
-            padding: "20px",
+            padding: "18px",
             display: "flex",
             flexDirection: "column",
             gap: "12px"
@@ -565,9 +651,6 @@ export function ExportPage({
               <FileText size={16} color="#8b5cf6" />
               <span style={{ fontSize: "13px", fontWeight: 700, color: "#f3f4f6" }}>Subtitle Interchanges</span>
             </div>
-            <p style={{ fontSize: "12px", color: "#6b7280", margin: "0 0 4px 0" }}>
-              Download standalone caption files synced to your timeline for YouTube, Premiere, or Final Cut.
-            </p>
 
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px" }}>
               <button
@@ -578,7 +661,7 @@ export function ExportPage({
                   display: "flex",
                   alignItems: "center",
                   gap: "10px",
-                  padding: "12px 14px",
+                  padding: "10px 12px",
                   borderRadius: "8px",
                   background: "#101622",
                   border: "1px solid #1c2635",
@@ -602,7 +685,7 @@ export function ExportPage({
                   display: "flex",
                   alignItems: "center",
                   gap: "10px",
-                  padding: "12px 14px",
+                  padding: "10px 12px",
                   borderRadius: "8px",
                   background: "#101622",
                   border: "1px solid #1c2635",
