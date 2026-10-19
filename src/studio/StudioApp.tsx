@@ -99,7 +99,7 @@ function App({ initialTemplateId: _initialTemplateId, initialFile, onBackToDashb
     fontFamily: "'Inter', sans-serif",
     fontSize: 24,
     textColor: '#ffffff',
-    highlightColor: '#3b82f6',
+    highlightColor: 'var(--accent-primary)',
     boxColor: '#000000',
     style: 'outline',
     verticalPosition: 0.82,
@@ -645,7 +645,7 @@ const applyProgress = (progress: LocalTranscriptionProgress) => {
           alignItems: "center",
           justifyContent: "center",
           background: "#070b09",
-          color: "#3b82f6",
+          color: "var(--accent-primary)",
           fontFamily: "inherit",
           gap: "16px"
         }}>
@@ -653,7 +653,7 @@ const applyProgress = (progress: LocalTranscriptionProgress) => {
             width: "40px",
             height: "40px",
             border: "3px solid #14231b",
-            borderTopColor: "#3b82f6",
+            borderTopColor: "var(--accent-primary)",
             borderRadius: "50%",
             animation: "cc-spin 0.8s linear infinite"
           }} />
@@ -816,7 +816,7 @@ const applyProgress = (progress: LocalTranscriptionProgress) => {
               <div style={{
                 height: "100%",
                 width: `${Math.min(100, Math.max(0, modelStatus === "loading" ? modelProgress : transcriptionProgress))}%`,
-                background: "linear-gradient(90deg, #3b82f6, #3b82f6)",
+                background: "linear-gradient(90deg, var(--accent-primary), var(--accent-primary))",
                 borderRadius: "999px",
                 transition: "width 0.25s ease"
               }} />
@@ -824,7 +824,7 @@ const applyProgress = (progress: LocalTranscriptionProgress) => {
 
             <div style={{ display: "flex", justifyContent: "space-between", fontSize: "12px", color: "rgba(255, 255, 255, 0.5)" }}>
               <span>{modelStatus === "loading" ? "Initial model download" : `${(transcriptionProcessedDuration || 0).toFixed(1)}s / ${(transcriptionTotalDuration || 0).toFixed(1)}s`}</span>
-              <strong style={{ color: "#3b82f6" }}>
+              <strong style={{ color: "var(--accent-primary)" }}>
                 {Math.round(modelStatus === "loading" ? modelProgress : transcriptionProgress)}%
               </strong>
             </div>

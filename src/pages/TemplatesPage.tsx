@@ -38,7 +38,7 @@ export default function TemplatesPage(): ReactElement {
         
         {/* kicker and headline */}
         <div style={{ marginBottom: "28px" }}>
-          <span style={{ fontSize: "11px", fontWeight: 700, letterSpacing: "0.14em", textTransform: "uppercase", color: "#3b82f6" }}>
+          <span style={{ fontSize: "11px", fontWeight: 700, letterSpacing: "0.14em", textTransform: "uppercase", color: "var(--accent-primary)" }}>
             viral caption presets
           </span>
           <h1 style={{ fontSize: "46px", fontWeight: 800, letterSpacing: "-0.03em", color: "#ffffff", margin: "10px 0 14px", lineHeight: 1.15 }}>
@@ -68,16 +68,16 @@ export default function TemplatesPage(): ReactElement {
                   fontWeight: 600,
                   cursor: "pointer",
                   transition: "all 0.18s ease",
-                  background: isActive ? "rgba(59, 130, 246, 0.12)" : "rgba(255, 255, 255, 0.03)",
-                  color: isActive ? "#3b82f6" : "rgba(255, 255, 255, 0.7)",
-                  border: isActive ? "1px solid #3b82f6" : "1px solid rgba(255, 255, 255, 0.1)",
+                  background: isActive ? "var(--accent-glow, rgba(59, 130, 246, 0.12)" : "rgba(255, 255, 255, 0.03)",
+                  color: isActive ? "var(--accent-primary)" : "rgba(255, 255, 255, 0.7)",
+                  border: isActive ? "1px solid var(--accent-primary)" : "1px solid rgba(255, 255, 255, 0.1)",
                 }}
               >
                 <span>{cat.label}</span>
                 <span style={{
                   fontSize: "11px",
                   fontWeight: 600,
-                  color: isActive ? "#3b82f6" : "rgba(255, 255, 255, 0.4)"
+                  color: isActive ? "var(--accent-primary)" : "rgba(255, 255, 255, 0.4)"
                 }}>
                   {cat.count}
                 </span>
@@ -111,9 +111,9 @@ export default function TemplatesPage(): ReactElement {
                 transition: "all 0.2s ease",
               }}
               onMouseEnter={e => {
-                e.currentTarget.style.borderColor = "rgba(59, 130, 246, 0.55)";
+                e.currentTarget.style.borderColor = "var(--accent-glow, rgba(59, 130, 246, 0.55)";
                 e.currentTarget.style.transform = "translateY(-2px)";
-                e.currentTarget.style.boxShadow = "0 12px 30px rgba(59, 130, 246, 0.1)";
+                e.currentTarget.style.boxShadow = "0 12px 30px var(--accent-glow, var(--accent-soft)";
               }}
               onMouseLeave={e => {
                 e.currentTarget.style.borderColor = "rgba(255, 255, 255, 0.08)";
@@ -153,7 +153,7 @@ export default function TemplatesPage(): ReactElement {
                     fontWeight: 800,
                     padding: "3px 8px",
                     borderRadius: "999px",
-                    background: template.badge.toLowerCase() === "new" ? "#3b82f6" : "#38bdf8",
+                    background: template.badge.toLowerCase() === "new" ? "var(--accent-primary)" : "#38bdf8",
                     color: "#ffffff",
                     textTransform: "lowercase",
                   }}>

@@ -428,9 +428,9 @@ export const Sidebar: React.FC<SidebarProps> = ({
               disabled={selectedLayer !== "caption" || (!copiedCaption && !hasSelectedSubtitle)}
               title={copiedCaption ? "Click to paste caption at needle position" : "Copy selected caption"}
               style={{
-                background: copiedCaption ? "rgba(59, 130, 246, 0.28)" : undefined,
+                background: copiedCaption ? "var(--accent-glow, rgba(59, 130, 246, 0.28)" : undefined,
                 color: copiedCaption ? "#93c5fd" : undefined,
-                border: copiedCaption ? "1px solid #3b82f6" : undefined,
+                border: copiedCaption ? "1px solid var(--accent-primary)" : undefined,
               }}
             >
               {copiedCaption ? <ClipboardCheck size={14} /> : <Copy size={14} />}
@@ -631,7 +631,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 flex: 1,
                 height: "32px",
                 borderRadius: "5px",
-                background: isPlaying ? "rgba(239, 68, 68, 0.16)" : "#3b82f6",
+                background: isPlaying ? "rgba(239, 68, 68, 0.16)" : "var(--accent-primary)",
                 border: isPlaying ? "1px solid rgba(239, 68, 68, 0.4)" : "none",
                 color: "#ffffff",
                 display: "flex",
@@ -664,8 +664,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 flex: 1,
                 height: "32px",
                 borderRadius: "5px",
-                background: activeAudioTarget === "music" ? "rgba(52, 211, 153, 0.16)" : "rgba(59, 130, 246, 0.16)",
-                border: activeAudioTarget === "music" ? "1px solid rgba(52, 211, 153, 0.45)" : "1px solid rgba(59, 130, 246, 0.45)",
+                background: activeAudioTarget === "music" ? "rgba(52, 211, 153, 0.16)" : "var(--accent-glow, rgba(59, 130, 246, 0.16)",
+                border: activeAudioTarget === "music" ? "1px solid rgba(52, 211, 153, 0.45)" : "1px solid var(--accent-glow, rgba(59, 130, 246, 0.45)",
                 color: activeAudioTarget === "music" ? "#60a5fa" : "#93c5fd",
                 display: "flex",
                 alignItems: "center",
@@ -757,7 +757,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 }}
                 style={{
                   flex: 1,
-                  accentColor: activeAudioTarget === "music" ? "#60a5fa" : "#3b82f6",
+                  accentColor: activeAudioTarget === "music" ? "#60a5fa" : "var(--accent-primary)",
                   cursor: "pointer",
                   height: "4px",
                 }}

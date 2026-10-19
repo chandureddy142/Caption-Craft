@@ -21,7 +21,7 @@ const TIERS: ReadonlyArray<PricingTier> = [
   {
     name: "Starter",
     badge: "Active Now",
-    badgeColor: "#3b82f6",
+    badgeColor: "var(--accent-primary)",
     monthlyPrice: 0,
     yearlyPrice: 0,
     desc: "Everything you need to create viral Telugu & Tenglish captions right now.",
@@ -55,7 +55,7 @@ const TIERS: ReadonlyArray<PricingTier> = [
   {
     name: "Viral Pro",
     badge: "Editor's Choice",
-    badgeColor: "#3b82f6",
+    badgeColor: "var(--accent-primary)",
     monthlyPrice: 150,
     yearlyPrice: 1499,
     desc: "Our flagship toolkit for serious creators seeking maximum audience retention.",
@@ -99,8 +99,8 @@ export default function PricingPage(): ReactElement {
         
         {/* Early Beta Notice Banner */}
         <div style={{
-          background: "linear-gradient(135deg, rgba(59, 130, 246, 0.08) 0%, rgba(56, 189, 248, 0.04) 100%)",
-          border: "1px solid rgba(59, 130, 246, 0.3)",
+          background: "linear-gradient(135deg, var(--accent-glow, rgba(59, 130, 246, 0.08) 0%, rgba(56, 189, 248, 0.04) 100%)",
+          border: "1px solid var(--accent-glow, var(--accent-glow)",
           borderRadius: "16px",
           padding: "16px 24px",
           display: "flex",
@@ -115,8 +115,8 @@ export default function PricingPage(): ReactElement {
               width: "10px",
               height: "10px",
               borderRadius: "50%",
-              background: "#3b82f6",
-              boxShadow: "0 0 12px #3b82f6",
+              background: "var(--accent-primary)",
+              boxShadow: "0 0 12px var(--accent-primary)",
               display: "inline-block"
             }} />
             <div>
@@ -131,14 +131,14 @@ export default function PricingPage(): ReactElement {
           <Link
             to="/studio"
             style={{
-              background: "#3b82f6",
+              background: "var(--accent-primary)",
               color: "#ffffff",
               padding: "8px 18px",
               borderRadius: "10px",
               fontSize: "13px",
               fontWeight: 700,
               textDecoration: "none",
-              boxShadow: "0 0 20px rgba(59, 130, 246, 0.25)"
+              boxShadow: "0 0 20px var(--accent-glow, var(--accent-glow)"
             }}
           >
             open studio for free →
@@ -147,7 +147,7 @@ export default function PricingPage(): ReactElement {
 
         {/* Heading */}
         <div style={{ textAlign: "center", marginBottom: "36px" }}>
-          <span style={{ fontSize: "11px", fontWeight: 700, letterSpacing: "0.14em", textTransform: "uppercase", color: "#3b82f6" }}>
+          <span style={{ fontSize: "11px", fontWeight: 700, letterSpacing: "0.14em", textTransform: "uppercase", color: "var(--accent-primary)" }}>
             creator friendly pricing
           </span>
           <h1 style={{ fontSize: "44px", fontWeight: 800, letterSpacing: "-0.03em", color: "#fff", margin: "10px 0 14px" }}>
@@ -169,7 +169,7 @@ export default function PricingPage(): ReactElement {
                 fontSize: "13px",
                 fontWeight: 600,
                 cursor: "pointer",
-                background: billing === "monthly" ? "#3b82f6" : "transparent",
+                background: billing === "monthly" ? "var(--accent-primary)" : "transparent",
                 color: billing === "monthly" ? "#050807" : "rgba(255, 255, 255, 0.7)",
                 transition: "all 0.2s ease"
               }}
@@ -189,7 +189,7 @@ export default function PricingPage(): ReactElement {
                 fontSize: "13px",
                 fontWeight: 600,
                 cursor: "pointer",
-                background: billing === "yearly" ? "#3b82f6" : "transparent",
+                background: billing === "yearly" ? "var(--accent-primary)" : "transparent",
                 color: billing === "yearly" ? "#050807" : "rgba(255, 255, 255, 0.7)",
                 transition: "all 0.2s ease"
               }}
@@ -200,8 +200,8 @@ export default function PricingPage(): ReactElement {
                 fontWeight: 800,
                 padding: "2px 7px",
                 borderRadius: "999px",
-                background: billing === "yearly" ? "#050807" : "rgba(59, 130, 246, 0.15)",
-                color: billing === "yearly" ? "#3b82f6" : "#3b82f6"
+                background: billing === "yearly" ? "#050807" : "var(--accent-glow, var(--accent-soft)",
+                color: billing === "yearly" ? "var(--accent-primary)" : "var(--accent-primary)"
               }}>
                 save ~20%
               </span>
@@ -228,14 +228,14 @@ export default function PricingPage(): ReactElement {
               <div
                 key={tier.name}
                 style={{
-                  background: tier.isPopular ? "rgba(59, 130, 246, 0.04)" : "#0c110e",
-                  border: tier.isPopular ? "2px solid rgba(59, 130, 246, 0.5)" : "1px solid rgba(255, 255, 255, 0.08)",
+                  background: tier.isPopular ? "var(--accent-glow, rgba(59, 130, 246, 0.04)" : "#0c110e",
+                  border: tier.isPopular ? "2px solid var(--accent-glow, rgba(59, 130, 246, 0.5)" : "1px solid rgba(255, 255, 255, 0.08)",
                   borderRadius: "20px",
                   padding: "32px 24px",
                   display: "flex",
                   flexDirection: "column",
                   position: "relative",
-                  boxShadow: tier.isPopular ? "0 14px 40px rgba(59, 130, 246, 0.08)" : "none"
+                  boxShadow: tier.isPopular ? "0 14px 40px var(--accent-glow, rgba(59, 130, 246, 0.08)" : "none"
                 }}
               >
                 {/* Badge */}
@@ -246,7 +246,7 @@ export default function PricingPage(): ReactElement {
                       fontWeight: 800,
                       padding: "3px 10px",
                       borderRadius: "999px",
-                      background: tier.isPopular ? "#3b82f6" : "rgba(255, 255, 255, 0.08)",
+                      background: tier.isPopular ? "var(--accent-primary)" : "rgba(255, 255, 255, 0.08)",
                       color: tier.isPopular ? "#050807" : (tier.badgeColor || "#fff"),
                       letterSpacing: "0.02em"
                     }}>
@@ -274,7 +274,7 @@ export default function PricingPage(): ReactElement {
 
                 {/* Yearly Subtext */}
                 {billing === "yearly" && tier.monthlyPrice > 0 && (
-                  <div style={{ fontSize: "11px", color: "#3b82f6", fontWeight: 600, marginBottom: "16px" }}>
+                  <div style={{ fontSize: "11px", color: "var(--accent-primary)", fontWeight: 600, marginBottom: "16px" }}>
                     just ~₹{Math.round(tier.yearlyPrice / 12)}/month billed annually
                   </div>
                 )}
@@ -286,7 +286,7 @@ export default function PricingPage(): ReactElement {
                 <ul style={{ listStyle: "none", padding: 0, margin: "0 0 32px", display: "flex", flexDirection: "column", gap: "11px", flex: 1 }}>
                   {tier.features.map(f => (
                     <li key={f} style={{ display: "flex", alignItems: "flex-start", gap: "10px", fontSize: "13px", color: "rgba(255, 255, 255, 0.75)", lineHeight: 1.4 }}>
-                      <span style={{ color: "#3b82f6", fontWeight: 800, flexShrink: 0 }}>✓</span>
+                      <span style={{ color: "var(--accent-primary)", fontWeight: 800, flexShrink: 0 }}>✓</span>
                       <span>{f}</span>
                     </li>
                   ))}
@@ -304,9 +304,9 @@ export default function PricingPage(): ReactElement {
                       textDecoration: "none",
                       fontSize: "13px",
                       fontWeight: 700,
-                      background: "#3b82f6",
+                      background: "var(--accent-primary)",
                       color: "#ffffff",
-                      boxShadow: "0 0 20px rgba(59, 130, 246, 0.25)"
+                      boxShadow: "0 0 20px var(--accent-glow, var(--accent-glow)"
                     }}
                   >
                     {tier.ctaText} →

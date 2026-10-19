@@ -1532,7 +1532,7 @@ const [selectedSegmentId, setSelectedSegmentId] = useState<string | null>(null);
                 padding: "4px 9px",
                 borderRadius: "6px",
                 border: "1px solid rgba(255, 255, 255, 0.12)",
-                background: isZoom100 ? "rgba(59, 130, 246, 0.15)" : "rgba(255, 255, 255, 0.04)",
+                background: isZoom100 ? "var(--accent-glow, var(--accent-soft)" : "rgba(255, 255, 255, 0.04)",
                 color: isZoom100 ? "#93c5fd" : "#d1d5db",
                 fontSize: "11px",
                 fontWeight: 600,
@@ -1600,14 +1600,14 @@ const [selectedSegmentId, setSelectedSegmentId] = useState<string | null>(null);
                 gap: "5px",
                 padding: "5px 13px",
                 borderRadius: "6px",
-                background: "#3b82f6",
+                background: "var(--accent-primary)",
                 color: "#ffffff",
                 border: "none",
                 fontSize: "11px",
                 fontWeight: 700,
                 cursor: !duration || isExporting ? "not-allowed" : "pointer",
                 opacity: !duration || isExporting ? 0.5 : 1,
-                boxShadow: "0 2px 8px rgba(59, 130, 246, 0.3)",
+                boxShadow: "0 2px 8px var(--accent-glow, var(--accent-glow)",
                 whiteSpace: "nowrap"
               }}
             >
@@ -2302,7 +2302,7 @@ const [selectedSegmentId, setSelectedSegmentId] = useState<string | null>(null);
                     { color: "#ffffff", label: "White" },
                     { color: "#ef4444", label: "Red" },
                     { color: "#22c55e", label: "Green" },
-                    { color: "#3b82f6", label: "Blue" },
+                    { color: "var(--accent-primary)", label: "Blue" },
                     { color: "#000000", label: "Black" },
                   ].map(item => (
                     <button
@@ -2314,7 +2314,7 @@ const [selectedSegmentId, setSelectedSegmentId] = useState<string | null>(null);
                         width: "30px",
                         height: "30px",
                         borderRadius: "50%",
-                        border: settings.backgroundColor === item.color && settings.backgroundTheme === "midnight" ? "2px solid #3b82f6" : "1px solid rgba(255, 255, 255, 0.2)",
+                        border: settings.backgroundColor === item.color && settings.backgroundTheme === "midnight" ? "2px solid var(--accent-primary)" : "1px solid rgba(255, 255, 255, 0.2)",
                         cursor: "pointer",
                         display: "flex",
                         alignItems: "center",
@@ -2396,7 +2396,7 @@ const [selectedSegmentId, setSelectedSegmentId] = useState<string | null>(null);
                             height: "56px",
                             borderRadius: "6px",
                             background: g.css,
-                            border: isSelected ? "2px solid #3b82f6" : "1px solid rgba(255, 255, 255, 0.12)",
+                            border: isSelected ? "2px solid var(--accent-primary)" : "1px solid rgba(255, 255, 255, 0.12)",
                             display: "flex",
                             alignItems: "center",
                             justifyContent: "center",
@@ -2429,7 +2429,7 @@ const [selectedSegmentId, setSelectedSegmentId] = useState<string | null>(null);
                     msOverflowStyle: "none"
                   }}
                 >
-                  {[{"id":"pattern-grid","name":"Grid","css":"radial-gradient(rgba(255,255,255,0.2) 1px, transparent 1px), #0f172a","bgSize":"16px 16px"},{"id":"pattern-dots","name":"Dots","css":"radial-gradient(rgba(255,255,255,0.15) 1.5px, transparent 1.5px), #1e1b4b","bgSize":"14px 14px"},{"id":"pattern-lines","name":"Lines","css":"repeating-linear-gradient(45deg, rgba(255,255,255,0.05) 0, rgba(255,255,255,0.05) 1px, transparent 0, transparent 10px), #0c1017"},{"id":"pattern-carbon","name":"Carbon","css":"linear-gradient(27deg, #151515 5px, transparent 5px) 0 5px, linear-gradient(207deg, #151515 5px, transparent 5px) 10px 0px, #111"},{"id":"pattern-cubes","name":"Blueprint","css":"linear-gradient(rgba(56, 189, 248, 0.1) 1px, transparent 1px), linear-gradient(90deg, rgba(56, 189, 248, 0.1) 1px, transparent 1px), #030712","bgSize":"20px 20px"},{"id":"pattern-hex","name":"Hexagon","css":"radial-gradient(circle at 50% 50%, rgba(168, 85, 247, 0.15) 20%, transparent 20%), #090b10","bgSize":"18px 18px"},{"id":"pattern-paper","name":"Paper","css":"radial-gradient(#ffffff 0.5px, transparent 0.5px), #1e293b","bgSize":"12px 12px"},{"id":"pattern-noise","name":"Studio","css":"radial-gradient(circle at center, #1e293b 0%, #090d16 100%)"},{"id":"pattern-scanlines","name":"Scanlines","css":"repeating-linear-gradient(0deg, rgba(0,0,0,0.3) 0px, rgba(0,0,0,0.3) 1px, transparent 1px, transparent 2px), #1e1b4b"},{"id":"pattern-glow","name":"Glow Orb","css":"radial-gradient(circle at 50% 30%, rgba(59, 130, 246, 0.4) 0%, transparent 70%), #020617"}].map(p => {
+                  {[{"id":"pattern-grid","name":"Grid","css":"radial-gradient(rgba(255,255,255,0.2) 1px, transparent 1px), #0f172a","bgSize":"16px 16px"},{"id":"pattern-dots","name":"Dots","css":"radial-gradient(rgba(255,255,255,0.15) 1.5px, transparent 1.5px), #1e1b4b","bgSize":"14px 14px"},{"id":"pattern-lines","name":"Lines","css":"repeating-linear-gradient(45deg, rgba(255,255,255,0.05) 0, rgba(255,255,255,0.05) 1px, transparent 0, transparent 10px), #0c1017"},{"id":"pattern-carbon","name":"Carbon","css":"linear-gradient(27deg, #151515 5px, transparent 5px) 0 5px, linear-gradient(207deg, #151515 5px, transparent 5px) 10px 0px, #111"},{"id":"pattern-cubes","name":"Blueprint","css":"linear-gradient(rgba(56, 189, 248, 0.1) 1px, transparent 1px), linear-gradient(90deg, rgba(56, 189, 248, 0.1) 1px, transparent 1px), #030712","bgSize":"20px 20px"},{"id":"pattern-hex","name":"Hexagon","css":"radial-gradient(circle at 50% 50%, rgba(168, 85, 247, 0.15) 20%, transparent 20%), #090b10","bgSize":"18px 18px"},{"id":"pattern-paper","name":"Paper","css":"radial-gradient(#ffffff 0.5px, transparent 0.5px), #1e293b","bgSize":"12px 12px"},{"id":"pattern-noise","name":"Studio","css":"radial-gradient(circle at center, #1e293b 0%, #090d16 100%)"},{"id":"pattern-scanlines","name":"Scanlines","css":"repeating-linear-gradient(0deg, rgba(0,0,0,0.3) 0px, rgba(0,0,0,0.3) 1px, transparent 1px, transparent 2px), #1e1b4b"},{"id":"pattern-glow","name":"Glow Orb","css":"radial-gradient(circle at 50% 30%, var(--accent-glow, rgba(59, 130, 246, 0.4) 0%, transparent 70%), #020617"}].map(p => {
                     const isSelected = settings.backgroundTheme === p.id;
                     return (
                       <button
@@ -2455,7 +2455,7 @@ const [selectedSegmentId, setSelectedSegmentId] = useState<string | null>(null);
                             borderRadius: "6px",
                             background: p.css,
                             backgroundSize: p.bgSize || "auto",
-                            border: isSelected ? "2px solid #3b82f6" : "1px solid rgba(255, 255, 255, 0.12)",
+                            border: isSelected ? "2px solid var(--accent-primary)" : "1px solid rgba(255, 255, 255, 0.12)",
                             display: "flex",
                             alignItems: "center",
                             justifyContent: "center",
@@ -2494,7 +2494,7 @@ const [selectedSegmentId, setSelectedSegmentId] = useState<string | null>(null);
                     textAlign: "center"
                   }}
                 >
-                  <FolderUp size={18} color="#3b82f6" />
+                  <FolderUp size={18} color="var(--accent-primary)" />
                   <span style={{ fontSize: "0.74rem", fontWeight: 600, color: "#ffffff" }}>Choose Photo or Video</span>
                   <small style={{ fontSize: "0.65rem", color: "rgba(255, 255, 255, 0.45)" }}>All image and video formats supported</small>
                   <input
@@ -2561,7 +2561,7 @@ const [selectedSegmentId, setSelectedSegmentId] = useState<string | null>(null);
                                 borderRadius: "4px",
                                 cursor: "pointer",
                                 color: "#ffffff",
-                                background: isActive ? "#2563eb" : "transparent"
+                                background: isActive ? "var(--accent-hover)" : "transparent"
                               }}
                             >
                               {item.label}
@@ -2610,8 +2610,8 @@ const [selectedSegmentId, setSelectedSegmentId] = useState<string | null>(null);
                             onBlur={() => setHoveredTemplateId(null)}
                             onClick={() => setSettings(applyTemplateToSettings(settings, template.id))}
                             style={{
-                              background: isSelected ? "rgba(59, 130, 246, 0.16)" : "#14171c",
-                              border: isSelected ? "1.5px solid #3b82f6" : "1px solid #232730",
+                              background: isSelected ? "var(--accent-glow, rgba(59, 130, 246, 0.16)" : "#14171c",
+                              border: isSelected ? "1.5px solid var(--accent-primary)" : "1px solid #232730",
                               borderRadius: "12px",
                               padding: "8px",
                               display: "flex",
@@ -2764,7 +2764,7 @@ const [selectedSegmentId, setSelectedSegmentId] = useState<string | null>(null);
                             borderRadius: "4px",
                             cursor: "pointer",
                             color: "#ffffff",
-                            background: isActive ? "#2563eb" : "transparent"
+                            background: isActive ? "var(--accent-hover)" : "transparent"
                           }}
                         >
                           {w.label}
@@ -2909,7 +2909,7 @@ const [selectedSegmentId, setSelectedSegmentId] = useState<string | null>(null);
                     <input
                       type="color"
                       className="hidden-color-input"
-                      value={settings.highlightColor.startsWith("#") ? settings.highlightColor : "#3b82f6"}
+                      value={settings.highlightColor.startsWith("#") ? settings.highlightColor : "var(--accent-primary)"}
                       onChange={e => setAppearance("highlightColor", e.target.value)}
                     />
                   </label>

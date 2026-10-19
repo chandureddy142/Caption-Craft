@@ -84,7 +84,7 @@ export default function LoginPage(): ReactElement {
           }}
           onMouseEnter={e => {
             if (!busy) {
-              e.currentTarget.style.borderColor = "rgba(59, 130, 246, 0.5)";
+              e.currentTarget.style.borderColor = "var(--accent-glow, rgba(59, 130, 246, 0.5)";
               e.currentTarget.style.background = "#14251E";
             }
           }}

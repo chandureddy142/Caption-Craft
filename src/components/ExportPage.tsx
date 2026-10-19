@@ -201,7 +201,7 @@ export function ExportPage({
       }}>
         <div>
           <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-            <span style={{ fontSize: "11px", fontWeight: 700, color: "#3b82f6", letterSpacing: "0.06em", textTransform: "uppercase" }}>
+            <span style={{ fontSize: "11px", fontWeight: 700, color: "var(--accent-primary)", letterSpacing: "0.06em", textTransform: "uppercase" }}>
               Studio Export
             </span>
             <span style={{ color: "#374151" }}>•</span>
@@ -223,7 +223,7 @@ export function ExportPage({
           fontSize: "12px",
           color: "#94a3b8"
         }}>
-          <Sparkles size={14} color="#3b82f6" />
+          <Sparkles size={14} color="var(--accent-primary)" />
           <span>Output: <strong style={{ color: "#fff" }}>{dimensions.width} × {dimensions.height}</strong></span>
           <span style={{ color: "#334155" }}>|</span>
           <span>{duration > 0 ? `${duration.toFixed(1)}s` : "Source duration"}</span>
@@ -249,7 +249,7 @@ export function ExportPage({
           gap: "22px"
         }}>
           <div style={{ display: "flex", alignItems: "center", gap: "8px", borderBottom: "1px solid #151e2b", paddingBottom: "12px" }}>
-            <Sliders size={16} color="#3b82f6" />
+            <Sliders size={16} color="var(--accent-primary)" />
             <span style={{ fontSize: "13px", fontWeight: 700, color: "#f3f4f6" }}>Render Settings</span>
           </div>
 
@@ -269,8 +269,8 @@ export function ExportPage({
                     onClick={() => setResolution(val)}
                     style={{
                       padding: "10px 0",
-                      background: isSelected ? "rgba(59, 130, 246, 0.14)" : "#181f2a",
-                      border: isSelected ? "1.5px solid #3b82f6" : "1px solid #1c2635",
+                      background: isSelected ? "var(--accent-glow, rgba(59, 130, 246, 0.14)" : "#181f2a",
+                      border: isSelected ? "1.5px solid var(--accent-primary)" : "1px solid #1c2635",
                       color: isSelected ? "#93c5fd" : "#94a3b8",
                       borderRadius: "8px",
                       fontSize: "12px",
@@ -309,8 +309,8 @@ export function ExportPage({
                       justifyContent: "space-between",
                       padding: "10px 14px",
                       borderRadius: "8px",
-                      background: isSelected ? "rgba(59, 130, 246, 0.12)" : "#181f2a",
-                      border: isSelected ? "1.5px solid #3b82f6" : "1px solid #1c2635",
+                      background: isSelected ? "var(--accent-glow, rgba(59, 130, 246, 0.12)" : "#181f2a",
+                      border: isSelected ? "1.5px solid var(--accent-primary)" : "1px solid #1c2635",
                       color: isSelected ? "#ffffff" : "#94a3b8",
                       cursor: busy ? "not-allowed" : "pointer",
                       fontSize: "12px",
@@ -346,8 +346,8 @@ export function ExportPage({
                         flex: 1,
                         padding: "8px 0",
                         borderRadius: "7px",
-                        background: isSelected ? "#3b82f6" : "#181f2a",
-                        border: isSelected ? "1px solid #3b82f6" : "1px solid #1c2635",
+                        background: isSelected ? "var(--accent-primary)" : "#181f2a",
+                        border: isSelected ? "1px solid var(--accent-primary)" : "1px solid #1c2635",
                         color: isSelected ? "#ffffff" : "#94a3b8",
                         fontSize: "12px",
                         fontWeight: 700,
@@ -440,7 +440,7 @@ export function ExportPage({
               marginTop: "4px"
             }}>
               <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-                {includeAudio ? <Volume2 size={16} color="#3b82f6" /> : <VolumeX size={16} color="#64748b" />}
+                {includeAudio ? <Volume2 size={16} color="var(--accent-primary)" /> : <VolumeX size={16} color="#64748b" />}
                 <div>
                   <div style={{ fontSize: "12px", fontWeight: 600, color: "#f3f4f6" }}>Include Master Audio</div>
                   <div style={{ fontSize: "11px", color: "#64748b" }}>Export with voiceover and background track</div>
@@ -451,7 +451,7 @@ export function ExportPage({
                 checked={includeAudio}
                 disabled={busy}
                 onChange={event => setIncludeAudio(event.target.checked)}
-                style={{ width: "16px", height: "16px", accentColor: "#3b82f6", cursor: "pointer" }}
+                style={{ width: "16px", height: "16px", accentColor: "var(--accent-primary)", cursor: "pointer" }}
               />
             </label>
           </div>
@@ -474,7 +474,7 @@ export function ExportPage({
           }}>
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", width: "100%" }}>
               <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                <Film size={15} color="#3b82f6" />
+                <Film size={15} color="var(--accent-primary)" />
                 <span style={{ fontSize: "13px", fontWeight: 700, color: "#f3f4f6" }}>Master Preview</span>
               </div>
               <span style={{ fontSize: "11px", color: "#64748b", fontWeight: 600 }}>
@@ -488,9 +488,9 @@ export function ExportPage({
               padding: "4px",
               borderRadius: "14px",
               background: busy
-                ? `conic-gradient(#3b82f6 ${progress * 3.6}deg, #d946ef ${progress * 3.6}deg, rgba(255, 255, 255, 0.08) 0deg)`
+                ? `conic-gradient(var(--accent-primary) ${progress * 3.6}deg, #d946ef ${progress * 3.6}deg, rgba(255, 255, 255, 0.08) 0deg)`
                 : "rgba(255, 255, 255, 0.1)",
-              boxShadow: busy ? "0 0 20px rgba(59, 130, 246, 0.35)" : "none",
+              boxShadow: busy ? "0 0 20px var(--accent-glow, rgba(59, 130, 246, 0.35)" : "none",
               transition: "box-shadow 0.3s ease"
             }}>
               <div style={{
@@ -510,7 +510,7 @@ export function ExportPage({
                   position: "absolute",
                   inset: 0,
                   opacity: 0.25,
-                  backgroundImage: "radial-gradient(#3b82f6 1px, transparent 1px)",
+                  backgroundImage: "radial-gradient(var(--accent-primary) 1px, transparent 1px)",
                   backgroundSize: "12px 12px"
                 }} />
 
@@ -620,13 +620,13 @@ export function ExportPage({
                 width: "100%",
                 padding: "14px",
                 borderRadius: "10px",
-                background: busy || !formatSupported ? "#1e293b" : "linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)",
+                background: busy || !formatSupported ? "#1e293b" : "linear-gradient(135deg, var(--accent-primary) 0%, var(--accent-hover) 100%)",
                 color: "#ffffff",
                 border: "none",
                 fontSize: "14px",
                 fontWeight: 700,
                 cursor: busy || !formatSupported ? "not-allowed" : "pointer",
-                boxShadow: busy || !formatSupported ? "none" : "0 4px 18px rgba(59, 130, 246, 0.35)",
+                boxShadow: busy || !formatSupported ? "none" : "0 4px 18px var(--accent-glow, rgba(59, 130, 246, 0.35)",
                 transition: "all 0.15s ease"
               }}
             >
@@ -647,7 +647,7 @@ export function ExportPage({
             gap: "12px"
           }}>
             <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-              <FileText size={16} color="#3b82f6" />
+              <FileText size={16} color="var(--accent-primary)" />
               <span style={{ fontSize: "13px", fontWeight: 700, color: "#f3f4f6" }}>Subtitle Interchanges</span>
             </div>
 
@@ -693,7 +693,7 @@ export function ExportPage({
                   textAlign: "left"
                 }}
               >
-                <FileText size={16} color="#3b82f6" />
+                <FileText size={16} color="var(--accent-primary)" />
                 <div>
                   <div style={{ fontSize: "12px", fontWeight: 700 }}>Download VTT</div>
                   <div style={{ fontSize: "10px", color: "#64748b" }}>Web & HTML5 standard</div>
