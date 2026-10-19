@@ -943,7 +943,7 @@ const [selectedSegmentId, setSelectedSegmentId] = useState<string | null>(null);
     }
   };
 
-  const handleExportVideo = () => {
+  const handleExportVideo = async () => {
     const media = mediaRef.current;
     if (!media) {
       setExportError("Preview is not ready for a video export.");
@@ -998,6 +998,20 @@ const [selectedSegmentId, setSelectedSegmentId] = useState<string | null>(null);
       setIsExporting(false);
       setExportError("No supported export codec is available in this browser.");
       return;
+    }
+
+    // Ensure custom image is completely decoded before starting recorder
+    if (settings.backgroundTheme === "custom-image" && settings.customImageDataUrl) {
+      if (!customImageRef.current || !customImageRef.current.complete || customImageRef.current.naturalWidth === 0) {
+        try {
+          const img = new Image();
+          img.src = settings.customImageDataUrl;
+          await img.decode();
+          customImageRef.current = img;
+        } catch (e) {
+          console.warn("Could not pre-decode custom image backdrop:", e);
+        }
+      }
     }
 
     const combinedStream = new MediaStream([
@@ -1076,6 +1090,9 @@ const [selectedSegmentId, setSelectedSegmentId] = useState<string | null>(null);
       if (!ctx || exportCancelledRef.current) return;
 
       ctx.clearRect(0, 0, offscreen.width, offscreen.height);
+      // Paint opaque black base so transparent pixels never become white
+      ctx.fillStyle = settings.backgroundColor || "#000000";
+      ctx.fillRect(0, 0, offscreen.width, offscreen.height);
 
       const customVideo = customVideoRef.current;
       if (settings.backgroundTheme === "custom-video" && customVideo && customVideo.duration > 0) {

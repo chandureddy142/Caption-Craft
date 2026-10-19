@@ -44,7 +44,6 @@ export interface DrawBackgroundOptions {
   fitMode?: CanvasSettings["fitMode"];
 }
 
-
 function drawMediaItem(
   ctx: CanvasRenderingContext2D,
   media: HTMLImageElement | HTMLVideoElement,
@@ -68,70 +67,35 @@ function drawMediaItem(
   const canvasRatio = canvasWidth / canvasHeight;
   const mediaRatio = mediaWidth / mediaHeight;
 
-  if (mode === "blur-fill") {
-    // 1. Draw blurred, zoomed background to fill bars
-    ctx.save();
-    let bgSWidth = mediaWidth;
-    let bgSHeight = mediaHeight;
-    let bgSx = 0;
-    let bgSy = 0;
+  let renderWidth = canvasWidth;
+  let renderHeight = canvasHeight;
+  let offsetX = 0;
+  let offsetY = 0;
+
+  if (mode === "contain") {
     if (mediaRatio > canvasRatio) {
-      bgSWidth = mediaHeight * canvasRatio;
-      bgSx = (mediaWidth - bgSWidth) / 2;
+      renderWidth = canvasWidth;
+      renderHeight = canvasWidth / mediaRatio;
+      offsetY = (canvasHeight - renderHeight) / 2;
     } else {
-      bgSHeight = mediaWidth / canvasRatio;
-      bgSy = (mediaHeight - bgSHeight) / 2;
+      renderHeight = canvasHeight;
+      renderWidth = canvasHeight * mediaRatio;
+      offsetX = (canvasWidth - renderWidth) / 2;
     }
-    ctx.filter = "blur(22px) brightness(0.65)";
-    ctx.drawImage(media, bgSx, bgSy, bgSWidth, bgSHeight, -20, -20, canvasWidth + 40, canvasHeight + 40);
-    ctx.restore();
-
-    // 2. Draw sharp, aspect-ratio preserved media centered on top
-    let dWidth = canvasWidth;
-    let dHeight = canvasHeight;
-    let dx = 0;
-    let dy = 0;
-    if (mediaRatio > canvasRatio) {
-      dHeight = canvasWidth / mediaRatio;
-      dy = (canvasHeight - dHeight) / 2;
-    } else {
-      dWidth = canvasHeight * mediaRatio;
-      dx = (canvasWidth - dWidth) / 2;
-    }
-    ctx.drawImage(media, 0, 0, mediaWidth, mediaHeight, dx, dy, dWidth, dHeight);
-    return;
-  }
-
-  let sWidth = mediaWidth;
-  let sHeight = mediaHeight;
-  let sx = 0;
-  let sy = 0;
-
-  let dWidth = canvasWidth;
-  let dHeight = canvasHeight;
-  let dx = 0;
-  let dy = 0;
-
-  if (mode === "cover") {
-    if (mediaRatio > canvasRatio) {
-      sWidth = mediaHeight * canvasRatio;
-      sx = (mediaWidth - sWidth) / 2;
-    } else {
-      sHeight = mediaWidth / canvasRatio;
-      sy = (mediaHeight - sHeight) / 2;
-    }
-    ctx.drawImage(media, sx, sy, sWidth, sHeight, 0, 0, canvasWidth, canvasHeight);
   } else {
-    // contain / fit
+    // cover or blur-fill foreground
     if (mediaRatio > canvasRatio) {
-      dHeight = canvasWidth / mediaRatio;
-      dy = (canvasHeight - dHeight) / 2;
+      renderHeight = canvasHeight;
+      renderWidth = canvasHeight * mediaRatio;
+      offsetX = (canvasWidth - renderWidth) / 2;
     } else {
-      dWidth = canvasHeight * mediaRatio;
-      dx = (canvasWidth - dWidth) / 2;
+      renderWidth = canvasWidth;
+      renderHeight = canvasWidth / mediaRatio;
+      offsetY = (canvasHeight - renderHeight) / 2;
     }
-    ctx.drawImage(media, 0, 0, mediaWidth, mediaHeight, dx, dy, dWidth, dHeight);
   }
+
+  ctx.drawImage(media, offsetX, offsetY, renderWidth, renderHeight);
 }
 
 export function drawBackgroundToCanvas(ctx: CanvasRenderingContext2D, options: DrawBackgroundOptions) {
@@ -139,10 +103,24 @@ export function drawBackgroundToCanvas(ctx: CanvasRenderingContext2D, options: D
 
   ctx.save();
 
+  // Always fill opaque base so canvas video recording never turns white
+  ctx.fillStyle = backgroundColor || "#0b0d11";
+  ctx.fillRect(0, 0, width, height);
+
   const mode = (fitMode as "cover" | "contain" | "stretch") || "cover";
 
-  if (themeId === "custom-image" && customImage) {
-    drawMediaItem(ctx, customImage, width, height, mode);
+  if (themeId === "custom-image") {
+    if (customImage && (customImage.complete || customImage.naturalWidth > 0)) {
+      try {
+        drawMediaItem(ctx, customImage, width, height, mode);
+        if (options.overlayOpacity && options.overlayOpacity > 0) {
+          ctx.fillStyle = `rgba(0, 0, 0, ${options.overlayOpacity})`;
+          ctx.fillRect(0, 0, width, height);
+        }
+      } catch (e) {
+        console.error("Error drawing custom image:", e);
+      }
+    }
     ctx.restore();
     return;
   }
@@ -327,7 +305,7 @@ export function drawBackgroundToCanvas(ctx: CanvasRenderingContext2D, options: D
     ctx.fillRect(0, 0, width, height);
   } else {
     // Solid plain color
-    ctx.fillStyle = backgroundColor || (themeId.startsWith("#") ? themeId : "#ffffff");
+    ctx.fillStyle = backgroundColor || (themeId.startsWith("#") ? themeId : "#0b0d11");
     ctx.fillRect(0, 0, width, height);
   }
 

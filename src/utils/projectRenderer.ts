@@ -161,6 +161,18 @@ export async function renderProjectToBlob(
       throw new Error('The selected codec could not start in this browser.');
     }
 
+    let loadedCustomImage: HTMLImageElement | null = null;
+    if (settings.backgroundTheme === "custom-image" && settings.customImageDataUrl) {
+      try {
+        const img = new Image();
+        img.src = settings.customImageDataUrl;
+        await img.decode();
+        loadedCustomImage = img;
+      } catch (e) {
+        console.warn("Could not pre-decode export image in projectRenderer:", e);
+      }
+    }
+
     const chunks: Blob[] = [];
     let settled = false;
     let stopReason: Error | undefined;
@@ -225,10 +237,12 @@ export async function renderProjectToBlob(
         try {
           drawBackgroundToCanvas(context, {
             themeId: settings.backgroundTheme,
+            backgroundColor: settings.backgroundColor,
             width,
             height,
             videoElement: media instanceof HTMLVideoElement ? media : null,
             isVideoMedia: media instanceof HTMLVideoElement,
+            customImage: loadedCustomImage,
             overlayOpacity: settings.backgroundOverlayOpacity,
             fitMode: settings.fitMode,
           });
