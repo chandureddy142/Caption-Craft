@@ -1,60 +1,169 @@
 /* ==========================================================================
-   WARM EDITORIAL THEME (Ivory • White • Ink • Coral • Gold)
+   WARM EDITORIAL - INVERTED HEADER & HIGH CONTRAST CARDS
    ========================================================================== */
 
-:root {
-  /* Default: Warm Editorial Light */
+:root,
+[data-theme="light"],
+html[data-theme="light"] {
+  color-scheme: light;
+
+  /* CANVAS: Light Warm Ivory */
   --bg-app: #f7f4ed;
-  --bg-surface: #ffffff;
-  --bg-surface-elevated: #efebe1;
-  --bg-surface-hover: #e8e2d5;
-  --bg-input: #ffffff;
-
-  --border-subtle: rgba(34, 32, 30, 0.09);
-  --border-strong: rgba(34, 32, 30, 0.18);
-
   --text-primary: #22201e;
   --text-secondary: #6e6963;
   --text-muted: #968f86;
 
+  /* HEADER: Dark Ink Charcoal */
+  --nav-bg: #161514;
+  --nav-border: rgba(255, 255, 255, 0.1);
+  --nav-text-primary: #f7f4ed;
+  --nav-text-secondary: #aba49a;
+  --nav-btn-bg: rgba(255, 255, 255, 0.08);
+  --nav-btn-border: rgba(255, 255, 255, 0.16);
+
+  /* CARDS: Dark Ink matching Header with Crisp Light Typography */
+  --bg-surface: #161514;
+  --bg-surface-elevated: #201e1c;
+  --bg-surface-hover: #2a2724;
+  --bg-input: #201e1c;
+  --card-text-primary: #f7f4ed;
+  --card-text-secondary: rgba(247, 244, 237, 0.75);
+  --card-text-muted: rgba(247, 244, 237, 0.5);
+  --box-border: rgba(255, 255, 255, 0.1);
+  --card-shadow: 0 10px 30px -5px rgba(22, 21, 20, 0.35), 0 4px 12px -2px rgba(22, 21, 20, 0.2);
+  --card-shadow-hover: 0 20px 40px -5px rgba(22, 21, 20, 0.5), 0 8px 16px -2px rgba(22, 21, 20, 0.3);
+
+  /* ACCENTS */
   --accent-primary: #f06a55;
   --accent-primary-hover: #de5641;
-  --accent-surface: rgba(240, 106, 85, 0.12);
+  --accent-surface: rgba(240, 106, 85, 0.15);
   --accent-highlight: #e5a93c;
-
-  --nav-bg: rgba(247, 244, 237, 0.92);
-  --shadow-card: 0 4px 20px -3px rgba(34, 32, 30, 0.06);
+  --accent-glow: rgba(240, 106, 85, 0.4);
 }
 
-[data-theme="dark"] {
-  /* Dark Mode: Deep Ink Night with Coral & Gold */
+[data-theme="dark"],
+html[data-theme="dark"] {
+  color-scheme: dark;
+
+  /* CANVAS: Dark Ink Charcoal */
   --bg-app: #161514;
-  --bg-surface: #201e1c;
-  --bg-surface-elevated: #2a2724;
-  --bg-surface-hover: #33302c;
-  --bg-input: #1a1817;
-
-  --border-subtle: rgba(247, 244, 237, 0.09);
-  --border-strong: rgba(247, 244, 237, 0.18);
-
   --text-primary: #f7f4ed;
   --text-secondary: #aba49a;
   --text-muted: #7d766d;
 
+  /* HEADER: Light Warm Ivory */
+  --nav-bg: #f7f4ed;
+  --nav-border: rgba(34, 32, 30, 0.1);
+  --nav-text-primary: #22201e;
+  --nav-text-secondary: #6e6963;
+  --nav-btn-bg: rgba(34, 32, 30, 0.06);
+  --nav-btn-border: rgba(34, 32, 30, 0.14);
+
+  /* CARDS: Warm Ivory matching Header with Dark Ink Typography */
+  --bg-surface: #f7f4ed;
+  --bg-surface-elevated: #efebe1;
+  --bg-surface-hover: #e8e2d5;
+  --bg-input: #ffffff;
+  --card-text-primary: #22201e;
+  --card-text-secondary: rgba(34, 32, 30, 0.75);
+  --card-text-muted: rgba(34, 32, 30, 0.5);
+  --box-border: rgba(34, 32, 30, 0.12);
+  --card-shadow: 0 10px 30px -5px rgba(0, 0, 0, 0.5), 0 4px 12px -2px rgba(0, 0, 0, 0.3);
+  --card-shadow-hover: 0 20px 45px -5px rgba(0, 0, 0, 0.7);
+
+  /* ACCENTS */
   --accent-primary: #ff7561;
   --accent-primary-hover: #f06a55;
-  --accent-surface: rgba(255, 117, 97, 0.15);
+  --accent-surface: rgba(255, 117, 97, 0.18);
   --accent-highlight: #f2be54;
-
-  --nav-bg: rgba(22, 21, 20, 0.92);
-  --shadow-card: 0 4px 24px -2px rgba(0, 0, 0, 0.45);
+  --accent-glow: rgba(255, 117, 97, 0.4);
 }
 
-body {
+html, body {
+  background-color: var(--bg-app) !important;
+  color: var(--text-primary) !important;
+  min-height: 100vh;
+  margin: 0;
+  padding: 0;
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+/* THEME_TOKENS_START */
+:root {
+  /* LIGHT THEME:
+     - Page Background: Warm Cream (#f7f4ed)
+     - Header & Cards: Charcoal (#201e1c) - alternates against page background
+     - Card / Header Text: Pure White (#ffffff) - alternates against charcoal surfaces
+     - Page Body Text: Charcoal (#201e1c) - legible against cream background
+  */
+  --bg-app: #f7f4ed;
+  --bg-surface: #201e1c;
+  --bg-surface-elevated: #282624;
+  --bg-surface-hover: rgba(255, 255, 255, 0.08);
+  --box-border: rgba(255, 255, 255, 0.12);
+  --border-subtle: rgba(32, 30, 28, 0.14);
+
+  --nav-bg: #201e1c;
+  --nav-border: rgba(255, 255, 255, 0.1);
+  --nav-text-primary: #ffffff;
+  --nav-text-secondary: rgba(255, 255, 255, 0.72);
+
+  --text-primary: #201e1c;
+  --text-secondary: #5e5953;
+
+  --card-bg: #201e1c;
+  --card-border: rgba(255, 255, 255, 0.1);
+  --card-text-primary: #ffffff;
+  --card-text-secondary: rgba(255, 255, 255, 0.75);
+
+  --accent-primary: #ef5350;
+  --bg-input: #282624;
+}
+
+[data-theme="dark"],
+.dark {
+  /* DARK THEME:
+     - Page Background: Deep Base Charcoal (#181716)
+     - Header & Cards: Elevated Charcoal (#252321) - alternates against base background
+     - Card / Header Text: Pure White (#ffffff)
+     - Page Body Text: Pure White (#ffffff)
+  */
+  --bg-app: #181716;
+  --bg-surface: #252321;
+  --bg-surface-elevated: #2e2b28;
+  --bg-surface-hover: rgba(255, 255, 255, 0.06);
+  --box-border: rgba(255, 255, 255, 0.1);
+  --border-subtle: rgba(255, 255, 255, 0.08);
+
+  --nav-bg: #252321;
+  --nav-border: rgba(255, 255, 255, 0.08);
+  --nav-text-primary: #ffffff;
+  --nav-text-secondary: rgba(255, 255, 255, 0.72);
+
+  --text-primary: #ffffff;
+  --text-secondary: rgba(255, 255, 255, 0.72);
+
+  --card-bg: #252321;
+  --card-border: rgba(255, 255, 255, 0.1);
+  --card-text-primary: #ffffff;
+  --card-text-secondary: rgba(255, 255, 255, 0.72);
+
+  --accent-primary: #ef5350;
+  --bg-input: #1e1c1b;
+}
+
+body, html, #root {
   background-color: var(--bg-app);
   color: var(--text-primary);
+  min-height: 100vh;
+  margin: 0;
+  padding: 0;
   transition: background-color 0.25s ease, color 0.25s ease;
 }
+/* THEME_TOKENS_END */
+
+
+
 
 :root {
   --brand-primary: var(--accent-primary);

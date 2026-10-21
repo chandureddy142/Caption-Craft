@@ -94,13 +94,19 @@ export default function PricingPage(): ReactElement {
   const [billing, setBilling] = useState<BillingCycle>("monthly");
 
   return (
-    <div style={{ minHeight: "100vh", background: "#050807", color: "#ecf2ee", padding: "54px 24px 96px" }}>
+    <div style={{
+      minHeight: "100vh",
+      background: "var(--bg-app)",
+      color: "var(--text-primary)",
+      padding: "54px 24px 96px",
+      transition: "background-color 0.2s ease, color 0.2s ease"
+    }}>
       <div style={{ maxWidth: "1280px", margin: "0 auto" }}>
         
         {/* Early Beta Notice Banner */}
         <div style={{
-          background: "linear-gradient(135deg, var(--accent-glow, rgba(59, 130, 246, 0.08) 0%, rgba(56, 189, 248, 0.04) 100%)",
-          border: "1px solid var(--accent-glow, var(--accent-glow)",
+          background: "var(--accent-surface)",
+          border: "1px solid var(--accent-primary)",
           borderRadius: "16px",
           padding: "16px 24px",
           display: "flex",
@@ -108,7 +114,8 @@ export default function PricingPage(): ReactElement {
           alignItems: "center",
           justifyContent: "space-between",
           gap: "14px",
-          marginBottom: "48px"
+          marginBottom: "48px",
+          boxShadow: "var(--card-shadow)"
         }}>
           <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
             <span style={{
@@ -120,10 +127,10 @@ export default function PricingPage(): ReactElement {
               display: "inline-block"
             }} />
             <div>
-              <p style={{ margin: 0, fontSize: "14px", fontWeight: 700, color: "#fff" }}>
+              <p style={{ margin: 0, fontSize: "14px", fontWeight: 700, color: "var(--text-primary)" }}>
                 100% Free Public Beta in Progress
               </p>
-              <p style={{ margin: "2px 0 0", fontSize: "12px", color: "rgba(255, 255, 255, 0.65)" }}>
+              <p style={{ margin: "2px 0 0", fontSize: "12.5px", color: "var(--text-secondary)", fontWeight: 500 }}>
                 Paid plans are currently in preview while we calibrate regional AI models. Every creator can use all features for free today.
               </p>
             </div>
@@ -138,7 +145,8 @@ export default function PricingPage(): ReactElement {
               fontSize: "13px",
               fontWeight: 700,
               textDecoration: "none",
-              boxShadow: "0 0 20px var(--accent-glow, var(--accent-glow)"
+              boxShadow: "0 2px 10px var(--accent-surface)",
+              transition: "all 0.15s ease"
             }}
           >
             open studio for free →
@@ -150,15 +158,25 @@ export default function PricingPage(): ReactElement {
           <span style={{ fontSize: "11px", fontWeight: 700, letterSpacing: "0.14em", textTransform: "uppercase", color: "var(--accent-primary)" }}>
             creator friendly pricing
           </span>
-          <h1 style={{ fontSize: "44px", fontWeight: 800, letterSpacing: "-0.03em", color: "#fff", margin: "10px 0 14px" }}>
+          <h1 style={{ fontSize: "44px", fontWeight: 800, letterSpacing: "-0.03em", color: "var(--text-primary)", margin: "10px 0 14px" }}>
             simple plans for every stage of growth
           </h1>
-          <p style={{ fontSize: "15px", color: "rgba(255, 255, 255, 0.55)", maxWidth: "620px", margin: "0 auto", lineHeight: 1.6 }}>
+          <p style={{ fontSize: "15px", color: "var(--text-secondary)", maxWidth: "620px", margin: "0 auto", lineHeight: 1.6, fontWeight: 500 }}>
             accessible pricing made specifically for indian reel and short-form video creators.
           </p>
 
           {/* Monthly / Yearly Billing Toggle */}
-          <div style={{ display: "inline-flex", alignItems: "center", gap: "10px", marginTop: "32px", padding: "6px 8px", background: "#0c110e", border: "1px solid rgba(255, 255, 255, 0.1)", borderRadius: "999px" }}>
+          <div style={{
+            display: "inline-flex",
+            alignItems: "center",
+            gap: "8px",
+            marginTop: "32px",
+            padding: "5px 6px",
+            background: "var(--nav-bg)",
+            border: "1px solid var(--box-border)",
+            borderRadius: "999px",
+            boxShadow: "var(--card-shadow)"
+          }}>
             <button
               type="button"
               onClick={() => setBilling("monthly")}
@@ -167,10 +185,10 @@ export default function PricingPage(): ReactElement {
                 borderRadius: "999px",
                 border: "none",
                 fontSize: "13px",
-                fontWeight: 600,
+                fontWeight: 700,
                 cursor: "pointer",
                 background: billing === "monthly" ? "var(--accent-primary)" : "transparent",
-                color: billing === "monthly" ? "#050807" : "rgba(255, 255, 255, 0.7)",
+                color: billing === "monthly" ? "#ffffff" : "var(--card-text-secondary)",
                 transition: "all 0.2s ease"
               }}
             >
@@ -187,10 +205,10 @@ export default function PricingPage(): ReactElement {
                 borderRadius: "999px",
                 border: "none",
                 fontSize: "13px",
-                fontWeight: 600,
+                fontWeight: 700,
                 cursor: "pointer",
                 background: billing === "yearly" ? "var(--accent-primary)" : "transparent",
-                color: billing === "yearly" ? "#050807" : "rgba(255, 255, 255, 0.7)",
+                color: billing === "yearly" ? "#ffffff" : "var(--card-text-secondary)",
                 transition: "all 0.2s ease"
               }}
             >
@@ -200,8 +218,8 @@ export default function PricingPage(): ReactElement {
                 fontWeight: 800,
                 padding: "2px 7px",
                 borderRadius: "999px",
-                background: billing === "yearly" ? "#050807" : "var(--accent-glow, var(--accent-soft)",
-                color: billing === "yearly" ? "var(--accent-primary)" : "var(--accent-primary)"
+                background: billing === "yearly" ? "rgba(255, 255, 255, 0.2)" : "var(--accent-surface)",
+                color: billing === "yearly" ? "#ffffff" : "var(--accent-primary)"
               }}>
                 save ~20%
               </span>
@@ -228,14 +246,15 @@ export default function PricingPage(): ReactElement {
               <div
                 key={tier.name}
                 style={{
-                  background: tier.isPopular ? "var(--accent-glow, rgba(59, 130, 246, 0.04)" : "#0c110e",
-                  border: tier.isPopular ? "2px solid var(--accent-glow, rgba(59, 130, 246, 0.5)" : "1px solid rgba(255, 255, 255, 0.08)",
+                  background: "var(--nav-bg)",
+                  border: tier.isPopular ? "2px solid var(--accent-primary)" : "1px solid var(--box-border)",
                   borderRadius: "20px",
                   padding: "32px 24px",
                   display: "flex",
                   flexDirection: "column",
                   position: "relative",
-                  boxShadow: tier.isPopular ? "0 14px 40px var(--accent-glow, rgba(59, 130, 246, 0.08)" : "none"
+                  boxShadow: tier.isPopular ? "var(--card-shadow-hover)" : "var(--card-shadow)",
+                  transition: "all 0.2s ease"
                 }}
               >
                 {/* Badge */}
@@ -246,8 +265,9 @@ export default function PricingPage(): ReactElement {
                       fontWeight: 800,
                       padding: "3px 10px",
                       borderRadius: "999px",
-                      background: tier.isPopular ? "var(--accent-primary)" : "rgba(255, 255, 255, 0.08)",
-                      color: tier.isPopular ? "#050807" : (tier.badgeColor || "#fff"),
+                      background: tier.isPopular ? "var(--accent-primary)" : "var(--bg-surface-elevated)",
+                      color: tier.isPopular ? "#ffffff" : "var(--card-text-primary)",
+                      border: "1px solid var(--box-border)",
                       letterSpacing: "0.02em"
                     }}>
                       {tier.badge}
@@ -255,26 +275,26 @@ export default function PricingPage(): ReactElement {
                   </div>
                 )}
 
-                <h2 style={{ fontSize: "20px", fontWeight: 800, color: "#fff", margin: "0 0 6px" }}>
+                <h2 style={{ fontSize: "20px", fontWeight: 800, color: "var(--card-text-primary)", margin: "0 0 6px" }}>
                   {tier.name}
                 </h2>
-                <p style={{ fontSize: "12px", color: "rgba(255, 255, 255, 0.5)", margin: "0 0 20px", minHeight: "36px", lineHeight: 1.5 }}>
+                <p style={{ fontSize: "13px", color: "var(--card-text-secondary)", margin: "0 0 20px", minHeight: "36px", lineHeight: 1.5 }}>
                   {tier.desc}
                 </p>
 
                 {/* Price Display */}
                 <div style={{ display: "flex", alignItems: "baseline", gap: "6px", marginBottom: "8px" }}>
-                  <span style={{ fontSize: "38px", fontWeight: 800, color: "#fff", letterSpacing: "-0.02em" }}>
+                  <span style={{ fontSize: "38px", fontWeight: 800, color: "var(--card-text-primary)", letterSpacing: "-0.02em" }}>
                     {price}
                   </span>
-                  <span style={{ fontSize: "12px", color: "rgba(255, 255, 255, 0.45)" }}>
+                  <span style={{ fontSize: "12px", color: "var(--card-text-muted)", fontWeight: 600 }}>
                     {period}
                   </span>
                 </div>
 
                 {/* Yearly Subtext */}
                 {billing === "yearly" && tier.monthlyPrice > 0 && (
-                  <div style={{ fontSize: "11px", color: "var(--accent-primary)", fontWeight: 600, marginBottom: "16px" }}>
+                  <div style={{ fontSize: "11px", color: "var(--accent-primary)", fontWeight: 700, marginBottom: "16px" }}>
                     just ~₹{Math.round(tier.yearlyPrice / 12)}/month billed annually
                   </div>
                 )}
@@ -285,7 +305,7 @@ export default function PricingPage(): ReactElement {
                 {/* Features List */}
                 <ul style={{ listStyle: "none", padding: 0, margin: "0 0 32px", display: "flex", flexDirection: "column", gap: "11px", flex: 1 }}>
                   {tier.features.map(f => (
-                    <li key={f} style={{ display: "flex", alignItems: "flex-start", gap: "10px", fontSize: "13px", color: "rgba(255, 255, 255, 0.75)", lineHeight: 1.4 }}>
+                    <li key={f} style={{ display: "flex", alignItems: "flex-start", gap: "10px", fontSize: "13px", color: "var(--card-text-secondary)", lineHeight: 1.4 }}>
                       <span style={{ color: "var(--accent-primary)", fontWeight: 800, flexShrink: 0 }}>✓</span>
                       <span>{f}</span>
                     </li>
@@ -306,7 +326,8 @@ export default function PricingPage(): ReactElement {
                       fontWeight: 700,
                       background: "var(--accent-primary)",
                       color: "#ffffff",
-                      boxShadow: "0 0 20px var(--accent-glow, var(--accent-glow)"
+                      boxShadow: "0 2px 10px var(--accent-surface)",
+                      transition: "all 0.15s ease"
                     }}
                   >
                     {tier.ctaText} →
@@ -314,15 +335,16 @@ export default function PricingPage(): ReactElement {
                 ) : (
                   <button
                     disabled
+                    type="button"
                     style={{
                       width: "100%",
                       padding: "12px",
                       borderRadius: "12px",
                       fontSize: "13px",
-                      fontWeight: 600,
-                      background: "rgba(255, 255, 255, 0.04)",
-                      border: "1px solid rgba(255, 255, 255, 0.08)",
-                      color: "rgba(255, 255, 255, 0.4)",
+                      fontWeight: 700,
+                      background: "var(--bg-surface-elevated)",
+                      border: "1px solid var(--box-border)",
+                      color: "var(--card-text-muted)",
                       cursor: "not-allowed"
                     }}
                   >
@@ -335,6 +357,6 @@ export default function PricingPage(): ReactElement {
         </div>
 
       </div>
-    </div>
+      </div>
   );
 }

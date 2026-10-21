@@ -52,7 +52,6 @@ interface StudioDashboardProps {
   onSignOut?: () => void;
 }
 
-
 function parseDurationToMinutes(durationStr?: string): number {
   if (!durationStr) return 0.5;
   const parts = durationStr.split(":").map(Number);
@@ -65,7 +64,8 @@ function parseDurationToMinutes(durationStr?: string): number {
   return 0.5;
 }
 
-export const StudioDashboard: React.FC<StudioDashboardProps> = ({ onOpenFile, onOpenEditor, onSignOut }) => {  const navigate = useNavigate();
+export const StudioDashboard: React.FC<StudioDashboardProps> = ({ onOpenFile, onOpenEditor, onSignOut }) => {
+  const navigate = useNavigate();
 
   const [userId, setUserId] = useState<string>("");
   const [persistentHistoricalMinutes, setPersistentHistoricalMinutes] = useState<number>(0);
@@ -101,7 +101,7 @@ export const StudioDashboard: React.FC<StudioDashboardProps> = ({ onOpenFile, on
         const { data: { user } } = await supabase.auth.getUser();
         if (user) {
           setUserId(user.id);
-                    if (user.email) {
+          if (user.email) {
             setUserEmail(user.email);
             const historical = await getPersistentEmailUsage(user.email);
             setPersistentHistoricalMinutes(historical);
@@ -288,29 +288,26 @@ export const StudioDashboard: React.FC<StudioDashboardProps> = ({ onOpenFile, on
     if (file) processSelectedFile(file);
   };
 
-    const deleteProject = async (id: string, e: React.MouseEvent) => {
+  const deleteProject = async (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
     const projToDelete = projects.find(p => p.id === id);
     const projTitle = projToDelete?.title;
 
-    // Immediately update local UI state
     setProjects(prev => prev.filter(p => p.id !== id));
     if (projTitle) {
       setExportsList(prev => prev.filter(x => !x.project_title.toLowerCase().includes(projTitle.toLowerCase())));
     }
 
     try {
-      // Supabase database cleanup
       await supabase.from("projects").delete().eq("id", id);
       await supabase.from("exports").delete().eq("project_id", id);
-
-      // IndexedDB binary storage cleanup
       await deleteLocalProjectMedia(id);
       await deleteLocalExportsForProject(id, projTitle);
     } catch (err) {
       console.error("Error during project cleanup:", err);
     }
   };
+
   const handleDownloadExport = async (exportItem: ExportItem) => {
     try {
       const stored = await getLocalExportMedia(exportItem.id);
@@ -362,7 +359,6 @@ export const StudioDashboard: React.FC<StudioDashboardProps> = ({ onOpenFile, on
         await supabase.from("projects").delete().eq("user_id", userId);
         await supabase.from("exports").delete().eq("user_id", userId);
       }
-      // Note: We intentionally DO NOT wipe account_usage_audit so free-tier churn is prevented
       await supabase.auth.signOut();
       window.location.href = "/";
     } catch (err) {
@@ -382,7 +378,7 @@ export const StudioDashboard: React.FC<StudioDashboardProps> = ({ onOpenFile, on
       <nav style={{
         height: "64px",
         borderBottom: "1px solid var(--border-subtle)",
-        background: "rgba(5, 8, 7, 0.95)",
+        background: "var(--nav-bg)",
         backdropFilter: "blur(14px)",
         display: "flex",
         alignItems: "center",
@@ -428,99 +424,177 @@ export const StudioDashboard: React.FC<StudioDashboardProps> = ({ onOpenFile, on
           </div>
         </div>
 
-        {/* Profile Menu */}
-        <ThemeToggle />
+        {/* Right side: ThemeToggle beside Profile Avatar */}
+        <div style={{ display: "flex", alignItems: "center", gap: "14px" }}>
           <div style={{ position: "relative" }} ref={menuRef}>
-          <button
-            onClick={() => setShowProfileMenu(!showProfileMenu)}
-            style={{
-              width: "36px",
-              height: "36px",
-              borderRadius: "50%",
-              background: "var(--bg-surface-elevated)",
-              border: "2px solid var(--border-subtle)",
-              color: "var(--accent-primary)",
-              display: "grid",
-              placeItems: "center",
-              fontSize: "13px",
-              fontWeight: 700,
-              cursor: "pointer",
-              outline: "none"
-            }}
-          >
-            {userName ? userName.charAt(0).toUpperCase() : "C"}
-          </button>
+            <button
+              onClick={() => setShowProfileMenu(!showProfileMenu)}
+              style={{
+                width: "36px",
+                height: "36px",
+                borderRadius: "50%",
+                background: "var(--bg-surface-elevated)",
+                border: "2px solid var(--border-subtle)",
+                color: "var(--accent-primary)",
+                display: "grid",
+                placeItems: "center",
+                fontSize: "13px",
+                fontWeight: 700,
+                cursor: "pointer",
+                outline: "none"
+              }}
+            >
+              {userName ? userName.charAt(0).toUpperCase() : "C"}
+            </button>
 
-          {showProfileMenu && (
-            <div style={{
-              position: "absolute",
-              top: "48px",
-              right: 0,
-              width: "270px",
-              background: "var(--bg-surface)",
-              border: "1px solid #16241c",
-              borderRadius: "14px",
-              boxShadow: "0 16px 40px rgba(0,0,0,0.75)",
-              padding: "16px",
-              zIndex: 100,
-              display: "flex",
-              flexDirection: "column",
-              gap: "12px"
-            }}>
-              <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-                <div style={{
-                  width: "36px",
-                  height: "36px",
-                  borderRadius: "50%",
-                  background: "#14241b",
-                  color: "var(--accent-primary)",
-                  display: "grid",
-                  placeItems: "center",
-                  fontWeight: 700,
-                  fontSize: "14px"
-                }}>
-                  {userName ? userName.charAt(0).toUpperCase() : "C"}
-                </div>
-                <div style={{ overflow: "hidden" }}>
-                  <div style={{ fontSize: "13px", fontWeight: 700, color: "#fff", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
-                    {userName}
+            {showProfileMenu && (
+              <div style={{
+                position: "absolute",
+                top: "48px",
+                right: 0,
+                width: "270px",
+                background: "var(--card-bg, var(--bg-surface))",
+                border: "1px solid var(--box-border)",
+                borderRadius: "14px",
+                boxShadow: "var(--card-shadow, 0 16px 40px rgba(0,0,0,0.5))",
+                padding: "16px",
+                zIndex: 100,
+                display: "flex",
+                flexDirection: "column",
+                gap: "12px"
+              }}>
+                <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                  <div style={{
+                    width: "36px",
+                    height: "36px",
+                    borderRadius: "50%",
+                    background: "var(--bg-surface-elevated)",
+                    color: "var(--accent-primary)",
+                    display: "grid",
+                    placeItems: "center",
+                    fontWeight: 700,
+                    fontSize: "14px"
+                  }}>
+                    {userName ? userName.charAt(0).toUpperCase() : "C"}
                   </div>
-                  <div style={{ fontSize: "11px", color: "var(--text-secondary)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
-                    {userEmail}
+                  <div style={{ overflow: "hidden" }}>
+                    <div style={{ fontSize: "13px", fontWeight: 700, color: "var(--text-primary)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                      {userName}
+                    </div>
+                    <div style={{ fontSize: "11px", color: "var(--text-secondary)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                      {userEmail}
+                    </div>
                   </div>
                 </div>
-              </div>
 
-              <div style={{ padding: "10px", background: "var(--bg-surface-elevated)", borderRadius: "10px", border: "1px solid #14221a", display: "flex", flexDirection: "column", gap: "8px" }}>
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                  <span style={{ fontSize: "11px", color: "var(--text-secondary)" }}>plan</span>
-                  <span style={{ fontSize: "11px", color: "var(--accent-primary)", fontWeight: 700, display: "flex", alignItems: "center", gap: "4px" }}>
-                    <CheckCircle2 size={12} /> creator free
-                  </span>
-                </div>
-                <div>
-                  <div style={{ display: "flex", justifyContent: "space-between", fontSize: "10px", color: "var(--text-secondary)", marginBottom: "4px" }}>
-                    <span>transcription usage</span>
-                    <span>{totalTranscriptionMinutes} / 60 min</span>
+                <div style={{ padding: "10px", background: "var(--bg-surface-elevated)", borderRadius: "10px", border: "1px solid var(--box-border)", display: "flex", flexDirection: "column", gap: "8px" }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                    <span style={{ fontSize: "11px", color: "var(--text-secondary)" }}>plan</span>
+                    <span style={{ fontSize: "11px", color: "var(--accent-primary)", fontWeight: 700, display: "flex", alignItems: "center", gap: "4px" }}>
+                      <CheckCircle2 size={12} /> creator free
+                    </span>
                   </div>
-                  <div style={{ width: "100%", height: "4px", background: "var(--border-subtle)", borderRadius: "99px", overflow: "hidden" }}>
-                    <div style={{ width: Math.min(100, (totalTranscriptionMinutes / 60) * 100) + "%", height: "100%", background: "var(--accent-primary)", borderRadius: "99px" }} />
+                  <div>
+                    <div style={{ display: "flex", justifyContent: "space-between", fontSize: "10px", color: "var(--text-secondary)", marginBottom: "4px" }}>
+                      <span>transcription usage</span>
+                      <span>{totalTranscriptionMinutes} / 60 min</span>
+                    </div>
+                    <div style={{ width: "100%", height: "4px", background: "var(--border-subtle)", borderRadius: "99px", overflow: "hidden" }}>
+                      <div style={{ width: Math.min(100, (totalTranscriptionMinutes / 60) * 100) + "%", height: "100%", background: "var(--accent-primary)", borderRadius: "99px" }} />
+                    </div>
                   </div>
                 </div>
-              </div>
 
-              <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
+                <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
+                  <button
+                    onClick={() => {
+                      setShowProfileMenu(false);
+                      setSettingsTab("general");
+                      setShowSettingsModal(true);
+                    }}
+                    style={{
+                      background: "transparent",
+                      border: "none",
+                      color: "var(--text-primary)",
+                      padding: "8px",
+                      fontSize: "12px",
+                      fontWeight: 600,
+                      cursor: "pointer",
+                      borderRadius: "6px",
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "8px",
+                      textAlign: "left"
+                    }}
+                    onMouseEnter={(e) => (e.currentTarget.style.background = "var(--bg-surface-elevated)")}
+                    onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
+                  >
+                    <User size={14} color="var(--accent-primary)" />
+                    <span>Profile Settings</span>
+                  </button>
+
+                  <button
+                    onClick={() => {
+                      setShowProfileMenu(false);
+                      setShowBillingModal(true);
+                    }}
+                    style={{
+                      background: "transparent",
+                      border: "none",
+                      color: "var(--text-primary)",
+                      padding: "8px",
+                      fontSize: "12px",
+                      fontWeight: 600,
+                      cursor: "pointer",
+                      borderRadius: "6px",
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "8px",
+                      textAlign: "left"
+                    }}
+                    onMouseEnter={(e) => (e.currentTarget.style.background = "var(--bg-surface-elevated)")}
+                    onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
+                  >
+                    <CreditCard size={14} color="var(--accent-primary)" />
+                    <span>Billing & Subscription</span>
+                  </button>
+
+                  <button
+                    onClick={() => {
+                      setShowProfileMenu(false);
+                      navigate("/");
+                    }}
+                    style={{
+                      background: "transparent",
+                      border: "none",
+                      color: "var(--text-primary)",
+                      padding: "8px",
+                      fontSize: "12px",
+                      fontWeight: 600,
+                      cursor: "pointer",
+                      borderRadius: "6px",
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "8px",
+                      textAlign: "left"
+                    }}
+                    onMouseEnter={(e) => (e.currentTarget.style.background = "var(--bg-surface-elevated)")}
+                    onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
+                  >
+                    <Globe size={14} color="var(--accent-primary)" />
+                    <span>Landing Page</span>
+                  </button>
+                </div>
+
+                <div style={{ height: "1px", background: "var(--box-border)" }} />
+
                 <button
-                  onClick={() => {
-                    setShowProfileMenu(false);
-                    setSettingsTab("general");
-                    setShowSettingsModal(true);
-                  }}
+                  onClick={handleLogout}
                   style={{
                     background: "transparent",
                     border: "none",
-                    color: "#d1d5db",
-                    padding: "8px",
+                    color: "#f87171",
+                    padding: "6px 8px",
                     fontSize: "12px",
                     fontWeight: 600,
                     cursor: "pointer",
@@ -530,92 +604,15 @@ export const StudioDashboard: React.FC<StudioDashboardProps> = ({ onOpenFile, on
                     gap: "8px",
                     textAlign: "left"
                   }}
-                  onMouseEnter={(e) => (e.currentTarget.style.background = "var(--bg-surface-elevated)")}
+                  onMouseEnter={(e) => (e.currentTarget.style.background = "rgba(239, 68, 68, 0.08)")}
                   onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
                 >
-                  <User size={14} color="var(--accent-primary)" />
-                  <span>Profile Settings</span>
-                </button>
-
-                <button
-                  onClick={() => {
-                    setShowProfileMenu(false);
-                    setShowBillingModal(true);
-                  }}
-                  style={{
-                    background: "transparent",
-                    border: "none",
-                    color: "#d1d5db",
-                    padding: "8px",
-                    fontSize: "12px",
-                    fontWeight: 600,
-                    cursor: "pointer",
-                    borderRadius: "6px",
-                    display: "flex",
-                    alignItems: "center",
-                    gap: "8px",
-                    textAlign: "left"
-                  }}
-                  onMouseEnter={(e) => (e.currentTarget.style.background = "var(--bg-surface-elevated)")}
-                  onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
-                >
-                  <CreditCard size={14} color="var(--accent-primary)" />
-                  <span>Billing & Subscription</span>
-                </button>
-
-                <button
-                  onClick={() => {
-                    setShowProfileMenu(false);
-                    navigate("/");
-                  }}
-                  style={{
-                    background: "transparent",
-                    border: "none",
-                    color: "#d1d5db",
-                    padding: "8px",
-                    fontSize: "12px",
-                    fontWeight: 600,
-                    cursor: "pointer",
-                    borderRadius: "6px",
-                    display: "flex",
-                    alignItems: "center",
-                    gap: "8px",
-                    textAlign: "left"
-                  }}
-                  onMouseEnter={(e) => (e.currentTarget.style.background = "var(--bg-surface-elevated)")}
-                  onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
-                >
-                  <Globe size={14} color="var(--accent-primary)" />
-                  <span>Landing Page</span>
+                  <LogOut size={14} />
+                  <span>sign out</span>
                 </button>
               </div>
-
-              <div style={{ height: "1px", background: "#142018" }} />
-
-              <button
-                onClick={handleLogout}
-                style={{
-                  background: "transparent",
-                  border: "none",
-                  color: "#f87171",
-                  padding: "6px 8px",
-                  fontSize: "12px",
-                  fontWeight: 600,
-                  cursor: "pointer",
-                  borderRadius: "6px",
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "8px",
-                  textAlign: "left"
-                }}
-                onMouseEnter={(e) => (e.currentTarget.style.background = "rgba(239, 68, 68, 0.08)")}
-                onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
-              >
-                <LogOut size={14} />
-                <span>sign out</span>
-              </button>
-            </div>
-          )}
+            )}
+          </div>
         </div>
       </nav>
 
@@ -629,8 +626,8 @@ export const StudioDashboard: React.FC<StudioDashboardProps> = ({ onOpenFile, on
           style={{
             position: "relative",
             background: isDragging
-              ? "radial-gradient(circle at 50% 50%, #0d1e16 0%, var(--bg-surface-elevated) 100%)"
-              : "radial-gradient(circle at 50% 0%, var(--bg-surface-elevated) 0%, var(--bg-surface) 100%)",
+              ? "var(--bg-surface-elevated)"
+              : "var(--card-bg, var(--bg-surface))",
             border: isDragging ? "2px dashed var(--accent-primary)" : "1.5px dashed var(--border-subtle)",
             borderRadius: "20px",
             padding: "44px 32px",
@@ -642,7 +639,7 @@ export const StudioDashboard: React.FC<StudioDashboardProps> = ({ onOpenFile, on
             cursor: "pointer",
             transition: "all 0.2s ease",
             marginBottom: "32px",
-            boxShadow: "0 10px 30px rgba(0,0,0,0.3)"
+            boxShadow: "var(--card-shadow, 0 10px 30px rgba(0,0,0,0.15))"
           }}
         >
           <input
@@ -679,7 +676,7 @@ export const StudioDashboard: React.FC<StudioDashboardProps> = ({ onOpenFile, on
               type="button"
               style={{
                 background: "var(--accent-primary)",
-                color: "var(--text-primary)",
+                color: "#ffffff",
                 border: "none",
                 padding: "10px 22px",
                 borderRadius: "10px",
@@ -695,7 +692,7 @@ export const StudioDashboard: React.FC<StudioDashboardProps> = ({ onOpenFile, on
               <UploadCloud size={14} />
               <span>browse media file</span>
             </button>
-            <span style={{ fontSize: "11px", color: "#5d7066" }}>MP4, MOV, WEBM, WAV, MP3</span>
+            <span style={{ fontSize: "11px", color: "var(--text-secondary)" }}>MP4, MOV, WEBM, WAV, MP3</span>
           </div>
 
           <div style={{
@@ -708,7 +705,7 @@ export const StudioDashboard: React.FC<StudioDashboardProps> = ({ onOpenFile, on
             flexWrap: "wrap",
             justifyContent: "center"
           }}>
-            <div style={{ display: "flex", alignItems: "center", gap: "6px", fontSize: "11px", color: "#85978e" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: "6px", fontSize: "11px", color: "var(--text-secondary)" }}>
               <Zap size={13} color="var(--accent-primary)" />
               <span>WebGPU Hardware Acceleration</span>
             </div>
@@ -716,7 +713,7 @@ export const StudioDashboard: React.FC<StudioDashboardProps> = ({ onOpenFile, on
               <Lock size={13} color="#10b981" />
               <span>100% Private (Runs In-Browser)</span>
             </div>
-            <div style={{ display: "flex", alignItems: "center", gap: "6px", fontSize: "11px", color: "#85978e" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: "6px", fontSize: "11px", color: "var(--text-secondary)" }}>
               <Sparkles size={13} color="#f59e0b" />
               <span>Telugu Lipi & Tenglish Dual Engine</span>
             </div>
@@ -736,8 +733,8 @@ export const StudioDashboard: React.FC<StudioDashboardProps> = ({ onOpenFile, on
             <div
               onClick={() => fileInputRef.current?.click()}
               style={{
-                background: "var(--bg-surface)",
-                border: "1px solid var(--border-subtle)",
+                background: "var(--card-bg, var(--bg-surface))",
+                border: "1px solid var(--box-border)",
                 borderRadius: "14px",
                 padding: "20px 24px",
                 cursor: "pointer",
@@ -747,25 +744,17 @@ export const StudioDashboard: React.FC<StudioDashboardProps> = ({ onOpenFile, on
                 justifyContent: "space-between",
                 gap: "16px"
               }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.borderColor = "#1e382b";
-                e.currentTarget.style.background = "#0c1511";
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.borderColor = "var(--border-subtle)";
-                e.currentTarget.style.background = "var(--bg-surface)";
-              }}
             >
               <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
                 <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
                   <span style={{ fontSize: "10px", fontWeight: 700, padding: "2px 7px", borderRadius: "4px", background: "rgba(59, 130, 246, 0.14)", color: "var(--accent-primary)" }}>
                     9:16 vertical
                   </span>
-                  <span style={{ fontSize: "15px", fontWeight: 700, color: "#fff" }}>
+                  <span style={{ fontSize: "15px", fontWeight: 700, color: "var(--text-primary)" }}>
                     Instagram Reel & YouTube Shorts
                   </span>
                 </div>
-                <div style={{ fontSize: "12px", color: "#7a8d83", lineHeight: "1.4" }}>
+                <div style={{ fontSize: "12px", color: "var(--text-secondary)", lineHeight: "1.4" }}>
                   1–3 word kinetic chunks with Instagram and YouTube Shorts UI safe-zone guides and high-contrast word highlights.
                 </div>
               </div>
@@ -774,8 +763,8 @@ export const StudioDashboard: React.FC<StudioDashboardProps> = ({ onOpenFile, on
                 width: "36px",
                 height: "36px",
                 borderRadius: "50%",
-                background: "#0f1c16",
-                border: "1px solid #1c3227",
+                background: "var(--bg-surface-elevated)",
+                border: "1px solid var(--box-border)",
                 display: "grid",
                 placeItems: "center",
                 color: "var(--accent-primary)",
@@ -796,12 +785,12 @@ export const StudioDashboard: React.FC<StudioDashboardProps> = ({ onOpenFile, on
           gap: "16px",
           marginBottom: "20px"
         }}>
-          <div style={{ display: "flex", gap: "8px", background: "var(--bg-surface)", padding: "4px", borderRadius: "10px", border: "1px solid #122018" }}>
+          <div style={{ display: "flex", gap: "8px", background: "var(--card-bg, var(--bg-surface))", padding: "4px", borderRadius: "10px", border: "1px solid var(--box-border)" }}>
             <button
               onClick={() => setActiveTab("projects")}
               style={{
-                background: activeTab === "projects" ? "var(--border-subtle)" : "transparent",
-                color: activeTab === "projects" ? "var(--accent-primary)" : "#9ca3af",
+                background: activeTab === "projects" ? "var(--bg-surface-elevated)" : "transparent",
+                color: activeTab === "projects" ? "var(--accent-primary)" : "var(--text-secondary)",
                 border: "none",
                 padding: "8px 18px",
                 borderRadius: "7px",
@@ -815,8 +804,8 @@ export const StudioDashboard: React.FC<StudioDashboardProps> = ({ onOpenFile, on
             <button
               onClick={() => setActiveTab("exports")}
               style={{
-                background: activeTab === "exports" ? "var(--border-subtle)" : "transparent",
-                color: activeTab === "exports" ? "var(--accent-primary)" : "#9ca3af",
+                background: activeTab === "exports" ? "var(--bg-surface-elevated)" : "transparent",
+                color: activeTab === "exports" ? "var(--accent-primary)" : "var(--text-secondary)",
                 border: "none",
                 padding: "8px 18px",
                 borderRadius: "7px",
@@ -836,9 +825,9 @@ export const StudioDashboard: React.FC<StudioDashboardProps> = ({ onOpenFile, on
                   key={lang}
                   onClick={() => setSelectedLang(lang)}
                   style={{
-                    background: selectedLang === lang ? "var(--accent-primary)" : "#0b1410",
-                    color: selectedLang === lang ? "#040806" : "#8a9b92",
-                    border: "1px solid " + (selectedLang === lang ? "var(--accent-primary)" : "#15241d"),
+                    background: selectedLang === lang ? "var(--accent-primary)" : "var(--card-bg, var(--bg-surface))",
+                    color: selectedLang === lang ? "#ffffff" : "var(--text-secondary)",
+                    border: "1px solid " + (selectedLang === lang ? "var(--accent-primary)" : "var(--box-border)"),
                     padding: "5px 12px",
                     borderRadius: "6px",
                     fontSize: "11px",
@@ -855,8 +844,8 @@ export const StudioDashboard: React.FC<StudioDashboardProps> = ({ onOpenFile, on
               display: "flex",
               alignItems: "center",
               gap: "8px",
-              background: "#0a120f",
-              border: "1px solid #15241d",
+              background: "var(--card-bg, var(--bg-surface))",
+              border: "1px solid var(--box-border)",
               padding: "7px 12px",
               borderRadius: "8px",
               width: "200px"
@@ -871,12 +860,14 @@ export const StudioDashboard: React.FC<StudioDashboardProps> = ({ onOpenFile, on
                   background: "transparent",
                   border: "none",
                   outline: "none",
-                  color: "#fff",
+                  color: "var(--text-primary)",
                   fontSize: "12px",
                   width: "100%"
                 }}
               />
             </div>
+
+            <ThemeToggle />
           </div>
         </div>
 
@@ -888,8 +879,8 @@ export const StudioDashboard: React.FC<StudioDashboardProps> = ({ onOpenFile, on
         ) : activeTab === "projects" ? (
           filteredProjects.length === 0 ? (
             <div style={{
-              background: "#080e0c",
-              border: "1px dashed #14221a",
+              background: "var(--card-bg, var(--bg-surface))",
+              border: "1px dashed var(--box-border)",
               borderRadius: "14px",
               padding: "48px 20px",
               textAlign: "center",
@@ -899,8 +890,8 @@ export const StudioDashboard: React.FC<StudioDashboardProps> = ({ onOpenFile, on
               justifyContent: "center",
               gap: "10px"
             }}>
-              <FolderOpen size={32} color="#4b5563" />
-              <div style={{ fontSize: "14px", fontWeight: 700, color: "#fff" }}>No active projects yet</div>
+              <FolderOpen size={32} color="var(--text-secondary)" />
+              <div style={{ fontSize: "14px", fontWeight: 700, color: "var(--text-primary)" }}>No active projects yet</div>
               <p style={{ fontSize: "12px", color: "var(--text-secondary)", maxWidth: "340px", margin: 0 }}>
                 Drop a file into the command center above or pick a quick-start format to begin editing.
               </p>
@@ -918,23 +909,24 @@ export const StudioDashboard: React.FC<StudioDashboardProps> = ({ onOpenFile, on
                     if (onOpenEditor) onOpenEditor(item.id);
                   }}
                   style={{
-                    background: "var(--bg-surface)",
-                    border: "1px solid var(--border-subtle)",
+                    background: "var(--card-bg, var(--bg-surface))",
+                    border: "1px solid var(--box-border)",
                     borderRadius: "14px",
                     overflow: "hidden",
                     cursor: "pointer",
                     display: "flex",
-                    flexDirection: "column"
+                    flexDirection: "column",
+                    boxShadow: "var(--card-shadow, 0 4px 12px rgba(0,0,0,0.06))"
                   }}
                 >
                   <div style={{
                     height: "140px",
-                    background: "radial-gradient(circle at 50% 50%, var(--bg-surface-elevated) 0%, var(--bg-surface) 100%)",
+                    background: "var(--bg-surface-elevated)",
                     position: "relative",
                     display: "flex",
                     alignItems: "center",
                     justifyContent: "center",
-                    borderBottom: "1px solid var(--border-subtle)"
+                    borderBottom: "1px solid var(--box-border)"
                   }}>
                     <div style={{
                       width: "42px",
@@ -957,9 +949,8 @@ export const StudioDashboard: React.FC<StudioDashboardProps> = ({ onOpenFile, on
                       fontWeight: 700,
                       padding: "3px 7px",
                       borderRadius: "4px",
-                      background: "#040705",
-                      color: "#9ca3af",
-                      border: "1px solid #15241c"
+                      background: "rgba(0,0,0,0.6)",
+                      color: "#fff"
                     }}>
                       {item.ratio}
                     </span>
@@ -972,8 +963,8 @@ export const StudioDashboard: React.FC<StudioDashboardProps> = ({ onOpenFile, on
                       fontWeight: 700,
                       padding: "3px 8px",
                       borderRadius: "4px",
-                      background: item.language === "Telugu" ? "rgba(59, 130, 246, 0.18)" : "rgba(255, 255, 255, 0.09)",
-                      color: item.language === "Telugu" ? "var(--accent-primary)" : "#e5e7eb"
+                      background: item.language === "Telugu" ? "rgba(59, 130, 246, 0.18)" : "rgba(255, 255, 255, 0.14)",
+                      color: item.language === "Telugu" ? "var(--accent-primary)" : "#fff"
                     }}>
                       {item.language}
                     </span>
@@ -984,8 +975,8 @@ export const StudioDashboard: React.FC<StudioDashboardProps> = ({ onOpenFile, on
                       right: "12px",
                       fontSize: "11px",
                       fontWeight: 600,
-                      color: "#d1d5db",
-                      background: "rgba(0, 0, 0, 0.65)",
+                      color: "#fff",
+                      background: "rgba(0, 0, 0, 0.75)",
                       padding: "2px 6px",
                       borderRadius: "4px"
                     }}>
@@ -997,7 +988,7 @@ export const StudioDashboard: React.FC<StudioDashboardProps> = ({ onOpenFile, on
                     <h3 style={{
                       fontSize: "15px",
                       fontWeight: 700,
-                      color: "#f9fafb",
+                      color: "var(--text-primary)",
                       margin: 0,
                       lineHeight: "1.4"
                     }}>
@@ -1016,7 +1007,7 @@ export const StudioDashboard: React.FC<StudioDashboardProps> = ({ onOpenFile, on
                       alignItems: "center",
                       marginTop: "auto",
                       paddingTop: "12px",
-                      borderTop: "1px solid #101c15"
+                      borderTop: "1px solid var(--box-border)"
                     }}>
                       <span style={{ fontSize: "12px", color: "var(--accent-primary)", fontWeight: 700 }}>
                         open studio editor →
@@ -1042,8 +1033,8 @@ export const StudioDashboard: React.FC<StudioDashboardProps> = ({ onOpenFile, on
         ) : (
           exportsList.length === 0 ? (
             <div style={{
-              background: "#080e0c",
-              border: "1px dashed #14221a",
+              background: "var(--card-bg, var(--bg-surface))",
+              border: "1px dashed var(--box-border)",
               borderRadius: "14px",
               padding: "48px 20px",
               textAlign: "center",
@@ -1053,17 +1044,17 @@ export const StudioDashboard: React.FC<StudioDashboardProps> = ({ onOpenFile, on
               justifyContent: "center",
               gap: "10px"
             }}>
-              <Download size={32} color="#4b5563" />
-              <div style={{ fontSize: "14px", fontWeight: 700, color: "#fff" }}>No exports yet</div>
+              <Download size={32} color="var(--text-secondary)" />
+              <div style={{ fontSize: "14px", fontWeight: 700, color: "var(--text-primary)" }}>No exports yet</div>
               <p style={{ fontSize: "12px", color: "var(--text-secondary)", maxWidth: "340px", margin: 0 }}>
                 When you render a video or download SRT captions in the editor, your export history appears here.
               </p>
             </div>
           ) : (
-            <div style={{ background: "#080e0c", border: "1px solid var(--border-subtle)", borderRadius: "12px", overflow: "hidden" }}>
+            <div style={{ background: "var(--card-bg, var(--bg-surface))", border: "1px solid var(--box-border)", borderRadius: "12px", overflow: "hidden" }}>
               <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "13px" }}>
                 <thead>
-                  <tr style={{ borderBottom: "1px solid var(--border-subtle)", color: "var(--text-secondary)", textAlign: "left" }}>
+                  <tr style={{ borderBottom: "1px solid var(--box-border)", color: "var(--text-secondary)", textAlign: "left" }}>
                     <th style={{ padding: "14px 18px", fontWeight: 600 }}>project name</th>
                     <th style={{ padding: "14px 18px", fontWeight: 600 }}>script format</th>
                     <th style={{ padding: "14px 18px", fontWeight: 600 }}>ready exports</th>
@@ -1073,10 +1064,10 @@ export const StudioDashboard: React.FC<StudioDashboardProps> = ({ onOpenFile, on
                 </thead>
                 <tbody>
                   {exportsList.map(exp => (
-                    <tr key={exp.id} style={{ borderBottom: "1px solid var(--bg-surface-elevated)" }}>
-                      <td style={{ padding: "14px 18px", color: "#fff", fontWeight: 600 }}>{exp.project_title}</td>
+                    <tr key={exp.id} style={{ borderBottom: "1px solid var(--box-border)" }}>
+                      <td style={{ padding: "14px 18px", color: "var(--text-primary)", fontWeight: 600 }}>{exp.project_title}</td>
                       <td style={{ padding: "14px 18px", color: "var(--accent-primary)" }}>{exp.script_format}</td>
-                      <td style={{ padding: "14px 18px", color: "#9ca3af" }}>{exp.export_types}</td>
+                      <td style={{ padding: "14px 18px", color: "var(--text-secondary)" }}>{exp.export_types}</td>
                       <td style={{ padding: "14px 18px", color: "var(--text-secondary)", fontSize: "12px" }}>{exp.created_at}</td>
                       <td style={{ padding: "14px 18px" }}>
                         <button
@@ -1084,7 +1075,7 @@ export const StudioDashboard: React.FC<StudioDashboardProps> = ({ onOpenFile, on
                           onClick={() => handleDownloadExport(exp)}
                           style={{
                             background: "var(--bg-surface-elevated)",
-                            border: "1px solid #1a2f23",
+                            border: "1px solid var(--box-border)",
                             color: "var(--accent-primary)",
                             padding: "6px 12px",
                             borderRadius: "6px",
@@ -1122,12 +1113,12 @@ export const StudioDashboard: React.FC<StudioDashboardProps> = ({ onOpenFile, on
           padding: "20px"
         }}>
           <div style={{
-            background: "var(--bg-surface)",
-            border: "1px solid var(--border-subtle)",
+            background: "var(--card-bg, var(--bg-surface))",
+            border: "1px solid var(--box-border)",
             borderRadius: "16px",
             width: "100%",
             maxWidth: "560px",
-            boxShadow: "0 24px 60px rgba(0, 0, 0, 0.75)",
+            boxShadow: "var(--card-shadow, 0 24px 60px rgba(0, 0, 0, 0.5))",
             overflow: "hidden"
           }}>
             <div style={{
@@ -1135,11 +1126,11 @@ export const StudioDashboard: React.FC<StudioDashboardProps> = ({ onOpenFile, on
               justifyContent: "space-between",
               alignItems: "center",
               padding: "18px 24px",
-              borderBottom: "1px solid #132018"
+              borderBottom: "1px solid var(--box-border)"
             }}>
               <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
                 <CreditCard size={18} color="var(--accent-primary)" />
-                <h2 style={{ fontSize: "16px", fontWeight: 700, margin: 0, color: "#fff" }}>
+                <h2 style={{ fontSize: "16px", fontWeight: 700, margin: 0, color: "var(--text-primary)" }}>
                   Billing & Subscription
                 </h2>
               </div>
@@ -1154,7 +1145,7 @@ export const StudioDashboard: React.FC<StudioDashboardProps> = ({ onOpenFile, on
             <div style={{ padding: "24px", display: "flex", flexDirection: "column", gap: "20px" }}>
               <div style={{
                 background: "var(--bg-surface-elevated)",
-                border: "1px solid #14231a",
+                border: "1px solid var(--box-border)",
                 borderRadius: "12px",
                 padding: "18px",
                 display: "flex",
@@ -1165,7 +1156,7 @@ export const StudioDashboard: React.FC<StudioDashboardProps> = ({ onOpenFile, on
               }}>
                 <div>
                   <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-                    <span style={{ fontSize: "15px", fontWeight: 700, color: "#fff" }}>Creator Free Tier</span>
+                    <span style={{ fontSize: "15px", fontWeight: 700, color: "var(--text-primary)" }}>Creator Free Tier</span>
                     <span style={{ fontSize: "10px", padding: "2px 6px", borderRadius: "4px", background: "rgba(59, 130, 246, 0.14)", color: "var(--accent-primary)", fontWeight: 700 }}>active</span>
                   </div>
                   <div style={{ fontSize: "12px", color: "var(--text-secondary)", marginTop: "4px" }}>
@@ -1196,7 +1187,7 @@ export const StudioDashboard: React.FC<StudioDashboardProps> = ({ onOpenFile, on
                 <h4 style={{ fontSize: "11px", color: "var(--text-secondary)", textTransform: "uppercase", letterSpacing: "0.06em", margin: "0 0 10px 0" }}>
                   Billing History
                 </h4>
-                <div style={{ background: "#050806", border: "1px solid #132018", borderRadius: "8px", padding: "14px 16px", fontSize: "12px", color: "var(--text-secondary)" }}>
+                <div style={{ background: "var(--bg-app)", border: "1px solid var(--box-border)", borderRadius: "8px", padding: "14px 16px", fontSize: "12px", color: "var(--text-secondary)" }}>
                   No previous invoices found for this free account.
                 </div>
               </div>
@@ -1218,12 +1209,12 @@ export const StudioDashboard: React.FC<StudioDashboardProps> = ({ onOpenFile, on
           padding: "20px"
         }}>
           <div style={{
-            background: "var(--bg-surface)",
-            border: "1px solid var(--border-subtle)",
+            background: "var(--card-bg, var(--bg-surface))",
+            border: "1px solid var(--box-border)",
             borderRadius: "16px",
             width: "100%",
             maxWidth: "600px",
-            boxShadow: "0 24px 60px rgba(0, 0, 0, 0.75)",
+            boxShadow: "var(--card-shadow, 0 24px 60px rgba(0, 0, 0, 0.5))",
             overflow: "hidden"
           }}>
             <div style={{
@@ -1231,9 +1222,9 @@ export const StudioDashboard: React.FC<StudioDashboardProps> = ({ onOpenFile, on
               justifyContent: "space-between",
               alignItems: "center",
               padding: "18px 24px",
-              borderBottom: "1px solid #132018"
+              borderBottom: "1px solid var(--box-border)"
             }}>
-              <h2 style={{ fontSize: "16px", fontWeight: 700, margin: 0, color: "#fff" }}>
+              <h2 style={{ fontSize: "16px", fontWeight: 700, margin: 0, color: "var(--text-primary)" }}>
                 Account Settings
               </h2>
               <button
@@ -1244,7 +1235,7 @@ export const StudioDashboard: React.FC<StudioDashboardProps> = ({ onOpenFile, on
               </button>
             </div>
 
-            <div style={{ display: "flex", borderBottom: "1px solid #132018", padding: "0 24px", gap: "16px" }}>
+            <div style={{ display: "flex", borderBottom: "1px solid var(--box-border)", padding: "0 24px", gap: "16px" }}>
               <button
                 onClick={() => setSettingsTab("general")}
                 style={{
@@ -1291,11 +1282,11 @@ export const StudioDashboard: React.FC<StudioDashboardProps> = ({ onOpenFile, on
                       placeholder="Your creator name"
                       style={{
                         width: "100%",
-                        background: "#050806",
-                        border: "1px solid var(--border-subtle)",
+                        background: "var(--bg-app)",
+                        border: "1px solid var(--box-border)",
                         borderRadius: "8px",
                         padding: "10px 14px",
-                        color: "#fff",
+                        color: "var(--text-primary)",
                         fontSize: "13px",
                         outline: "none"
                       }}
@@ -1312,8 +1303,8 @@ export const StudioDashboard: React.FC<StudioDashboardProps> = ({ onOpenFile, on
                       disabled
                       style={{
                         width: "100%",
-                        background: "#050806",
-                        border: "1px solid #132018",
+                        background: "var(--bg-app)",
+                        border: "1px solid var(--box-border)",
                         borderRadius: "8px",
                         padding: "10px 14px",
                         color: "var(--text-secondary)",
@@ -1371,8 +1362,8 @@ export const StudioDashboard: React.FC<StudioDashboardProps> = ({ onOpenFile, on
                       onChange={(e) => setDeleteConfirmText(e.target.value)}
                       style={{
                         width: "100%",
-                        background: "#050806",
-                        border: "1px solid #281414",
+                        background: "var(--bg-app)",
+                        border: "1px solid rgba(239, 68, 68, 0.3)",
                         borderRadius: "8px",
                         padding: "10px 14px",
                         color: "#ef4444",
@@ -1386,8 +1377,8 @@ export const StudioDashboard: React.FC<StudioDashboardProps> = ({ onOpenFile, on
                     onClick={handleDeleteAccount}
                     disabled={deleteConfirmText !== "DELETE"}
                     style={{
-                      background: deleteConfirmText === "DELETE" ? "#dc2626" : "#2e1212",
-                      color: deleteConfirmText === "DELETE" ? "var(--text-primary)" : "var(--text-secondary)",
+                      background: deleteConfirmText === "DELETE" ? "#dc2626" : "rgba(220, 38, 38, 0.2)",
+                      color: deleteConfirmText === "DELETE" ? "#ffffff" : "var(--text-secondary)",
                       border: "none",
                       padding: "10px 16px",
                       borderRadius: "8px",
@@ -1402,6 +1393,9 @@ export const StudioDashboard: React.FC<StudioDashboardProps> = ({ onOpenFile, on
                 </div>
               )}
             </div>
-          </div></div>)}</div>
+          </div>
+        </div>
+      )}
+    </div>
   );
 };

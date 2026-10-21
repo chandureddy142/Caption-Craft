@@ -1,41 +1,56 @@
 import React, { createContext, useContext, useEffect, useState } from "react";
-import { Sun, Moon } from "lucide-react";
+import { Moon, Sun } from "lucide-react";
 
-type Theme = "dark" | "light";
+export type Theme = "light" | "dark";
 
 interface ThemeContextType {
   theme: Theme;
   toggleTheme: () => void;
+  setTheme: (theme: Theme) => void;
 }
 
-const ThemeContext = createContext<ThemeContextType>({
-  theme: "dark",
-  toggleTheme: () => {},
-});
+const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 
 export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [theme, setTheme] = useState<Theme>(() => {
+  const [theme, setThemeState] = useState<Theme>(() => {
     const saved = localStorage.getItem("captioncraft-theme");
-    return (saved === "light" || saved === "dark") ? saved : "dark";
+    if (saved === "light" || saved === "dark") return saved;
+    return window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
   });
 
   useEffect(() => {
-    document.documentElement.setAttribute("data-theme", theme);
     localStorage.setItem("captioncraft-theme", theme);
+    const root = document.documentElement;
+    root.setAttribute("data-theme", theme);
+    if (theme === "dark") {
+      root.classList.add("dark");
+    } else {
+      root.classList.remove("dark");
+    }
   }, [theme]);
 
   const toggleTheme = () => {
-    setTheme(prev => (prev === "dark" ? "light" : "dark"));
+    setThemeState((prev) => (prev === "dark" ? "light" : "dark"));
+  };
+
+  const setTheme = (newTheme: Theme) => {
+    setThemeState(newTheme);
   };
 
   return (
-    <ThemeContext.Provider value={{ theme, toggleTheme }}>
+    <ThemeContext.Provider value={{ theme, toggleTheme, setTheme }}>
       {children}
     </ThemeContext.Provider>
   );
 };
 
-export const useTheme = () => useContext(ThemeContext);
+export const useTheme = () => {
+  const context = useContext(ThemeContext);
+  if (!context) {
+    throw new Error("useTheme must be used within a ThemeProvider");
+  }
+  return context;
+};
 
 export const ThemeToggle: React.FC<{ className?: string }> = ({ className }) => {
   const { theme, toggleTheme } = useTheme();
@@ -44,31 +59,31 @@ export const ThemeToggle: React.FC<{ className?: string }> = ({ className }) => 
     <button
       type="button"
       onClick={toggleTheme}
-      aria-label="Toggle visual theme"
-      title={theme === "dark" ? "Switch to light theme" : "Switch to dark theme"}
+      title={theme === "dark" ? "Switch to Light (Cream) Mode" : "Switch to Dark (Charcoal) Mode"}
+      aria-label="Toggle theme"
+      className={className}
       style={{
-        background: "transparent",
-        border: "1px solid var(--border-subtle)",
-        borderRadius: "8px",
-        padding: "7px",
-        cursor: "pointer",
         display: "inline-flex",
         alignItems: "center",
         justifyContent: "center",
-        color: "var(--text-secondary)",
-        transition: "all 0.15s ease"
+        width: "34px",
+        height: "34px",
+        borderRadius: "8px",
+        background: "var(--card-bg, #201e1c)",
+        border: "1px solid var(--box-border, rgba(255, 255, 255, 0.15))",
+        color: "var(--card-text-primary, #ffffff)",
+        cursor: "pointer",
+        padding: 0,
+        transition: "all 0.18s ease"
       }}
       onMouseEnter={(e) => {
-        e.currentTarget.style.borderColor = "var(--border-strong)";
-        e.currentTarget.style.color = "var(--text-primary)";
+        e.currentTarget.style.background = "var(--bg-surface-hover, rgba(255, 255, 255, 0.08))";
       }}
       onMouseLeave={(e) => {
-        e.currentTarget.style.borderColor = "var(--border-subtle)";
-        e.currentTarget.style.color = "var(--text-secondary)";
+        e.currentTarget.style.background = "var(--card-bg, #201e1c)";
       }}
-      className={className}
     >
-      {theme === "dark" ? <Sun size={15} /> : <Moon size={15} />}
+      {theme === "dark" ? <Sun size={16} /> : <Moon size={16} />}
     </button>
   );
 };

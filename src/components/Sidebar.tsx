@@ -238,8 +238,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
       {/* 1. brand row */}
       <div className="sidebar-brand-row" style={{ paddingBottom: "2px", marginBottom: "0" }}>
         <div className="brand-lockup compact">
-          <div className="brand-mark">CC</div>
-          <span className="brand-name">CaptionCraft</span>
+          <img src="/media/logo.png" alt="CaptionCraft" style={{ width: "28px", height: "28px", borderRadius: "7px", objectFit: "contain", border: "1.5px solid rgba(255, 255, 255, 0.85)", padding: "2px" }} />
+          <div style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}><span style={{ fontSize: "15px", fontWeight: 700, color: "var(--card-text-primary, #ffffff)" }}>CaptionCraft</span><span style={{ fontSize: "9px", padding: "2px 6px", borderRadius: "4px", background: "rgba(59, 130, 246, 0.14)", color: "var(--accent-primary)", fontWeight: 700 }}>studio</span></div>
         </div>
         <button className="ghost-button" onClick={onBackToUpload}>
           ← Back to Upload

@@ -1,6 +1,7 @@
+import { SiteFooter } from "./SiteFooter";
+import { ThemeToggle } from "../lib/theme";
 import React from "react";
 import { Outlet, NavLink, useNavigate } from "react-router-dom";
-import { ThemeToggle } from "../lib/theme";
 
 interface SiteLayoutProps {
   user?: any;
@@ -11,6 +12,7 @@ export const SiteLayout: React.FC<SiteLayoutProps> = ({ user }) => {
 
   return (
     <div style={{ minHeight: "100vh", display: "flex", flexDirection: "column", background: "var(--bg-app)" }}>
+      {/* Contrasting Header */}
       <header
         style={{
           position: "fixed",
@@ -19,9 +21,8 @@ export const SiteLayout: React.FC<SiteLayoutProps> = ({ user }) => {
           right: 0,
           height: "64px",
           background: "var(--nav-bg)",
-          backdropFilter: "blur(12px)",
-          WebkitBackdropFilter: "blur(12px)",
-          borderBottom: "1px solid var(--border-subtle)",
+          borderBottom: "1px solid var(--nav-border)",
+          transition: "background-color 0.25s ease, border-color 0.25s ease",
           zIndex: 50
         }}
       >
@@ -35,7 +36,7 @@ export const SiteLayout: React.FC<SiteLayoutProps> = ({ user }) => {
             justifyContent: "space-between"
           }}
         >
-          {/* Brand */}
+          {/* Brand Logo */}
           <div
             onClick={() => navigate("/")}
             style={{ display: "flex", alignItems: "center", gap: "10px", cursor: "pointer" }}
@@ -46,7 +47,7 @@ export const SiteLayout: React.FC<SiteLayoutProps> = ({ user }) => {
                 height: "32px",
                 borderRadius: "8px",
                 background: "var(--accent-surface)",
-                border: "1px solid var(--border-strong)",
+                border: "1px solid var(--nav-btn-border)",
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
@@ -56,10 +57,10 @@ export const SiteLayout: React.FC<SiteLayoutProps> = ({ user }) => {
               🎬
             </div>
             <div>
-              <div style={{ fontSize: "14px", fontWeight: 700, color: "var(--text-primary)", letterSpacing: "-0.01em" }}>
+              <div style={{ fontSize: "14px", fontWeight: 700, color: "var(--nav-text-primary)", letterSpacing: "-0.01em" }}>
                 CaptionCraft
               </div>
-              <div style={{ fontSize: "10px", color: "var(--text-secondary)", marginTop: "-2px" }}>
+              <div style={{ fontSize: "10px", color: "var(--nav-text-secondary)", marginTop: "-2px" }}>
                 smart captions for creators
               </div>
             </div>
@@ -67,84 +68,41 @@ export const SiteLayout: React.FC<SiteLayoutProps> = ({ user }) => {
 
           {/* Nav links */}
           <nav style={{ display: "flex", alignItems: "center", gap: "28px" }}>
-            <NavLink
-              to="/"
-              style={({ isActive }) => ({
-                textDecoration: "none",
-                fontSize: "14px",
-                fontWeight: 500,
-                color: isActive ? "var(--accent-primary)" : "var(--text-secondary)",
-                transition: "color 0.2s"
-              })}
-            >
-              home
-            </NavLink>
-            <NavLink
-              to="/templates"
-              style={({ isActive }) => ({
-                textDecoration: "none",
-                fontSize: "14px",
-                fontWeight: 500,
-                color: isActive ? "var(--accent-primary)" : "var(--text-secondary)",
-                transition: "color 0.2s"
-              })}
-            >
-              templates
-            </NavLink>
-            <NavLink
-              to="/roadmap"
-              style={({ isActive }) => ({
-                textDecoration: "none",
-                fontSize: "14px",
-                fontWeight: 500,
-                color: isActive ? "var(--accent-primary)" : "var(--text-secondary)",
-                transition: "color 0.2s"
-              })}
-            >
-              roadmap
-            </NavLink>
-            <NavLink
-              to="/pricing"
-              style={({ isActive }) => ({
-                textDecoration: "none",
-                fontSize: "14px",
-                fontWeight: 500,
-                color: isActive ? "var(--accent-primary)" : "var(--text-secondary)",
-                transition: "color 0.2s"
-              })}
-            >
-              pricing
-            </NavLink>
-            <NavLink
-              to="/support"
-              style={({ isActive }) => ({
-                textDecoration: "none",
-                fontSize: "14px",
-                fontWeight: 500,
-                color: isActive ? "var(--accent-primary)" : "var(--text-secondary)",
-                transition: "color 0.2s"
-              })}
-            >
-              support
-            </NavLink>
+            {["/", "/templates", "/roadmap", "/pricing", "/support"].map((path) => {
+              const label = path === "/" ? "home" : path.replace("/", "");
+              return (
+                <NavLink
+                  key={path}
+                  to={path}
+                  style={({ isActive }) => ({
+                    textDecoration: "none",
+                    fontSize: "14px",
+                    fontWeight: 500,
+                    color: isActive ? "var(--accent-primary)" : "var(--nav-text-secondary)",
+                    transition: "color 0.2s"
+                  })}
+                >
+                  {label}
+                </NavLink>
+              );
+            })}
           </nav>
 
           {/* Action buttons */}
           <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
             <ThemeToggle />
-
             {!user && (
               <button
                 type="button"
                 onClick={() => navigate("/login")}
                 style={{
-                  background: "var(--bg-surface)",
-                  border: "1px solid var(--border-subtle)",
+                  background: "var(--nav-btn-bg)",
+                  border: "1px solid var(--nav-btn-border)",
                   borderRadius: "10px",
                   padding: "8px 18px",
                   fontSize: "13px",
                   fontWeight: 500,
-                  color: "var(--text-primary)",
+                  color: "var(--nav-text-primary)",
                   cursor: "pointer",
                   transition: "all 0.15s ease"
                 }}
@@ -178,7 +136,9 @@ export const SiteLayout: React.FC<SiteLayoutProps> = ({ user }) => {
       <main style={{ flex: 1, paddingTop: "64px" }}>
         <Outlet />
       </main>
-    </div>
+      
+      <SiteFooter />
+</div>
   );
 };
 
