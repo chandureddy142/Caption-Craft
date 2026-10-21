@@ -1,6 +1,7 @@
 export interface StudioAppProps {
   initialTemplateId?: string;
   initialFile?: File | null;
+  projectId?: string;
   onBackToDashboard?: () => void;
 }
 
@@ -28,7 +29,9 @@ import { validateMediaFile } from '../utils/mediaValidation';
 import { TranscriptionSession } from '../services/transcriptionSession';
 import { useHistory } from '../utils/history';
 import { ExportPage } from '../components/ExportPage';
-import { renderProjectToBlob } from '../utils/projectRenderer';
+import { renderProjectToBlob } from "../utils/projectRenderer";
+import { getLocalProjectMedia, saveLocalExportMedia } from "../lib/localMediaStorage";
+import { supabase } from "../lib/supabase";
 
 function formatSeconds(seconds: number): string {
   if (!Number.isFinite(seconds) || seconds <= 0) return '0.0s';
@@ -37,7 +40,7 @@ function formatSeconds(seconds: number): string {
   return minutes > 0 ? `${minutes}m ${remainder.toFixed(1)}s` : `${remainder.toFixed(1)}s`;
 }
 
-function App({ initialTemplateId: _initialTemplateId, initialFile, onBackToDashboard }: StudioAppProps = {}) {
+function App({ initialTemplateId: _initialTemplateId, initialFile, projectId, onBackToDashboard }: StudioAppProps = {}) {
   const [showLanding, setShowLanding] = useState<boolean>(false);
   const [captionSearchQuery, setCaptionSearchQuery] = useState<string>("");
   const [videoFile, setVideoFile] = useState<File | null>(null);
@@ -409,8 +412,17 @@ const applyProgress = (progress: LocalTranscriptionProgress) => {
     if (initialFile) {
       setShowLanding(false);
       handleFileUpload(initialFile);
+    } else if (projectId) {
+      setShowLanding(false);
+      getLocalProjectMedia(projectId).then(storedFile => {
+        if (storedFile) {
+          handleFileUpload(storedFile);
+        } else {
+          setTranscriptionStatus("Media not found in local browser storage. Please re-upload.");
+        }
+      });
     }
-  }, [initialFile]);
+  }, [initialFile, projectId]);
 
 
   const handleGenerateCaptions = () => {
@@ -623,7 +635,32 @@ const applyProgress = (progress: LocalTranscriptionProgress) => {
           duration={mediaDuration}
           initialFilename={videoFile.name.replace(/\.[^.]+$/, '')}
           onBack={() => setShowExportPage(false)}
-          renderExport={(options, onProgress, signal) => renderProjectToBlob(videoFile, subtitles, settings, language, options, onProgress, signal)}
+          renderExport={async (options, onProgress, signal) => {
+            const blob = await renderProjectToBlob(videoFile, subtitles, settings, language, options, onProgress, signal);
+            const exportId = "exp-" + Date.now();
+            const exportName = (videoFile.name.replace(/.[^/.]+$/, "") || "export") + ".mp4";
+
+            try {
+              await saveLocalExportMedia(exportId, blob, exportName);
+
+              const { data: { user } } = await supabase.auth.getUser();
+              if (user) {
+                await supabase.from("exports").insert({
+                  id: exportId,
+                  user_id: user.id,
+                  project_id: projectId || null,
+                  project_title: videoFile.name.replace(/.[^/.]+$/, "") || "Untitled Project",
+                  script_format: language === "te" ? "Telugu Lipi" : language === "tenglish" ? "Tenglish" : "English",
+                  export_types: "MP4 1080p, Subtitles (Burned-in)",
+                  download_url: "local:" + exportId
+                });
+              }
+            } catch (err) {
+              console.error("Failed to persist export to IndexedDB / Supabase:", err);
+            }
+
+            return blob;
+          }}
         />
       </div>
     );

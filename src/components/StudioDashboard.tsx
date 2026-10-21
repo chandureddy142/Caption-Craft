@@ -1,16 +1,29 @@
+import { ThemeToggle } from "../lib/theme";
 import React, { useState, useEffect, useRef } from "react";
-import { 
-  UploadCloud, 
-  Search, 
-  Play, 
-  Download, 
-  Trash2, 
-  Cpu, 
-  Sparkles, 
+import { useNavigate } from "react-router-dom";
+import {
+  UploadCloud,
+  Search,
+  Play,
+  Download,
+  Trash2,
+  Sparkles,
   LogOut,
-  CheckCircle2
+  CheckCircle2,
+  CreditCard,
+  User,
+  X,
+  ShieldAlert,
+  FolderOpen,
+  Zap,
+  Lock,
+  Layers,
+  ArrowRight,
+  Globe
 } from "lucide-react";
 import { supabase } from "../lib/supabase";
+import { getPersistentEmailUsage, recordPersistentUsage } from "../lib/usageTracker";
+import { saveLocalProjectMedia, deleteLocalProjectMedia, getLocalExportMedia, getAllLocalExports, getAllLocalProjects, deleteLocalExportsForProject } from "../lib/localMediaStorage";
 
 interface ProjectItem {
   id: string;
@@ -21,65 +34,180 @@ interface ProjectItem {
   wordsCount: number;
   updatedAt: string;
   status: "Draft" | "Ready";
+  user_id?: string;
+}
+
+interface ExportItem {
+  id: string;
+  project_title: string;
+  script_format: string;
+  export_types: string;
+  download_url?: string;
+  created_at: string;
 }
 
 interface StudioDashboardProps {
-  onOpenFile?: (file: File) => void;
+  onOpenFile?: (file: File, projectId?: string) => void;
   onOpenEditor?: (projectId?: string) => void;
   onSignOut?: () => void;
 }
 
-export const StudioDashboard: React.FC<StudioDashboardProps> = ({ onOpenFile, onOpenEditor, onSignOut }) => {
-  const [userEmail, setUserEmail] = useState<string>("chandureddy0707@gmail.com");
-  const [userName, setUserName] = useState<string>("Chandra");
+
+function parseDurationToMinutes(durationStr?: string): number {
+  if (!durationStr) return 0.5;
+  const parts = durationStr.split(":").map(Number);
+  if (parts.length === 2 && !isNaN(parts[0]) && !isNaN(parts[1])) {
+    return Math.max(0.1, parts[0] + parts[1] / 60);
+  }
+  if (parts.length === 3 && !isNaN(parts[0]) && !isNaN(parts[1]) && !isNaN(parts[2])) {
+    return Math.max(0.1, parts[0] * 60 + parts[1] + parts[2] / 60);
+  }
+  return 0.5;
+}
+
+export const StudioDashboard: React.FC<StudioDashboardProps> = ({ onOpenFile, onOpenEditor, onSignOut }) => {  const navigate = useNavigate();
+
+  const [userId, setUserId] = useState<string>("");
+  const [persistentHistoricalMinutes, setPersistentHistoricalMinutes] = useState<number>(0);
+  const [userEmail, setUserEmail] = useState<string>("");
+  const [userName, setUserName] = useState<string>("Creator");
   const [showProfileMenu, setShowProfileMenu] = useState<boolean>(false);
+  const [showSettingsModal, setShowSettingsModal] = useState<boolean>(false);
+  const [showBillingModal, setShowBillingModal] = useState<boolean>(false);
+  const [settingsTab, setSettingsTab] = useState<"general" | "danger">("general");
+
+  const [editName, setEditName] = useState<string>("");
+  const [deleteConfirmText, setDeleteConfirmText] = useState<string>("");
+  const [isSavingSettings, setIsSavingSettings] = useState<boolean>(false);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [isDragging, setIsDragging] = useState<boolean>(false);
+
   const [activeTab, setActiveTab] = useState<"projects" | "exports">("projects");
   const [searchQuery, setSearchQuery] = useState<string>("");
   const [selectedLang, setSelectedLang] = useState<string>("All");
 
   const menuRef = useRef<HTMLDivElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const [projects, setProjects] = useState<ProjectItem[]>([
-    {
-      id: "p1",
-      title: "Insta Reel - Tech Tips Telugu",
-      duration: "0:42",
-      language: "Telugu",
-      ratio: "9:16",
-      wordsCount: 114,
-      updatedAt: "2 hours ago",
-      status: "Ready"
-    },
-    {
-      id: "p2",
-      title: "SaaS Product Demo Tenglish",
-      duration: "1:15",
-      language: "Tenglish",
-      ratio: "16:9",
-      wordsCount: 248,
-      updatedAt: "Yesterday",
-      status: "Draft"
-    },
-    {
-      id: "p3",
-      title: "Shorts - Coding Roadmap 2026",
-      duration: "0:58",
-      language: "Telugu",
-      ratio: "9:16",
-      wordsCount: 162,
-      updatedAt: "3 days ago",
-      status: "Ready"
-    }
-  ]);
+  const [projects, setProjects] = useState<ProjectItem[]>([]);
+  const activeProjectsMinutes = Math.round(projects.reduce((sum, p) => sum + parseDurationToMinutes(p.duration), 0) * 10) / 10;
+  const totalTranscriptionMinutes = Math.round(Math.max(activeProjectsMinutes, persistentHistoricalMinutes) * 10) / 10;
+  const [exportsList, setExportsList] = useState<ExportItem[]>([]);
 
   useEffect(() => {
-    supabase.auth.getUser().then(({ data }) => {
-      if (data?.user?.email) {
-        setUserEmail(data.user.email);
-        const namePart = data.user.user_metadata?.full_name || data.user.email.split("@")[0];
-        setUserName(namePart);
+    async function loadUserData() {
+      setIsLoading(true);
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) {
+          setUserId(user.id);
+                    if (user.email) {
+            setUserEmail(user.email);
+            const historical = await getPersistentEmailUsage(user.email);
+            setPersistentHistoricalMinutes(historical);
+          }
+          const metaName = user.user_metadata?.full_name || (user.email ? user.email.split("@")[0] : "Creator");
+          setUserName(metaName);
+          setEditName(metaName);
+
+          let combinedProjects: ProjectItem[] = [];
+          try {
+            const { data: dbProjects } = await supabase
+              .from("projects")
+              .select("*")
+              .eq("user_id", user.id)
+              .order("updated_at", { ascending: false });
+
+            if (dbProjects && dbProjects.length > 0) {
+              combinedProjects = dbProjects.map((p: any) => ({
+                id: p.id,
+                title: p.title || "Untitled Project",
+                duration: p.duration || "0:30",
+                language: p.language || "Telugu",
+                ratio: p.ratio || "9:16",
+                wordsCount: p.words_count || 0,
+                updatedAt: p.updated_at ? new Date(p.updated_at).toLocaleDateString() : "Recently",
+                status: p.status || "Ready",
+                user_id: p.user_id
+              }));
+            }
+          } catch (e) {
+            console.warn("Supabase project fetch skipped:", e);
+          }
+
+          try {
+            const localProjs = await getAllLocalProjects();
+            for (const loc of localProjs) {
+              if (!combinedProjects.some(p => p.id === loc.id)) {
+                combinedProjects.push({
+                  id: loc.id,
+                  title: loc.name.replace(/.[^/.]+$/, "") || "Untitled Project",
+                  duration: "0:30",
+                  language: "Telugu",
+                  ratio: "9:16",
+                  wordsCount: 0,
+                  updatedAt: new Date(loc.createdAt).toLocaleDateString(),
+                  status: "Draft",
+                  user_id: user.id
+                });
+              }
+            }
+          } catch (err) {
+            console.warn("Could not read local projects from IndexedDB:", err);
+          }
+
+          setProjects(combinedProjects);
+
+          let combinedExports: ExportItem[] = [];
+          try {
+            const { data: dbExports } = await supabase
+              .from("exports")
+              .select("*")
+              .eq("user_id", user.id)
+              .order("created_at", { ascending: false });
+
+            if (dbExports && dbExports.length > 0) {
+              combinedExports = dbExports.map((e: any) => ({
+                id: e.id,
+                project_title: e.project_title || "Exported Video",
+                script_format: e.script_format || "Telugu Lipi",
+                export_types: e.export_types || "MP4 1080p, Subtitles (Burned-in)",
+                download_url: e.download_url || "#",
+                created_at: e.created_at ? new Date(e.created_at).toLocaleDateString() : "Recently"
+              }));
+            }
+          } catch (e) {
+            console.warn("Supabase export fetch skipped:", e);
+          }
+
+          try {
+            const localExps = await getAllLocalExports();
+            for (const loc of localExps) {
+              if (!combinedExports.some(x => x.id === loc.id)) {
+                combinedExports.push({
+                  id: loc.id,
+                  project_title: loc.name.replace(/.[^/.]+$/, "") || "Rendered Video",
+                  script_format: "Telugu Lipi",
+                  export_types: "MP4 1080p (Local IndexedDB)",
+                  download_url: "local:" + loc.id,
+                  created_at: new Date(loc.createdAt).toLocaleDateString()
+                });
+              }
+            }
+          } catch (err) {
+            console.warn("Could not read local exports from IndexedDB:", err);
+          }
+
+          setExportsList(combinedExports);
+        }
+      } catch (err) {
+        console.warn("Could not load user data from Supabase", err);
+      } finally {
+        setIsLoading(false);
       }
-    }).catch(() => {});
+    }
+
+    loadUserData();
 
     const handleClickOutside = (e: MouseEvent) => {
       if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
@@ -90,32 +218,117 @@ export const StudioDashboard: React.FC<StudioDashboardProps> = ({ onOpenFile, on
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+  const processSelectedFile = async (file: File) => {
+    const projectTitle = file.name.replace(/.[^/.]+$/, "");
+    let createdId = "p" + Date.now();
+
+    if (userId) {
+      try {
+        const { data, error } = await supabase
+          .from("projects")
+          .insert({
+            user_id: userId,
+            title: projectTitle,
+            duration: "0:30",
+            language: "Telugu",
+            ratio: "9:16",
+            words_count: 0,
+            status: "Draft"
+          })
+          .select()
+          .single();
+
+        if (!error && data) {
+          createdId = data.id;
+        }
+      } catch (err) {
+        console.error("Failed to insert project into Supabase", err);
+      }
+    }
 
     const newProject: ProjectItem = {
-      id: "p" + Date.now(),
-      title: file.name.replace(/.[^/.]+$/, ""),
+      id: createdId,
+      title: projectTitle,
       duration: "0:30",
       language: "Telugu",
       ratio: "9:16",
-      wordsCount: 92,
+      wordsCount: 0,
       updatedAt: "Just now",
-      status: "Draft"
+      status: "Draft",
+      user_id: userId
     };
+
+    try {
+      await saveLocalProjectMedia(createdId, file, file.name);
+    } catch (err) {
+      console.warn("Could not save to local IndexedDB:", err);
+    }
+
     setProjects(prev => [newProject, ...prev]);
+    if (userEmail) {
+      recordPersistentUsage(userEmail, 0.5).then(updated => setPersistentHistoricalMinutes(updated));
+    }
 
     if (onOpenFile) {
-      onOpenFile(file);
+      onOpenFile(file, createdId);
     } else if (onOpenEditor) {
-      onOpenEditor(newProject.id);
+      onOpenEditor(createdId);
     }
   };
 
-  const deleteProject = (id: string, e: React.MouseEvent) => {
+  const handleFileInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) processSelectedFile(file);
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(false);
+    const file = e.dataTransfer.files?.[0];
+    if (file) processSelectedFile(file);
+  };
+
+    const deleteProject = async (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
-    setProjects(projects.filter(p => p.id !== id));
+    const projToDelete = projects.find(p => p.id === id);
+    const projTitle = projToDelete?.title;
+
+    // Immediately update local UI state
+    setProjects(prev => prev.filter(p => p.id !== id));
+    if (projTitle) {
+      setExportsList(prev => prev.filter(x => !x.project_title.toLowerCase().includes(projTitle.toLowerCase())));
+    }
+
+    try {
+      // Supabase database cleanup
+      await supabase.from("projects").delete().eq("id", id);
+      await supabase.from("exports").delete().eq("project_id", id);
+
+      // IndexedDB binary storage cleanup
+      await deleteLocalProjectMedia(id);
+      await deleteLocalExportsForProject(id, projTitle);
+    } catch (err) {
+      console.error("Error during project cleanup:", err);
+    }
+  };
+  const handleDownloadExport = async (exportItem: ExportItem) => {
+    try {
+      const stored = await getLocalExportMedia(exportItem.id);
+      if (stored) {
+        const url = URL.createObjectURL(stored.blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = stored.name || (exportItem.project_title + ".mp4");
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+      } else {
+        alert("Export file was not found in browser storage. Please re-export from the project.");
+      }
+    } catch (err) {
+      console.error("Failed to download export from local IndexedDB:", err);
+    }
   };
 
   const handleLogout = async () => {
@@ -127,6 +340,36 @@ export const StudioDashboard: React.FC<StudioDashboardProps> = ({ onOpenFile, on
     }
   };
 
+  const handleSaveProfile = async () => {
+    setIsSavingSettings(true);
+    try {
+      await supabase.auth.updateUser({
+        data: { full_name: editName }
+      });
+      setUserName(editName);
+      setShowSettingsModal(false);
+    } catch (err) {
+      console.error("Save profile error:", err);
+    } finally {
+      setIsSavingSettings(false);
+    }
+  };
+
+  const handleDeleteAccount = async () => {
+    if (deleteConfirmText !== "DELETE") return;
+    try {
+      if (userId) {
+        await supabase.from("projects").delete().eq("user_id", userId);
+        await supabase.from("exports").delete().eq("user_id", userId);
+      }
+      // Note: We intentionally DO NOT wipe account_usage_audit so free-tier churn is prevented
+      await supabase.auth.signOut();
+      window.location.href = "/";
+    } catch (err) {
+      console.error("Account deletion error:", err);
+    }
+  };
+
   const filteredProjects = projects.filter(p => {
     const matchesSearch = p.title.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesLang = selectedLang === "All" || p.language === selectedLang;
@@ -134,43 +377,48 @@ export const StudioDashboard: React.FC<StudioDashboardProps> = ({ onOpenFile, on
   });
 
   return (
-    <div style={{ minHeight: "100vh", background: "#070b09", color: "#f3f4f6", fontFamily: "inherit" }}>
-      <header style={{
+    <div style={{ minHeight: "100vh", background: "var(--bg-app)", color: "var(--text-primary)", fontFamily: "inherit" }}>
+      {/* Top Navbar */}
+      <nav style={{
         height: "64px",
-        borderBottom: "1px solid #14201a",
-        background: "rgba(7, 11, 9, 0.95)",
-        backdropFilter: "blur(12px)",
+        borderBottom: "1px solid var(--border-subtle)",
+        background: "rgba(5, 8, 7, 0.95)",
+        backdropFilter: "blur(14px)",
         display: "flex",
         alignItems: "center",
         justifyContent: "space-between",
         padding: "0 28px",
         position: "sticky",
         top: 0,
-        zIndex: 50
+        zIndex: 50,
+        boxSizing: "border-box"
       }}>
-        <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-          <div style={{
-            width: "34px",
-            height: "34px",
-            borderRadius: "8px",
-            background: "linear-gradient(135deg, var(--accent-primary) 0%, #00a87d 100%)",
-            color: "#050a08",
-            display: "grid",
-            placeItems: "center",
-            fontWeight: 800,
-            fontSize: "14px"
-          }}>
-            cc
-          </div>
-          <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-            <span style={{ fontSize: "16px", fontWeight: 700, letterSpacing: "-0.02em", color: "#ffffff" }}>
+        <div
+          onClick={() => navigate("/")}
+          style={{ display: "inline-flex", alignItems: "center", gap: "10px", cursor: "pointer" }}
+          title="Back to Landing Page"
+        >
+          <img
+            src="/media/logo.png"
+            alt="CaptionCraft"
+            style={{
+              width: "32px",
+              height: "32px",
+              borderRadius: "8px",
+              objectFit: "contain",
+              border: "1.5px solid rgba(255, 255, 255, 0.85)",
+              padding: "2px"
+            }}
+          />
+          <div style={{ display: "inline-flex", alignItems: "center", gap: "8px" }}>
+            <span style={{ fontSize: "16px", fontWeight: 700, letterSpacing: "-0.02em", color: "var(--text-primary)" }}>
               CaptionCraft
             </span>
             <span style={{
               fontSize: "10px",
               padding: "2px 7px",
               borderRadius: "4px",
-              background: "var(--accent-glow, rgba(59, 130, 246, 0.12)",
+              background: "rgba(59, 130, 246, 0.12)",
               color: "var(--accent-primary)",
               fontWeight: 700,
               letterSpacing: "0.04em"
@@ -180,193 +428,379 @@ export const StudioDashboard: React.FC<StudioDashboardProps> = ({ onOpenFile, on
           </div>
         </div>
 
-        <div style={{ display: "flex", alignItems: "center", gap: "18px" }}>
-          <div style={{
-            display: "flex",
-            alignItems: "center",
-            gap: "8px",
-            background: "#0c1410",
-            border: "1px solid #16241e",
-            padding: "5px 12px",
-            borderRadius: "20px",
-            fontSize: "11px",
-            color: "#8c9b93"
-          }}>
-            <Cpu size={13} color="var(--accent-primary)" />
-            <span>WebGPU local mode</span>
-          </div>
-
+        {/* Profile Menu */}
+        <ThemeToggle />
           <div style={{ position: "relative" }} ref={menuRef}>
-            <button
-              onClick={() => setShowProfileMenu(!showProfileMenu)}
-              style={{
-                width: "36px",
-                height: "36px",
-                borderRadius: "50%",
-                background: "#122019",
-                border: "2px solid #1c3227",
-                color: "var(--accent-primary)",
-                display: "grid",
-                placeItems: "center",
-                fontSize: "13px",
-                fontWeight: 700,
-                cursor: "pointer",
-                outline: "none"
-              }}
-            >
-              {userName.charAt(0).toUpperCase()}
-            </button>
+          <button
+            onClick={() => setShowProfileMenu(!showProfileMenu)}
+            style={{
+              width: "36px",
+              height: "36px",
+              borderRadius: "50%",
+              background: "var(--bg-surface-elevated)",
+              border: "2px solid var(--border-subtle)",
+              color: "var(--accent-primary)",
+              display: "grid",
+              placeItems: "center",
+              fontSize: "13px",
+              fontWeight: 700,
+              cursor: "pointer",
+              outline: "none"
+            }}
+          >
+            {userName ? userName.charAt(0).toUpperCase() : "C"}
+          </button>
 
-            {showProfileMenu && (
-              <div style={{
-                position: "absolute",
-                top: "48px",
-                right: 0,
-                width: "240px",
-                background: "#0a120e",
-                border: "1px solid #1a2c23",
-                borderRadius: "12px",
-                boxShadow: "0 14px 35px rgba(0,0,0,0.6)",
-                padding: "16px",
-                zIndex: 100,
-                display: "flex",
-                flexDirection: "column",
-                gap: "12px"
-              }}>
-                <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-                  <div style={{
-                    width: "34px",
-                    height: "34px",
-                    borderRadius: "50%",
-                    background: "#162820",
-                    color: "var(--accent-primary)",
-                    display: "grid",
-                    placeItems: "center",
-                    fontWeight: 700,
-                    fontSize: "13px"
-                  }}>
-                    {userName.charAt(0).toUpperCase()}
+          {showProfileMenu && (
+            <div style={{
+              position: "absolute",
+              top: "48px",
+              right: 0,
+              width: "270px",
+              background: "var(--bg-surface)",
+              border: "1px solid #16241c",
+              borderRadius: "14px",
+              boxShadow: "0 16px 40px rgba(0,0,0,0.75)",
+              padding: "16px",
+              zIndex: 100,
+              display: "flex",
+              flexDirection: "column",
+              gap: "12px"
+            }}>
+              <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                <div style={{
+                  width: "36px",
+                  height: "36px",
+                  borderRadius: "50%",
+                  background: "#14241b",
+                  color: "var(--accent-primary)",
+                  display: "grid",
+                  placeItems: "center",
+                  fontWeight: 700,
+                  fontSize: "14px"
+                }}>
+                  {userName ? userName.charAt(0).toUpperCase() : "C"}
+                </div>
+                <div style={{ overflow: "hidden" }}>
+                  <div style={{ fontSize: "13px", fontWeight: 700, color: "#fff", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                    {userName}
                   </div>
-                  <div style={{ overflow: "hidden" }}>
-                    <div style={{ fontSize: "13px", fontWeight: 700, color: "#fff", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
-                      {userName}
-                    </div>
-                    <div style={{ fontSize: "11px", color: "#8c9b93", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
-                      {userEmail}
-                    </div>
+                  <div style={{ fontSize: "11px", color: "var(--text-secondary)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                    {userEmail}
                   </div>
                 </div>
+              </div>
 
-                <div style={{ padding: "8px 10px", background: "#0e1a14", borderRadius: "8px", border: "1px solid #16261e", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                  <span style={{ fontSize: "11px", color: "#8c9b93" }}>plan</span>
+              <div style={{ padding: "10px", background: "var(--bg-surface-elevated)", borderRadius: "10px", border: "1px solid #14221a", display: "flex", flexDirection: "column", gap: "8px" }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                  <span style={{ fontSize: "11px", color: "var(--text-secondary)" }}>plan</span>
                   <span style={{ fontSize: "11px", color: "var(--accent-primary)", fontWeight: 700, display: "flex", alignItems: "center", gap: "4px" }}>
                     <CheckCircle2 size={12} /> creator free
                   </span>
                 </div>
+                <div>
+                  <div style={{ display: "flex", justifyContent: "space-between", fontSize: "10px", color: "var(--text-secondary)", marginBottom: "4px" }}>
+                    <span>transcription usage</span>
+                    <span>{totalTranscriptionMinutes} / 60 min</span>
+                  </div>
+                  <div style={{ width: "100%", height: "4px", background: "var(--border-subtle)", borderRadius: "99px", overflow: "hidden" }}>
+                    <div style={{ width: Math.min(100, (totalTranscriptionMinutes / 60) * 100) + "%", height: "100%", background: "var(--accent-primary)", borderRadius: "99px" }} />
+                  </div>
+                </div>
+              </div>
 
-                <div style={{ height: "1px", background: "#16241e", margin: "2px 0" }}></div>
-
+              <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
                 <button
-                  onClick={handleLogout}
+                  onClick={() => {
+                    setShowProfileMenu(false);
+                    setSettingsTab("general");
+                    setShowSettingsModal(true);
+                  }}
                   style={{
                     background: "transparent",
                     border: "none",
-                    color: "#f87171",
-                    padding: "6px 4px",
+                    color: "#d1d5db",
+                    padding: "8px",
                     fontSize: "12px",
                     fontWeight: 600,
                     cursor: "pointer",
+                    borderRadius: "6px",
                     display: "flex",
                     alignItems: "center",
                     gap: "8px",
                     textAlign: "left"
                   }}
+                  onMouseEnter={(e) => (e.currentTarget.style.background = "var(--bg-surface-elevated)")}
+                  onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
                 >
-                  <LogOut size={14} />
-                  <span>sign out</span>
+                  <User size={14} color="var(--accent-primary)" />
+                  <span>Profile Settings</span>
+                </button>
+
+                <button
+                  onClick={() => {
+                    setShowProfileMenu(false);
+                    setShowBillingModal(true);
+                  }}
+                  style={{
+                    background: "transparent",
+                    border: "none",
+                    color: "#d1d5db",
+                    padding: "8px",
+                    fontSize: "12px",
+                    fontWeight: 600,
+                    cursor: "pointer",
+                    borderRadius: "6px",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "8px",
+                    textAlign: "left"
+                  }}
+                  onMouseEnter={(e) => (e.currentTarget.style.background = "var(--bg-surface-elevated)")}
+                  onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
+                >
+                  <CreditCard size={14} color="var(--accent-primary)" />
+                  <span>Billing & Subscription</span>
+                </button>
+
+                <button
+                  onClick={() => {
+                    setShowProfileMenu(false);
+                    navigate("/");
+                  }}
+                  style={{
+                    background: "transparent",
+                    border: "none",
+                    color: "#d1d5db",
+                    padding: "8px",
+                    fontSize: "12px",
+                    fontWeight: 600,
+                    cursor: "pointer",
+                    borderRadius: "6px",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "8px",
+                    textAlign: "left"
+                  }}
+                  onMouseEnter={(e) => (e.currentTarget.style.background = "var(--bg-surface-elevated)")}
+                  onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
+                >
+                  <Globe size={14} color="var(--accent-primary)" />
+                  <span>Landing Page</span>
                 </button>
               </div>
-            )}
-          </div>
+
+              <div style={{ height: "1px", background: "#142018" }} />
+
+              <button
+                onClick={handleLogout}
+                style={{
+                  background: "transparent",
+                  border: "none",
+                  color: "#f87171",
+                  padding: "6px 8px",
+                  fontSize: "12px",
+                  fontWeight: 600,
+                  cursor: "pointer",
+                  borderRadius: "6px",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "8px",
+                  textAlign: "left"
+                }}
+                onMouseEnter={(e) => (e.currentTarget.style.background = "rgba(239, 68, 68, 0.08)")}
+                onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
+              >
+                <LogOut size={14} />
+                <span>sign out</span>
+              </button>
+            </div>
+          )}
         </div>
-      </header>
+      </nav>
 
       <main style={{ maxWidth: "1240px", margin: "0 auto", padding: "32px 28px" }}>
-        <div style={{
-          background: "linear-gradient(180deg, #0b1511 0%, #080f0c 100%)",
-          border: "1px solid #162920",
-          borderRadius: "16px",
-          padding: "28px 32px",
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          flexWrap: "wrap",
-          gap: "24px",
-          marginBottom: "36px"
-        }}>
-          <div>
-            <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "8px" }}>
-              <Sparkles size={16} color="var(--accent-primary)" />
-              <span style={{ fontSize: "12px", color: "var(--accent-primary)", fontWeight: 700 }}>
-                telugu & tenglish kinetic captions
-              </span>
-            </div>
-            <h1 style={{ fontSize: "24px", fontWeight: 800, margin: "0 0 6px 0", color: "#ffffff", letterSpacing: "-0.02em" }}>
-              Generate subtitles in seconds
-            </h1>
-            <p style={{ fontSize: "13px", color: "#8a9c92", margin: 0 }}>
-              Zero server uploads. Your audio is transcribed right on your machine via local Whisper.
-            </p>
+        {/* Command Center Dropzone */}
+        <div
+          onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
+          onDragLeave={() => setIsDragging(false)}
+          onDrop={handleDrop}
+          onClick={() => fileInputRef.current?.click()}
+          style={{
+            position: "relative",
+            background: isDragging
+              ? "radial-gradient(circle at 50% 50%, #0d1e16 0%, var(--bg-surface-elevated) 100%)"
+              : "radial-gradient(circle at 50% 0%, var(--bg-surface-elevated) 0%, var(--bg-surface) 100%)",
+            border: isDragging ? "2px dashed var(--accent-primary)" : "1.5px dashed var(--border-subtle)",
+            borderRadius: "20px",
+            padding: "44px 32px",
+            textAlign: "center",
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            justifyContent: "center",
+            cursor: "pointer",
+            transition: "all 0.2s ease",
+            marginBottom: "32px",
+            boxShadow: "0 10px 30px rgba(0,0,0,0.3)"
+          }}
+        >
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="video/*,audio/*"
+            onChange={handleFileInputChange}
+            style={{ display: "none" }}
+          />
+
+          <div style={{
+            width: "56px",
+            height: "56px",
+            borderRadius: "16px",
+            background: "rgba(59, 130, 246, 0.12)",
+            border: "1px solid rgba(59, 130, 246, 0.3)",
+            display: "grid",
+            placeItems: "center",
+            color: "var(--accent-primary)",
+            marginBottom: "16px"
+          }}>
+            <UploadCloud size={28} />
           </div>
 
-          <div style={{ position: "relative" }}>
-            <input
-              type="file"
-              accept="video/*,audio/*"
-              onChange={handleFileUpload}
+          <h2 style={{ fontSize: "20px", fontWeight: 800, color: "var(--text-primary)", margin: "0 0 6px 0", letterSpacing: "-0.02em" }}>
+            Drop your video or audio clip here
+          </h2>
+          <p style={{ fontSize: "13px", color: "var(--text-secondary)", margin: "0 0 18px 0", maxWidth: "460px", lineHeight: "1.5" }}>
+            Auto-generate word-by-word synced Telugu or Tenglish subtitles without server uploads.
+          </p>
+
+          <div style={{ display: "flex", gap: "10px", alignItems: "center" }}>
+            <button
+              type="button"
               style={{
-                position: "absolute",
-                inset: 0,
-                opacity: 0,
+                background: "var(--accent-primary)",
+                color: "var(--text-primary)",
+                border: "none",
+                padding: "10px 22px",
+                borderRadius: "10px",
+                fontWeight: 700,
+                fontSize: "12px",
+                display: "inline-flex",
+                alignItems: "center",
+                gap: "8px",
                 cursor: "pointer",
-                width: "100%",
-                height: "100%",
-                zIndex: 2
+                boxShadow: "0 4px 16px rgba(59, 130, 246, 0.25)"
               }}
-            />
-            <button style={{
-              background: "var(--accent-primary)",
-              color: "#ffffff",
-              border: "none",
-              padding: "12px 24px",
-              borderRadius: "10px",
-              fontWeight: 700,
-              fontSize: "13px",
-              display: "flex",
-              alignItems: "center",
-              gap: "8px",
-              cursor: "pointer",
-              boxShadow: "0 4px 16px var(--accent-glow, var(--accent-glow)"
-            }}>
-              <UploadCloud size={16} />
-              <span>new caption project</span>
+            >
+              <UploadCloud size={14} />
+              <span>browse media file</span>
             </button>
+            <span style={{ fontSize: "11px", color: "#5d7066" }}>MP4, MOV, WEBM, WAV, MP3</span>
+          </div>
+
+          <div style={{
+            display: "flex",
+            alignItems: "center",
+            gap: "20px",
+            marginTop: "26px",
+            paddingTop: "20px",
+            borderTop: "1px solid var(--border-subtle)",
+            flexWrap: "wrap",
+            justifyContent: "center"
+          }}>
+            <div style={{ display: "flex", alignItems: "center", gap: "6px", fontSize: "11px", color: "#85978e" }}>
+              <Zap size={13} color="var(--accent-primary)" />
+              <span>WebGPU Hardware Acceleration</span>
+            </div>
+            <div style={{ display: "flex", alignItems: "center", gap: "6px", fontSize: "11px", color: "#10b981" }}>
+              <Lock size={13} color="#10b981" />
+              <span>100% Private (Runs In-Browser)</span>
+            </div>
+            <div style={{ display: "flex", alignItems: "center", gap: "6px", fontSize: "11px", color: "#85978e" }}>
+              <Sparkles size={13} color="#f59e0b" />
+              <span>Telugu Lipi & Tenglish Dual Engine</span>
+            </div>
           </div>
         </div>
 
+        {/* Single Quick-Start Format */}
+        <div style={{ marginBottom: "36px" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "14px" }}>
+            <Layers size={14} color="var(--text-secondary)" />
+            <h3 style={{ fontSize: "11px", fontWeight: 700, color: "var(--text-secondary)", letterSpacing: "0.06em", textTransform: "uppercase", margin: 0 }}>
+              Quick-Start Format
+            </h3>
+          </div>
+
+          <div style={{ display: "grid", gridTemplateColumns: "1fr", gap: "16px" }}>
+            <div
+              onClick={() => fileInputRef.current?.click()}
+              style={{
+                background: "var(--bg-surface)",
+                border: "1px solid var(--border-subtle)",
+                borderRadius: "14px",
+                padding: "20px 24px",
+                cursor: "pointer",
+                transition: "all 0.15s ease",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                gap: "16px"
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.borderColor = "#1e382b";
+                e.currentTarget.style.background = "#0c1511";
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.borderColor = "var(--border-subtle)";
+                e.currentTarget.style.background = "var(--bg-surface)";
+              }}
+            >
+              <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                  <span style={{ fontSize: "10px", fontWeight: 700, padding: "2px 7px", borderRadius: "4px", background: "rgba(59, 130, 246, 0.14)", color: "var(--accent-primary)" }}>
+                    9:16 vertical
+                  </span>
+                  <span style={{ fontSize: "15px", fontWeight: 700, color: "#fff" }}>
+                    Instagram Reel & YouTube Shorts
+                  </span>
+                </div>
+                <div style={{ fontSize: "12px", color: "#7a8d83", lineHeight: "1.4" }}>
+                  1–3 word kinetic chunks with Instagram and YouTube Shorts UI safe-zone guides and high-contrast word highlights.
+                </div>
+              </div>
+
+              <div style={{
+                width: "36px",
+                height: "36px",
+                borderRadius: "50%",
+                background: "#0f1c16",
+                border: "1px solid #1c3227",
+                display: "grid",
+                placeItems: "center",
+                color: "var(--accent-primary)",
+                flexShrink: 0
+              }}>
+                <ArrowRight size={16} />
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Tab Header & Filter Controls */}
         <div style={{
           display: "flex",
           justifyContent: "space-between",
           alignItems: "center",
           flexWrap: "wrap",
           gap: "16px",
-          marginBottom: "24px"
+          marginBottom: "20px"
         }}>
-          <div style={{ display: "flex", gap: "8px", background: "#0b120f", padding: "4px", borderRadius: "10px", border: "1px solid #14201a" }}>
+          <div style={{ display: "flex", gap: "8px", background: "var(--bg-surface)", padding: "4px", borderRadius: "10px", border: "1px solid #122018" }}>
             <button
               onClick={() => setActiveTab("projects")}
               style={{
-                background: activeTab === "projects" ? "#162820" : "transparent",
+                background: activeTab === "projects" ? "var(--border-subtle)" : "transparent",
                 color: activeTab === "projects" ? "var(--accent-primary)" : "#9ca3af",
                 border: "none",
                 padding: "8px 18px",
@@ -381,7 +815,7 @@ export const StudioDashboard: React.FC<StudioDashboardProps> = ({ onOpenFile, on
             <button
               onClick={() => setActiveTab("exports")}
               style={{
-                background: activeTab === "exports" ? "#162820" : "transparent",
+                background: activeTab === "exports" ? "var(--border-subtle)" : "transparent",
                 color: activeTab === "exports" ? "var(--accent-primary)" : "#9ca3af",
                 border: "none",
                 padding: "8px 18px",
@@ -391,7 +825,7 @@ export const StudioDashboard: React.FC<StudioDashboardProps> = ({ onOpenFile, on
                 cursor: "pointer"
               }}
             >
-              exports 1
+              exports {exportsList.length}
             </button>
           </div>
 
@@ -402,9 +836,9 @@ export const StudioDashboard: React.FC<StudioDashboardProps> = ({ onOpenFile, on
                   key={lang}
                   onClick={() => setSelectedLang(lang)}
                   style={{
-                    background: selectedLang === lang ? "var(--accent-primary)" : "#0d1612",
+                    background: selectedLang === lang ? "var(--accent-primary)" : "#0b1410",
                     color: selectedLang === lang ? "#040806" : "#8a9b92",
-                    border: "1px solid " + (selectedLang === lang ? "var(--accent-primary)" : "#172720"),
+                    border: "1px solid " + (selectedLang === lang ? "var(--accent-primary)" : "#15241d"),
                     padding: "5px 12px",
                     borderRadius: "6px",
                     fontSize: "11px",
@@ -421,13 +855,13 @@ export const StudioDashboard: React.FC<StudioDashboardProps> = ({ onOpenFile, on
               display: "flex",
               alignItems: "center",
               gap: "8px",
-              background: "#0c1410",
-              border: "1px solid #172720",
+              background: "#0a120f",
+              border: "1px solid #15241d",
               padding: "7px 12px",
               borderRadius: "8px",
               width: "200px"
             }}>
-              <Search size={14} color="#6b7280" />
+              <Search size={14} color="var(--text-secondary)" />
               <input
                 type="text"
                 placeholder="search projects..."
@@ -446,180 +880,528 @@ export const StudioDashboard: React.FC<StudioDashboardProps> = ({ onOpenFile, on
           </div>
         </div>
 
-        {activeTab === "projects" ? (
-          <div style={{
-            display: "grid",
-            gridTemplateColumns: "repeat(auto-fill, minmax(320px, 1fr))",
-            gap: "20px"
-          }}>
-            {filteredProjects.map((item) => (
-              <div
-                key={item.id}
-                onClick={() => {
-                  if (onOpenEditor) onOpenEditor(item.id);
-                }}
-                style={{
-                  background: "#0a110e",
-                  border: "1px solid #14231b",
-                  borderRadius: "14px",
-                  overflow: "hidden",
-                  cursor: "pointer",
-                  transition: "transform 0.15s ease, border-color 0.15s ease",
-                  display: "flex",
-                  flexDirection: "column"
-                }}
-              >
-                <div style={{
-                  height: "140px",
-                  background: "radial-gradient(circle at 50% 50%, #12241c 0%, #08100c 100%)",
-                  position: "relative",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  borderBottom: "1px solid #14231b"
-                }}>
-                  <div style={{
-                    width: "42px",
-                    height: "42px",
-                    borderRadius: "50%",
-                    background: "var(--accent-glow, rgba(59, 130, 246, 0.14)",
-                    border: "1px solid var(--accent-glow, var(--accent-glow)",
-                    display: "grid",
-                    placeItems: "center",
-                    color: "var(--accent-primary)"
-                  }}>
-                    <Play size={18} fill="var(--accent-primary)" />
-                  </div>
-
-                  <span style={{
-                    position: "absolute",
-                    top: "12px",
-                    left: "12px",
-                    fontSize: "10px",
-                    fontWeight: 700,
-                    padding: "3px 7px",
-                    borderRadius: "4px",
-                    background: "#050907",
-                    color: "#9ca3af",
-                    border: "1px solid #1a2c23"
-                  }}>
-                    {item.ratio}
-                  </span>
-
-                  <span style={{
-                    position: "absolute",
-                    top: "12px",
-                    right: "12px",
-                    fontSize: "10px",
-                    fontWeight: 700,
-                    padding: "3px 8px",
-                    borderRadius: "4px",
-                    background: item.language === "Telugu" ? "var(--accent-glow, rgba(59, 130, 246, 0.18)" : "rgba(255, 255, 255, 0.09)",
-                    color: item.language === "Telugu" ? "var(--accent-primary)" : "#e5e7eb"
-                  }}>
-                    {item.language}
-                  </span>
-
-                  <span style={{
-                    position: "absolute",
-                    bottom: "10px",
-                    right: "12px",
-                    fontSize: "11px",
-                    fontWeight: 600,
-                    color: "#d1d5db",
-                    background: "rgba(0, 0, 0, 0.65)",
-                    padding: "2px 6px",
-                    borderRadius: "4px"
-                  }}>
-                    {item.duration}
-                  </span>
-                </div>
-
-                <div style={{ padding: "16px", display: "flex", flexDirection: "column", gap: "8px", flex: 1 }}>
-                  <h3 style={{
-                    fontSize: "15px",
-                    fontWeight: 700,
-                    color: "#f9fafb",
-                    margin: 0,
-                    lineHeight: "1.4"
-                  }}>
-                    {item.title}
-                  </h3>
-
-                  <div style={{ display: "flex", alignItems: "center", gap: "10px", fontSize: "11px", color: "#6b7280" }}>
-                    <span>{item.wordsCount} words</span>
-                    <span>•</span>
-                    <span>{item.updatedAt}</span>
-                  </div>
-
-                  <div style={{
+        {/* Project Cards or Exports Table */}
+        {isLoading ? (
+          <div style={{ padding: "60px 0", textAlign: "center", color: "var(--text-secondary)", fontSize: "14px" }}>
+            Loading creator workspace...
+          </div>
+        ) : activeTab === "projects" ? (
+          filteredProjects.length === 0 ? (
+            <div style={{
+              background: "#080e0c",
+              border: "1px dashed #14221a",
+              borderRadius: "14px",
+              padding: "48px 20px",
+              textAlign: "center",
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+              justifyContent: "center",
+              gap: "10px"
+            }}>
+              <FolderOpen size={32} color="#4b5563" />
+              <div style={{ fontSize: "14px", fontWeight: 700, color: "#fff" }}>No active projects yet</div>
+              <p style={{ fontSize: "12px", color: "var(--text-secondary)", maxWidth: "340px", margin: 0 }}>
+                Drop a file into the command center above or pick a quick-start format to begin editing.
+              </p>
+            </div>
+          ) : (
+            <div style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(auto-fill, minmax(320px, 1fr))",
+              gap: "20px"
+            }}>
+              {filteredProjects.map((item) => (
+                <div
+                  key={item.id}
+                  onClick={() => {
+                    if (onOpenEditor) onOpenEditor(item.id);
+                  }}
+                  style={{
+                    background: "var(--bg-surface)",
+                    border: "1px solid var(--border-subtle)",
+                    borderRadius: "14px",
+                    overflow: "hidden",
+                    cursor: "pointer",
                     display: "flex",
-                    justifyContent: "space-between",
+                    flexDirection: "column"
+                  }}
+                >
+                  <div style={{
+                    height: "140px",
+                    background: "radial-gradient(circle at 50% 50%, var(--bg-surface-elevated) 0%, var(--bg-surface) 100%)",
+                    position: "relative",
+                    display: "flex",
                     alignItems: "center",
-                    marginTop: "auto",
-                    paddingTop: "12px",
-                    borderTop: "1px solid #111e17"
+                    justifyContent: "center",
+                    borderBottom: "1px solid var(--border-subtle)"
                   }}>
-                    <span style={{ fontSize: "12px", color: "var(--accent-primary)", fontWeight: 700 }}>
-                      open studio editor →
+                    <div style={{
+                      width: "42px",
+                      height: "42px",
+                      borderRadius: "50%",
+                      background: "rgba(59, 130, 246, 0.14)",
+                      border: "1px solid var(--accent-primary)",
+                      display: "grid",
+                      placeItems: "center",
+                      color: "var(--accent-primary)"
+                    }}>
+                      <Play size={18} fill="var(--accent-primary)" />
+                    </div>
+
+                    <span style={{
+                      position: "absolute",
+                      top: "12px",
+                      left: "12px",
+                      fontSize: "10px",
+                      fontWeight: 700,
+                      padding: "3px 7px",
+                      borderRadius: "4px",
+                      background: "#040705",
+                      color: "#9ca3af",
+                      border: "1px solid #15241c"
+                    }}>
+                      {item.ratio}
                     </span>
-                    <button
-                      onClick={(e) => deleteProject(item.id, e)}
-                      style={{
-                        background: "transparent",
-                        border: "none",
-                        color: "#6b7280",
-                        cursor: "pointer",
-                        padding: "4px"
-                      }}
-                    >
-                      <Trash2 size={15} />
-                    </button>
+
+                    <span style={{
+                      position: "absolute",
+                      top: "12px",
+                      right: "12px",
+                      fontSize: "10px",
+                      fontWeight: 700,
+                      padding: "3px 8px",
+                      borderRadius: "4px",
+                      background: item.language === "Telugu" ? "rgba(59, 130, 246, 0.18)" : "rgba(255, 255, 255, 0.09)",
+                      color: item.language === "Telugu" ? "var(--accent-primary)" : "#e5e7eb"
+                    }}>
+                      {item.language}
+                    </span>
+
+                    <span style={{
+                      position: "absolute",
+                      bottom: "10px",
+                      right: "12px",
+                      fontSize: "11px",
+                      fontWeight: 600,
+                      color: "#d1d5db",
+                      background: "rgba(0, 0, 0, 0.65)",
+                      padding: "2px 6px",
+                      borderRadius: "4px"
+                    }}>
+                      {item.duration}
+                    </span>
+                  </div>
+
+                  <div style={{ padding: "16px", display: "flex", flexDirection: "column", gap: "8px", flex: 1 }}>
+                    <h3 style={{
+                      fontSize: "15px",
+                      fontWeight: 700,
+                      color: "#f9fafb",
+                      margin: 0,
+                      lineHeight: "1.4"
+                    }}>
+                      {item.title}
+                    </h3>
+
+                    <div style={{ display: "flex", alignItems: "center", gap: "10px", fontSize: "11px", color: "var(--text-secondary)" }}>
+                      <span>{item.wordsCount} words</span>
+                      <span>•</span>
+                      <span>{item.updatedAt}</span>
+                    </div>
+
+                    <div style={{
+                      display: "flex",
+                      justifyContent: "space-between",
+                      alignItems: "center",
+                      marginTop: "auto",
+                      paddingTop: "12px",
+                      borderTop: "1px solid #101c15"
+                    }}>
+                      <span style={{ fontSize: "12px", color: "var(--accent-primary)", fontWeight: 700 }}>
+                        open studio editor →
+                      </span>
+                      <button
+                        onClick={(e) => deleteProject(item.id, e)}
+                        style={{
+                          background: "transparent",
+                          border: "none",
+                          color: "var(--text-secondary)",
+                          cursor: "pointer",
+                          padding: "4px"
+                        }}
+                      >
+                        <Trash2 size={15} />
+                      </button>
+                    </div>
                   </div>
                 </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )
         ) : (
-          <div style={{ background: "#0a110e", border: "1px solid #14231b", borderRadius: "12px", overflow: "hidden" }}>
-            <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "13px" }}>
-              <thead>
-                <tr style={{ borderBottom: "1px solid #14231b", color: "#6b7280", textAlign: "left" }}>
-                  <th style={{ padding: "14px 18px", fontWeight: 600 }}>project name</th>
-                  <th style={{ padding: "14px 18px", fontWeight: 600 }}>script format</th>
-                  <th style={{ padding: "14px 18px", fontWeight: 600 }}>ready exports</th>
-                  <th style={{ padding: "14px 18px", fontWeight: 600 }}>action</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr style={{ borderBottom: "1px solid #101a14" }}>
-                  <td style={{ padding: "14px 18px", color: "#fff", fontWeight: 600 }}>Insta Reel - Tech Tips Telugu</td>
-                  <td style={{ padding: "14px 18px", color: "var(--accent-primary)" }}>Telugu Lipi</td>
-                  <td style={{ padding: "14px 18px", color: "#9ca3af" }}>SRT, VTT, MP4 1080p</td>
-                  <td style={{ padding: "14px 18px" }}>
-                    <button style={{
-                      background: "#111f19",
-                      border: "1px solid #1e362b",
-                      color: "var(--accent-primary)",
-                      padding: "6px 12px",
-                      borderRadius: "6px",
-                      fontSize: "11px",
-                      fontWeight: 700,
-                      cursor: "pointer",
-                      display: "inline-flex",
-                      alignItems: "center",
-                      gap: "6px"
-                    }}>
-                      <Download size={13} />
-                      <span>download zip</span>
-                    </button>
-                  </td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
+          exportsList.length === 0 ? (
+            <div style={{
+              background: "#080e0c",
+              border: "1px dashed #14221a",
+              borderRadius: "14px",
+              padding: "48px 20px",
+              textAlign: "center",
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+              justifyContent: "center",
+              gap: "10px"
+            }}>
+              <Download size={32} color="#4b5563" />
+              <div style={{ fontSize: "14px", fontWeight: 700, color: "#fff" }}>No exports yet</div>
+              <p style={{ fontSize: "12px", color: "var(--text-secondary)", maxWidth: "340px", margin: 0 }}>
+                When you render a video or download SRT captions in the editor, your export history appears here.
+              </p>
+            </div>
+          ) : (
+            <div style={{ background: "#080e0c", border: "1px solid var(--border-subtle)", borderRadius: "12px", overflow: "hidden" }}>
+              <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "13px" }}>
+                <thead>
+                  <tr style={{ borderBottom: "1px solid var(--border-subtle)", color: "var(--text-secondary)", textAlign: "left" }}>
+                    <th style={{ padding: "14px 18px", fontWeight: 600 }}>project name</th>
+                    <th style={{ padding: "14px 18px", fontWeight: 600 }}>script format</th>
+                    <th style={{ padding: "14px 18px", fontWeight: 600 }}>ready exports</th>
+                    <th style={{ padding: "14px 18px", fontWeight: 600 }}>date</th>
+                    <th style={{ padding: "14px 18px", fontWeight: 600 }}>action</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {exportsList.map(exp => (
+                    <tr key={exp.id} style={{ borderBottom: "1px solid var(--bg-surface-elevated)" }}>
+                      <td style={{ padding: "14px 18px", color: "#fff", fontWeight: 600 }}>{exp.project_title}</td>
+                      <td style={{ padding: "14px 18px", color: "var(--accent-primary)" }}>{exp.script_format}</td>
+                      <td style={{ padding: "14px 18px", color: "#9ca3af" }}>{exp.export_types}</td>
+                      <td style={{ padding: "14px 18px", color: "var(--text-secondary)", fontSize: "12px" }}>{exp.created_at}</td>
+                      <td style={{ padding: "14px 18px" }}>
+                        <button
+                          type="button"
+                          onClick={() => handleDownloadExport(exp)}
+                          style={{
+                            background: "var(--bg-surface-elevated)",
+                            border: "1px solid #1a2f23",
+                            color: "var(--accent-primary)",
+                            padding: "6px 12px",
+                            borderRadius: "6px",
+                            fontSize: "11px",
+                            fontWeight: 700,
+                            cursor: "pointer",
+                            display: "inline-flex",
+                            alignItems: "center",
+                            gap: "6px"
+                          }}
+                        >
+                          <Download size={13} />
+                          <span>download</span>
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )
         )}
       </main>
-    </div>
+
+      {/* Standalone Billing & Subscription Modal */}
+      {showBillingModal && (
+        <div style={{
+          position: "fixed",
+          inset: 0,
+          background: "rgba(0, 0, 0, 0.8)",
+          backdropFilter: "blur(6px)",
+          display: "grid",
+          placeItems: "center",
+          zIndex: 200,
+          padding: "20px"
+        }}>
+          <div style={{
+            background: "var(--bg-surface)",
+            border: "1px solid var(--border-subtle)",
+            borderRadius: "16px",
+            width: "100%",
+            maxWidth: "560px",
+            boxShadow: "0 24px 60px rgba(0, 0, 0, 0.75)",
+            overflow: "hidden"
+          }}>
+            <div style={{
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              padding: "18px 24px",
+              borderBottom: "1px solid #132018"
+            }}>
+              <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                <CreditCard size={18} color="var(--accent-primary)" />
+                <h2 style={{ fontSize: "16px", fontWeight: 700, margin: 0, color: "#fff" }}>
+                  Billing & Subscription
+                </h2>
+              </div>
+              <button
+                onClick={() => setShowBillingModal(false)}
+                style={{ background: "transparent", border: "none", color: "var(--text-secondary)", cursor: "pointer" }}
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            <div style={{ padding: "24px", display: "flex", flexDirection: "column", gap: "20px" }}>
+              <div style={{
+                background: "var(--bg-surface-elevated)",
+                border: "1px solid #14231a",
+                borderRadius: "12px",
+                padding: "18px",
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                flexWrap: "wrap",
+                gap: "14px"
+              }}>
+                <div>
+                  <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                    <span style={{ fontSize: "15px", fontWeight: 700, color: "#fff" }}>Creator Free Tier</span>
+                    <span style={{ fontSize: "10px", padding: "2px 6px", borderRadius: "4px", background: "rgba(59, 130, 246, 0.14)", color: "var(--accent-primary)", fontWeight: 700 }}>active</span>
+                  </div>
+                  <div style={{ fontSize: "12px", color: "var(--text-secondary)", marginTop: "4px" }}>
+                    60 minutes free client-side transcription per month
+                  </div>
+                </div>
+                <button
+                  onClick={() => {
+                    setShowBillingModal(false);
+                    navigate("/pricing");
+                  }}
+                  style={{
+                    background: "var(--accent-primary)",
+                    color: "#fff",
+                    border: "none",
+                    padding: "9px 16px",
+                    borderRadius: "8px",
+                    fontSize: "12px",
+                    fontWeight: 700,
+                    cursor: "pointer"
+                  }}
+                >
+                  Upgrade to Pro
+                </button>
+              </div>
+
+              <div>
+                <h4 style={{ fontSize: "11px", color: "var(--text-secondary)", textTransform: "uppercase", letterSpacing: "0.06em", margin: "0 0 10px 0" }}>
+                  Billing History
+                </h4>
+                <div style={{ background: "#050806", border: "1px solid #132018", borderRadius: "8px", padding: "14px 16px", fontSize: "12px", color: "var(--text-secondary)" }}>
+                  No previous invoices found for this free account.
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Profile Settings Modal */}
+      {showSettingsModal && (
+        <div style={{
+          position: "fixed",
+          inset: 0,
+          background: "rgba(0, 0, 0, 0.8)",
+          backdropFilter: "blur(6px)",
+          display: "grid",
+          placeItems: "center",
+          zIndex: 200,
+          padding: "20px"
+        }}>
+          <div style={{
+            background: "var(--bg-surface)",
+            border: "1px solid var(--border-subtle)",
+            borderRadius: "16px",
+            width: "100%",
+            maxWidth: "600px",
+            boxShadow: "0 24px 60px rgba(0, 0, 0, 0.75)",
+            overflow: "hidden"
+          }}>
+            <div style={{
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              padding: "18px 24px",
+              borderBottom: "1px solid #132018"
+            }}>
+              <h2 style={{ fontSize: "16px", fontWeight: 700, margin: 0, color: "#fff" }}>
+                Account Settings
+              </h2>
+              <button
+                onClick={() => setShowSettingsModal(false)}
+                style={{ background: "transparent", border: "none", color: "var(--text-secondary)", cursor: "pointer" }}
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            <div style={{ display: "flex", borderBottom: "1px solid #132018", padding: "0 24px", gap: "16px" }}>
+              <button
+                onClick={() => setSettingsTab("general")}
+                style={{
+                  background: "transparent",
+                  border: "none",
+                  borderBottom: settingsTab === "general" ? "2px solid var(--accent-primary)" : "2px solid transparent",
+                  color: settingsTab === "general" ? "var(--accent-primary)" : "var(--text-secondary)",
+                  padding: "12px 4px",
+                  fontSize: "13px",
+                  fontWeight: 600,
+                  cursor: "pointer"
+                }}
+              >
+                Profile Settings
+              </button>
+              <button
+                onClick={() => setSettingsTab("danger")}
+                style={{
+                  background: "transparent",
+                  border: "none",
+                  borderBottom: settingsTab === "danger" ? "2px solid #ef4444" : "2px solid transparent",
+                  color: settingsTab === "danger" ? "#ef4444" : "var(--text-secondary)",
+                  padding: "12px 4px",
+                  fontSize: "13px",
+                  fontWeight: 600,
+                  cursor: "pointer"
+                }}
+              >
+                Danger Zone
+              </button>
+            </div>
+
+            <div style={{ padding: "24px", minHeight: "260px" }}>
+              {settingsTab === "general" && (
+                <div style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
+                  <div>
+                    <label style={{ display: "block", fontSize: "12px", color: "var(--text-secondary)", marginBottom: "6px" }}>
+                      Display Name
+                    </label>
+                    <input
+                      type="text"
+                      value={editName}
+                      onChange={(e) => setEditName(e.target.value)}
+                      placeholder="Your creator name"
+                      style={{
+                        width: "100%",
+                        background: "#050806",
+                        border: "1px solid var(--border-subtle)",
+                        borderRadius: "8px",
+                        padding: "10px 14px",
+                        color: "#fff",
+                        fontSize: "13px",
+                        outline: "none"
+                      }}
+                    />
+                  </div>
+
+                  <div>
+                    <label style={{ display: "block", fontSize: "12px", color: "var(--text-secondary)", marginBottom: "6px" }}>
+                      Registered Email
+                    </label>
+                    <input
+                      type="email"
+                      value={userEmail}
+                      disabled
+                      style={{
+                        width: "100%",
+                        background: "#050806",
+                        border: "1px solid #132018",
+                        borderRadius: "8px",
+                        padding: "10px 14px",
+                        color: "var(--text-secondary)",
+                        fontSize: "13px",
+                        cursor: "not-allowed"
+                      }}
+                    />
+                  </div>
+
+                  <button
+                    onClick={handleSaveProfile}
+                    disabled={isSavingSettings}
+                    style={{
+                      marginTop: "12px",
+                      background: "var(--accent-primary)",
+                      color: "#fff",
+                      border: "none",
+                      padding: "10px 20px",
+                      borderRadius: "8px",
+                      fontSize: "13px",
+                      fontWeight: 700,
+                      cursor: "pointer",
+                      alignSelf: "flex-end"
+                    }}
+                  >
+                    {isSavingSettings ? "Saving..." : "Save Preferences"}
+                  </button>
+                </div>
+              )}
+
+              {settingsTab === "danger" && (
+                <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+                  <div style={{
+                    background: "rgba(239, 68, 68, 0.08)",
+                    border: "1px solid rgba(239, 68, 68, 0.2)",
+                    borderRadius: "10px",
+                    padding: "14px",
+                    display: "flex",
+                    gap: "12px"
+                  }}>
+                    <ShieldAlert size={20} color="#ef4444" style={{ flexShrink: 0, marginTop: "2px" }} />
+                    <div style={{ fontSize: "12px", color: "#fca5a5", lineHeight: "1.5" }}>
+                      Deleting your account will erase all your saved projects, transcripts, and preferences permanently. This action cannot be reversed.
+                    </div>
+                  </div>
+
+                  <div>
+                    <label style={{ display: "block", fontSize: "12px", color: "var(--text-secondary)", marginBottom: "6px" }}>
+                      Type <strong>DELETE</strong> below to confirm account deletion:
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="DELETE"
+                      value={deleteConfirmText}
+                      onChange={(e) => setDeleteConfirmText(e.target.value)}
+                      style={{
+                        width: "100%",
+                        background: "#050806",
+                        border: "1px solid #281414",
+                        borderRadius: "8px",
+                        padding: "10px 14px",
+                        color: "#ef4444",
+                        fontSize: "13px",
+                        outline: "none"
+                      }}
+                    />
+                  </div>
+
+                  <button
+                    onClick={handleDeleteAccount}
+                    disabled={deleteConfirmText !== "DELETE"}
+                    style={{
+                      background: deleteConfirmText === "DELETE" ? "#dc2626" : "#2e1212",
+                      color: deleteConfirmText === "DELETE" ? "var(--text-primary)" : "var(--text-secondary)",
+                      border: "none",
+                      padding: "10px 16px",
+                      borderRadius: "8px",
+                      fontSize: "13px",
+                      fontWeight: 700,
+                      cursor: deleteConfirmText === "DELETE" ? "pointer" : "not-allowed",
+                      alignSelf: "flex-end"
+                    }}
+                  >
+                    Permanently Delete Account
+                  </button>
+                </div>
+              )}
+            </div>
+          </div></div>)}</div>
   );
 };

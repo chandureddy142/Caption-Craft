@@ -1,3 +1,4 @@
+import { ThemeProvider } from "./lib/theme";
 import type { ReactElement } from "react";
 import { Navigate, Route, Routes } from "react-router-dom";
 import ProtectedRoute from "./components/ProtectedRoute";
@@ -14,7 +15,8 @@ import SupportPage from "./pages/SupportPage";
 
 export default function App(): ReactElement {
   return (
-    <Routes>
+    <ThemeProvider>
+<Routes>
       <Route element={<SiteLayout />}>
         <Route index element={<HomePage />} />
         <Route path="templates" element={<TemplatesPage />} />
@@ -32,5 +34,6 @@ export default function App(): ReactElement {
 
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
+</ThemeProvider>
   );
 }

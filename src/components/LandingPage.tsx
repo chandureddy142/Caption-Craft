@@ -35,12 +35,12 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onStart }) => {
       <style>{`
         :root {
           color-scheme: dark;
-          --bg-page: #0b0d11;
-          --surface: #131720;
+          --bg-page: var(--bg-app);
+          --surface: var(--bg-surface);
           --surface-elevated: #1a202c;
           --border: #252b39;
-          --accent: var(--accent-primary, #3b82f6);
-          --accent-hover: var(--accent-hover, #2563eb);
+          --accent: var(--accent-primary, var(--accent-primary));
+          --accent-hover: var(--accent-hover, var(--accent-primary-hover));
           --text-primary: #F3F6F4;
           --text-secondary: #A0AAA5;
           --text-muted: #737F79;
@@ -91,7 +91,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onStart }) => {
         }
 
         .cc-h1-accent {
-          color: var(--accent-primary, #3b82f6);
+          color: var(--accent-primary, var(--accent-primary));
         }
 
         .cc-lead {
@@ -124,7 +124,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onStart }) => {
           align-items: center;
           justify-content: center;
           gap: 8px;
-          background: var(--accent-primary, #3b82f6);
+          background: var(--accent-primary, var(--accent-primary));
           color: #ffffff !important;
           font-weight: 700;
           font-size: 14px;
@@ -232,7 +232,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onStart }) => {
 
         .cc-caption-highlight {
           background: var(--accent);
-          color: #050807;
+          color: var(--bg-app);
           padding: 2px 8px;
           border-radius: 6px;
           display: inline-block;
@@ -274,7 +274,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onStart }) => {
 
         .cc-tab-btn.active {
           background: var(--accent);
-          color: #050807;
+          color: var(--bg-app);
         }
 
         .cc-preview-box {
@@ -368,7 +368,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onStart }) => {
           top: -10px;
           right: 20px;
           background: var(--accent);
-          color: #050807;
+          color: var(--bg-app);
           font-size: 11px;
           font-weight: 700;
           padding: 2px 10px;
@@ -506,7 +506,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onStart }) => {
               <div style={{
                 width: "100%",
                 aspectRatio: "16 / 9",
-                background: "#050807",
+                background: "var(--bg-app)",
                 borderRadius: "10px",
                 overflow: "hidden",
                 border: "1px solid #252b39",
@@ -843,7 +843,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onStart }) => {
                     width: "44px",
                     height: "44px",
                     borderRadius: "50%",
-                    background: "#0b0d11",
+                    background: "var(--bg-app)",
                     border: "2px solid var(--accent-primary)",
                     color: "var(--accent-primary)",
                     display: "flex",
@@ -875,7 +875,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onStart }) => {
                     width: "44px",
                     height: "44px",
                     borderRadius: "50%",
-                    background: "#0b0d11",
+                    background: "var(--bg-app)",
                     border: "2px solid var(--accent-primary)",
                     color: "var(--accent-primary)",
                     display: "flex",
@@ -907,7 +907,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onStart }) => {
                     width: "44px",
                     height: "44px",
                     borderRadius: "50%",
-                    background: "#0b0d11",
+                    background: "var(--bg-app)",
                     border: "2px solid var(--accent-primary)",
                     color: "var(--accent-primary)",
                     display: "flex",
@@ -939,7 +939,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onStart }) => {
                     width: "44px",
                     height: "44px",
                     borderRadius: "50%",
-                    background: "#0b0d11",
+                    background: "var(--bg-app)",
                     border: "2px solid var(--accent-primary)",
                     color: "var(--accent-primary)",
                     display: "flex",

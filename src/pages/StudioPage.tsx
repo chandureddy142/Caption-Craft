@@ -16,6 +16,7 @@ export default function StudioPage(): ReactElement {
   const location = useLocation();
   const navigate = useNavigate();
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [activeProjectId, setActiveProjectId] = useState<string | undefined>(undefined);
   const [showEditor, setShowEditor] = useState<boolean>(false);
 
   if (showEditor) {
@@ -23,8 +24,10 @@ export default function StudioPage(): ReactElement {
       <StudioApp 
         initialTemplateId={readTemplateId(location.state)} 
         initialFile={selectedFile}
+        projectId={activeProjectId}
         onBackToDashboard={() => {
           setSelectedFile(null);
+          setActiveProjectId(undefined);
           setShowEditor(false);
         }}
       />
@@ -33,11 +36,13 @@ export default function StudioPage(): ReactElement {
 
   return (
     <StudioDashboard
-      onOpenFile={(file: File) => {
+      onOpenFile={(file: File, projId?: string) => {
         setSelectedFile(file);
+        setActiveProjectId(projId);
         setShowEditor(true);
       }}
-      onOpenEditor={() => {
+      onOpenEditor={(projId?: string) => {
+        setActiveProjectId(projId);
         setShowEditor(true);
       }}
       onSignOut={() => navigate("/")}
