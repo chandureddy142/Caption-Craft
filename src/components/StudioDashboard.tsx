@@ -373,7 +373,7 @@ export const StudioDashboard: React.FC<StudioDashboardProps> = ({ onOpenFile, on
   });
 
   return (
-    <div style={{ minHeight: "100vh", background: "var(--bg-app)", color: "var(--text-primary)", fontFamily: "inherit" }}>
+    <div style={{ minHeight: "100vh", background: "var(--bg-[var(--card-bg)]pp)", color: "var(--text-primary)", fontFamily: "inherit" }}>
       {/* Top Navbar */}
       <nav style={{
         height: "64px",
@@ -408,7 +408,7 @@ export const StudioDashboard: React.FC<StudioDashboardProps> = ({ onOpenFile, on
           />
           <div style={{ display: "inline-flex", alignItems: "center", gap: "8px" }}>
             <span style={{ fontSize: "16px", fontWeight: 700, letterSpacing: "-0.02em", color: "var(--text-primary)" }}>
-              CaptionCraft
+              <span style={{ color: "var(--card-text-primary)", fontWeight: 700, fontSize: "16px", letterSpacing: "-0.02em" }}>CaptionCraft</span>
             </span>
             <span style={{
               fontSize: "10px",
@@ -427,7 +427,9 @@ export const StudioDashboard: React.FC<StudioDashboardProps> = ({ onOpenFile, on
         {/* Right side: ThemeToggle beside Profile Avatar */}
         <div style={{ display: "flex", alignItems: "center", gap: "14px" }}>
           <div style={{ position: "relative" }} ref={menuRef}>
-            <button
+            <div style={{ display: "inline-flex", alignItems: "center", gap: "10px" }}>
+          <ThemeToggle />
+          <button
               onClick={() => setShowProfileMenu(!showProfileMenu)}
               style={{
                 width: "36px",
@@ -446,6 +448,7 @@ export const StudioDashboard: React.FC<StudioDashboardProps> = ({ onOpenFile, on
             >
               {userName ? userName.charAt(0).toUpperCase() : "C"}
             </button>
+        </div>
 
             {showProfileMenu && (
               <div style={{
@@ -530,7 +533,7 @@ export const StudioDashboard: React.FC<StudioDashboardProps> = ({ onOpenFile, on
                     onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
                   >
                     <User size={14} color="var(--accent-primary)" />
-                    <span>Profile Settings</span>
+                    <span style={{ color: "var(--card-text-secondary)" }}>Profile Settings</span>
                   </button>
 
                   <button
@@ -556,7 +559,7 @@ export const StudioDashboard: React.FC<StudioDashboardProps> = ({ onOpenFile, on
                     onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
                   >
                     <CreditCard size={14} color="var(--accent-primary)" />
-                    <span>Billing & Subscription</span>
+                    <span style={{ color: "var(--card-text-secondary)" }}>Billing & Subscription</span>
                   </button>
 
                   <button
@@ -582,7 +585,7 @@ export const StudioDashboard: React.FC<StudioDashboardProps> = ({ onOpenFile, on
                     onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
                   >
                     <Globe size={14} color="var(--accent-primary)" />
-                    <span>Landing Page</span>
+                    <span style={{ color: "var(--card-text-secondary)" }}>Landing Page</span>
                   </button>
                 </div>
 
@@ -665,10 +668,10 @@ export const StudioDashboard: React.FC<StudioDashboardProps> = ({ onOpenFile, on
           </div>
 
           <h2 style={{ fontSize: "20px", fontWeight: 800, color: "var(--text-primary)", margin: "0 0 6px 0", letterSpacing: "-0.02em" }}>
-            Drop your video or audio clip here
+            <span style={{ color: "var(--card-text-primary)", fontWeight: 600 }}>Drop your video or audio clip here</span>
           </h2>
           <p style={{ fontSize: "13px", color: "var(--text-secondary)", margin: "0 0 18px 0", maxWidth: "460px", lineHeight: "1.5" }}>
-            Auto-generate word-by-word synced Telugu or Tenglish subtitles without server uploads.
+            <span style={{ color: "var(--card-text-secondary)" }}>Auto-generate word-by-word synced Telugu or Tenglish subtitles without server uploads.</span>
           </p>
 
           <div style={{ display: "flex", gap: "10px", alignItems: "center" }}>
@@ -751,11 +754,11 @@ export const StudioDashboard: React.FC<StudioDashboardProps> = ({ onOpenFile, on
                     9:16 vertical
                   </span>
                   <span style={{ fontSize: "15px", fontWeight: 700, color: "var(--text-primary)" }}>
-                    Instagram Reel & YouTube Shorts
+                    <span style={{ color: "var(--card-text-primary)", fontWeight: 600 }}>Instagram Reel & YouTube Shorts</span>
                   </span>
                 </div>
                 <div style={{ fontSize: "12px", color: "var(--text-secondary)", lineHeight: "1.4" }}>
-                  1–3 word kinetic chunks with Instagram and YouTube Shorts UI safe-zone guides and high-contrast word highlights.
+                  <span style={{ color: "var(--card-text-secondary)" }}>1–3 word kinetic chunks with Instagram and YouTube Shorts UI safe-zone guides and high-contrast word highlights.</span>
                 </div>
               </div>
 
@@ -867,8 +870,7 @@ export const StudioDashboard: React.FC<StudioDashboardProps> = ({ onOpenFile, on
               />
             </div>
 
-            <ThemeToggle />
-          </div>
+            </div>
         </div>
 
         {/* Project Cards or Exports Table */}
@@ -1187,7 +1189,7 @@ export const StudioDashboard: React.FC<StudioDashboardProps> = ({ onOpenFile, on
                 <h4 style={{ fontSize: "11px", color: "var(--text-secondary)", textTransform: "uppercase", letterSpacing: "0.06em", margin: "0 0 10px 0" }}>
                   Billing History
                 </h4>
-                <div style={{ background: "var(--bg-app)", border: "1px solid var(--box-border)", borderRadius: "8px", padding: "14px 16px", fontSize: "12px", color: "var(--text-secondary)" }}>
+                <div style={{ background: "var(--bg-[var(--card-bg)]pp)", border: "1px solid var(--box-border)", borderRadius: "8px", padding: "14px 16px", fontSize: "12px", color: "var(--text-secondary)" }}>
                   No previous invoices found for this free account.
                 </div>
               </div>
@@ -1282,7 +1284,7 @@ export const StudioDashboard: React.FC<StudioDashboardProps> = ({ onOpenFile, on
                       placeholder="Your creator name"
                       style={{
                         width: "100%",
-                        background: "var(--bg-app)",
+                        background: "var(--bg-[var(--card-bg)]pp)",
                         border: "1px solid var(--box-border)",
                         borderRadius: "8px",
                         padding: "10px 14px",
@@ -1303,7 +1305,7 @@ export const StudioDashboard: React.FC<StudioDashboardProps> = ({ onOpenFile, on
                       disabled
                       style={{
                         width: "100%",
-                        background: "var(--bg-app)",
+                        background: "var(--bg-[var(--card-bg)]pp)",
                         border: "1px solid var(--box-border)",
                         borderRadius: "8px",
                         padding: "10px 14px",
@@ -1362,7 +1364,7 @@ export const StudioDashboard: React.FC<StudioDashboardProps> = ({ onOpenFile, on
                       onChange={(e) => setDeleteConfirmText(e.target.value)}
                       style={{
                         width: "100%",
-                        background: "var(--bg-app)",
+                        background: "var(--bg-[var(--card-bg)]pp)",
                         border: "1px solid rgba(239, 68, 68, 0.3)",
                         borderRadius: "8px",
                         padding: "10px 14px",

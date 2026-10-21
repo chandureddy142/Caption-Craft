@@ -1,3 +1,59 @@
+/* THEME_TOKENS_START */
+:root {
+  /* LIGHT THEME */
+  --bg-app: #f7f4ed;               /* Page background: Cream */
+  --text-primary: #201e1c;         /* Page text: Dark Charcoal */
+  --text-secondary: #5e5953;
+
+  /* Elevated Elements: Header, Cards, Footer (Charcoal in Light Mode) */
+  --card-bg: #201e1c;
+  --card-border: rgba(255, 255, 255, 0.12);
+  --card-text-primary: #ffffff;
+  --card-text-secondary: rgba(255, 255, 255, 0.72);
+
+  --nav-bg: #201e1c;
+  --nav-border: rgba(255, 255, 255, 0.1);
+  --nav-text-primary: #ffffff;
+  --nav-text-secondary: rgba(255, 255, 255, 0.72);
+  --box-border: rgba(255, 255, 255, 0.12);
+
+  --accent-primary: #ef5350;
+}
+
+[data-theme="dark"],
+.dark {
+  /* DARK THEME */
+  --bg-app: #181716;               /* Page background: Deep Charcoal */
+  --text-primary: #ffffff;         /* Page text: Pure White */
+  --text-secondary: rgba(255, 255, 255, 0.72);
+
+  /* Elevated Elements: Header, Cards, Footer (Warm Cream in Dark Mode) */
+  --card-bg: #f7f4ed;
+  --card-border: rgba(32, 30, 28, 0.15);
+  --card-text-primary: #201e1c;
+  --card-text-secondary: #5e5953;
+
+  --nav-bg: #f7f4ed;
+  --nav-border: rgba(32, 30, 28, 0.12);
+  --nav-text-primary: #201e1c;
+  --nav-text-secondary: #5e5953;
+  --box-border: rgba(32, 30, 28, 0.15);
+
+  --accent-primary: #ef5350;
+}
+
+body, html, #root {
+  background-color: var(--bg-app);
+  color: var(--text-primary);
+  min-height: 100vh;
+  margin: 0;
+  padding: 0;
+  transition: background-color 0.25s ease, color 0.25s ease;
+}
+/* THEME_TOKENS_END */
+
+
+
 /* ==========================================================================
    WARM EDITORIAL - INVERTED HEADER & HIGH CONTRAST CARDS
    ========================================================================== */
@@ -88,79 +144,7 @@ html, body {
   transition: background-color 0.2s ease, color 0.2s ease;
 }
 
-/* THEME_TOKENS_START */
-:root {
-  /* LIGHT THEME:
-     - Page Background: Warm Cream (#f7f4ed)
-     - Header & Cards: Charcoal (#201e1c) - alternates against page background
-     - Card / Header Text: Pure White (#ffffff) - alternates against charcoal surfaces
-     - Page Body Text: Charcoal (#201e1c) - legible against cream background
-  */
-  --bg-app: #f7f4ed;
-  --bg-surface: #201e1c;
-  --bg-surface-elevated: #282624;
-  --bg-surface-hover: rgba(255, 255, 255, 0.08);
-  --box-border: rgba(255, 255, 255, 0.12);
-  --border-subtle: rgba(32, 30, 28, 0.14);
 
-  --nav-bg: #201e1c;
-  --nav-border: rgba(255, 255, 255, 0.1);
-  --nav-text-primary: #ffffff;
-  --nav-text-secondary: rgba(255, 255, 255, 0.72);
-
-  --text-primary: #201e1c;
-  --text-secondary: #5e5953;
-
-  --card-bg: #201e1c;
-  --card-border: rgba(255, 255, 255, 0.1);
-  --card-text-primary: #ffffff;
-  --card-text-secondary: rgba(255, 255, 255, 0.75);
-
-  --accent-primary: #ef5350;
-  --bg-input: #282624;
-}
-
-[data-theme="dark"],
-.dark {
-  /* DARK THEME:
-     - Page Background: Deep Base Charcoal (#181716)
-     - Header & Cards: Elevated Charcoal (#252321) - alternates against base background
-     - Card / Header Text: Pure White (#ffffff)
-     - Page Body Text: Pure White (#ffffff)
-  */
-  --bg-app: #181716;
-  --bg-surface: #252321;
-  --bg-surface-elevated: #2e2b28;
-  --bg-surface-hover: rgba(255, 255, 255, 0.06);
-  --box-border: rgba(255, 255, 255, 0.1);
-  --border-subtle: rgba(255, 255, 255, 0.08);
-
-  --nav-bg: #252321;
-  --nav-border: rgba(255, 255, 255, 0.08);
-  --nav-text-primary: #ffffff;
-  --nav-text-secondary: rgba(255, 255, 255, 0.72);
-
-  --text-primary: #ffffff;
-  --text-secondary: rgba(255, 255, 255, 0.72);
-
-  --card-bg: #252321;
-  --card-border: rgba(255, 255, 255, 0.1);
-  --card-text-primary: #ffffff;
-  --card-text-secondary: rgba(255, 255, 255, 0.72);
-
-  --accent-primary: #ef5350;
-  --bg-input: #1e1c1b;
-}
-
-body, html, #root {
-  background-color: var(--bg-app);
-  color: var(--text-primary);
-  min-height: 100vh;
-  margin: 0;
-  padding: 0;
-  transition: background-color 0.25s ease, color 0.25s ease;
-}
-/* THEME_TOKENS_END */
 
 
 
