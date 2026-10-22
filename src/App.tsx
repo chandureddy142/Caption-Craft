@@ -1,3 +1,4 @@
+import { ScrollToTop } from "./components/ScrollToTop";
 import { ThemeProvider } from "./lib/theme";
 import type { ReactElement } from "react";
 import { Navigate, Route, Routes } from "react-router-dom";
@@ -16,7 +17,8 @@ import SupportPage from "./pages/SupportPage";
 export default function App(): ReactElement {
   return (
     <ThemeProvider>
-<Routes>
+<ScrollToTop />
+      <Routes>
       <Route element={<SiteLayout />}>
         <Route index element={<HomePage />} />
         <Route path="templates" element={<TemplatesPage />} />

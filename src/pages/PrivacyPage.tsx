@@ -93,16 +93,7 @@ export const PrivacyPage: React.FC = () => {
             style={{ flexShrink: 0, marginTop: "2px" }}
           />
           <div>
-            <div
-              style={{
-                fontWeight: 700,
-                color: "var(--text-primary)",
-                fontSize: "15px",
-                marginBottom: "4px"
-              }}
-            >
-              Your raw videos never leave your browser
-            </div>
+            <h3 style={{ color: "var(--card-text-primary)", fontWeight: 700, fontSize: "16px", marginBottom: "6px" }}>Your raw videos never leave your browser</h3>
             <div
               style={{
                 fontSize: "13.5px",
@@ -110,7 +101,7 @@ export const PrivacyPage: React.FC = () => {
                 lineHeight: 1.6
               }}
             >
-              CaptionCraft executes speech recognition locally using on-device machine learning models. Video clips and uncaptioned media files are not uploaded or permanently archived on external servers.
+              <span style={{ color: "var(--card-text-secondary)", fontSize: "13px", lineHeight: 1.6, display: "block" }}><span style={{ color: "var(--card-text-secondary)", fontSize: "13px", lineHeight: "1.6", display: "block" }}>CaptionCraft executes speech recognition locally using on-device machine learning models. Video clips and uncaptioned media files are not uploaded or permanently archived on external servers.</span></span>
             </div>
           </div>
         </div>
