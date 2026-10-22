@@ -473,8 +473,8 @@ export const StudioDashboard: React.FC<StudioDashboardProps> = ({
                     {userName ? userName.charAt(0).toUpperCase() : "C"}
                   </div>
                   <div style={{ overflow: "hidden" }}>
-                    <div style={{ fontSize: "13px", fontWeight: 700, color: "#ffffff", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{userName}</div>
-                    <div style={{ fontSize: "11px", color: "rgba(255, 255, 255, 0.75)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{userEmail}</div>
+                    <div style={{ fontSize: "13px", fontWeight: 700, color: "var(--bg-app)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{userName}</div>
+                    <div style={{ fontSize: "11px", color: "var(--bg-app)", opacity: 0.82, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{userEmail}</div>
                   </div>
                 </div>
 
@@ -486,7 +486,7 @@ export const StudioDashboard: React.FC<StudioDashboardProps> = ({
                     </span>
                   </div>
                   <div>
-                    <div style={{ display: "flex", justifyContent: "space-between", fontSize: "10px", color: "#94a3b8", marginBottom: "4px" }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", fontSize: "10px", color: "var(--bg-app)", opacity: 0.8, marginBottom: "4px" }}>
                       <span style={{ color: "var(--card-text-secondary)" }}>transcription usage</span>
                       <span>{totalTranscriptionMinutes} / 60 min</span>
                     </div>
