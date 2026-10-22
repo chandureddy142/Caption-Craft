@@ -234,7 +234,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   );
 
   return (
-    <aside className="control-sidebar" style={{ display: "flex", flexDirection: "column", gap: "8px", padding: "10px 12px", overflowY: "auto", height: "100%" }}>
+    <aside className="control-sidebar" style={{ display: "flex", flexDirection: "column", gap: "10px", padding: "12px 14px", overflowY: "auto", height: "100%", background: "#12141a", borderRight: "1px solid rgba(255, 255, 255, 0.08)" }}>
       {/* 1. brand row */}
       <div className="sidebar-brand-row" style={{ paddingBottom: "2px", marginBottom: "0" }}>
         <div className="brand-lockup compact">
@@ -247,12 +247,12 @@ export const Sidebar: React.FC<SidebarProps> = ({
       </div>
 
       {/* 2. media summary */}
-      <div className="media-summary" style={{ margin: "2px 0 4px", padding: "6px 8px" }}>
+      <div className="media-summary" style={{ margin: "2px 0 6px", padding: "8px 10px", borderRadius: "8px", background: "var(--bg-app, #fbf8ef)", color: "#1e232d", border: "1px solid rgba(0,0,0,0.08)", boxShadow: "0 2px 8px rgba(0,0,0,0.18)" }}>
         <div className="media-summary-icon">
           <FileText size={17} />
         </div>
         <div className="media-summary-copy">
-          <strong>{mediaFile?.name || "Untitled project"}</strong>
+          <strong style={{ color: "#1e232d", fontWeight: 700 }}>{mediaFile?.name || "Untitled project"}</strong>
           <span>
             {mediaFile
               ? `${formatBytes(mediaFile.size)} · ${formatDuration(mediaDuration)}`
@@ -280,7 +280,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
       <section className="sidebar-section" style={{ margin: "0", padding: "0" }}>
         <div className="section-heading">
           <div>
-            <h2>Source language</h2>
+            <h2 style={{ color: "#ffffff", fontWeight: 700, fontSize: "0.82rem", margin: 0 }}>Source language</h2>
           </div>
         </div>
         <div className="language-pills source-language-pills" role="group" aria-label="Source language">
@@ -305,7 +305,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
       <section className="sidebar-section" style={{ margin: "0", padding: "0" }}>
         <div className="section-heading">
           <div>
-            <h2>Output format</h2>
+            <h2 style={{ color: "#ffffff", fontWeight: 700, fontSize: "0.82rem", margin: 0 }}>Output format</h2>
           </div>
         </div>
         <div className="language-pills output-language-pills" role="group" aria-label="Caption output format">
@@ -346,7 +346,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
       <section className="sidebar-section generate-section" style={{ margin: "0", padding: "0" }}>
         <div className="section-heading">
           <div>
-            <h2>Generate captions</h2>
+            <h2 style={{ color: "#ffffff", fontWeight: 700, fontSize: "0.82rem", margin: 0 }}>Generate captions</h2>
           </div>
           <span className={`live-status ${isTranscribing ? "working" : "ready"}`}>
             <i />
@@ -404,17 +404,17 @@ export const Sidebar: React.FC<SidebarProps> = ({
       <section className="sidebar-section timeline-sidebar-tools" style={{ margin: "0", padding: "0" }}>
         <div className="section-heading">
           <div>
-            <h2>Timeline tools</h2>
+            <h2 style={{ color: "#ffffff", fontWeight: 700, fontSize: "0.82rem", margin: 0 }}>Timeline tools</h2>
           </div>
           <span className="count-badge">{subtitles.length}</span>
         </div>
         <div className="sidebar-timeline-actions">
           <div className="sidebar-action-row">
-            <button className="sidebar-tool-btn" onClick={onUndo} disabled={!canUndo} title="Undo">
+            <button className="sidebar-tool-btn" style={{ background: "var(--bg-app, #fbf8ef)", color: "#1e232d", border: "1px solid rgba(0,0,0,0.12)", fontWeight: 600 }} onClick={onUndo} disabled={!canUndo} title="Undo">
               <Undo2 size={14} />
               <span>Undo</span>
             </button>
-            <button className="sidebar-tool-btn" onClick={onRedo} disabled={!canRedo} title="Redo">
+            <button className="sidebar-tool-btn" style={{ background: "var(--bg-app, #fbf8ef)", color: "#1e232d", border: "1px solid rgba(0,0,0,0.12)", fontWeight: 600 }} onClick={onRedo} disabled={!canRedo} title="Redo">
               <Redo2 size={14} />
               <span>Redo</span>
             </button>
@@ -439,7 +439,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
             {/* Split */}
             <button
-              className="sidebar-tool-btn"
+              className="sidebar-tool-btn" style={{ background: "var(--bg-app, #fbf8ef)", color: "#1e232d", border: "1px solid rgba(0,0,0,0.12)", fontWeight: 600 }}
               onClick={onSplitSubtitle}
               disabled={
                 !selectedLayer ||
@@ -454,7 +454,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
             {/* Delete */}
             <button
-              className="sidebar-tool-btn danger"
+              className="sidebar-tool-btn danger" style={{ background: "rgba(239, 68, 68, 0.15)", color: "#ef4444", border: "1px solid rgba(239, 68, 68, 0.3)", fontWeight: 600 }}
               onClick={onDeleteSubtitle}
               disabled={
                 !selectedLayer ||
@@ -470,7 +470,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
           {/* Add caption */}
           <button
-            className="secondary-action sidebar-add-caption-btn"
+            className="secondary-action sidebar-add-caption-btn" style={{ background: "var(--bg-app, #fbf8ef)", color: "#1e232d", border: "1px solid rgba(0,0,0,0.12)", fontWeight: 700 }}
             onClick={onAddSubtitle}
             disabled={selectedLayer !== "caption" || !mediaDuration}
             title={selectedLayer === "caption" ? "Add new caption at playhead needle" : "Select caption track to add caption"}
@@ -610,173 +610,175 @@ export const Sidebar: React.FC<SidebarProps> = ({
       </section>
 
       {/* 7. playback & dual volume card */}
-        <div
-          style={{
-            marginTop: "14px",
-            padding: "10px 12px",
-            borderRadius: "8px",
-            background: "rgba(255, 255, 255, 0.03)",
-            border: "1px solid rgba(255, 255, 255, 0.08)",
-            display: "flex",
-            flexDirection: "column",
-            gap: "10px",
-          }}
-        >
-          {/* top row: play/pause on left, music/audio toggle on right */}
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "10px" }}>
+      <div
+        style={{
+          marginTop: "12px",
+          padding: "10px 12px",
+          borderRadius: "8px",
+          background: "var(--bg-app, #fbf8ef)",
+          border: "1px solid rgba(0, 0, 0, 0.08)",
+          boxShadow: "0 2px 8px rgba(0,0,0,0.18)",
+          display: "flex",
+          flexDirection: "column",
+          gap: "10px",
+          color: "#1e232d"
+        }}
+      >
+        {/* top row: play/pause on left, music/audio toggle on right */}
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "10px" }}>
+          <button
+            type="button"
+            onClick={onTogglePlay}
+            style={{
+              flex: 1,
+              height: "32px",
+              borderRadius: "5px",
+              background: isPlaying ? "rgba(239, 68, 68, 0.16)" : "var(--accent-primary)",
+              border: isPlaying ? "1px solid rgba(239, 68, 68, 0.4)" : "none",
+              color: "#ffffff",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              gap: "6px",
+              fontSize: "0.8rem",
+              fontWeight: 700,
+              cursor: "pointer",
+              textTransform: "lowercase",
+            }}
+          >
+            {isPlaying ? (
+              <>
+                <Pause size={13} fill="currentColor" />
+                <span>pause</span>
+              </>
+            ) : (
+              <>
+                <Play size={13} fill="currentColor" style={{ marginLeft: "1px" }} />
+                <span>play</span>
+              </>
+            )}
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setActiveAudioTarget(prev => (prev === "audio" ? "music" : "audio"))}
+            style={{
+              flex: 1,
+              height: "32px",
+              borderRadius: "5px",
+              background: activeAudioTarget === "music" ? "rgba(52, 211, 153, 0.16)" : "rgba(59, 130, 246, 0.16)",
+              border: activeAudioTarget === "music" ? "1px solid rgba(52, 211, 153, 0.45)" : "1px solid rgba(59, 130, 246, 0.45)",
+              color: activeAudioTarget === "music" ? "#0284c7" : "#2563eb",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              fontSize: "0.8rem",
+              fontWeight: 700,
+              cursor: "pointer",
+              textTransform: "lowercase",
+            }}
+            title="Click to switch volume between audio and music"
+          >
+            {activeAudioTarget}
+          </button>
+        </div>
+
+        {/* bottom row: time on left, volume controls on right */}
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "8px" }}>
+          <div
+            style={{
+              flex: 1,
+              fontFamily: "monospace",
+              fontSize: "0.78rem",
+              fontWeight: 600,
+              display: "flex",
+              alignItems: "center",
+              color: "#334155"
+            }}
+          >
+            <span style={{ color: "#2563eb" }}>{formatDuration(currentTime)}</span>
+            <span style={{ margin: "0 2px", color: "#64748b" }}>/</span>
+            <span>{formatDuration(duration || mediaDuration)}</span>
+          </div>
+
+          <div
+            style={{
+              flex: 1.2,
+              display: "flex",
+              alignItems: "center",
+              gap: "6px",
+            }}
+          >
             <button
               type="button"
-              onClick={onTogglePlay}
-              style={{
-                flex: 1,
-                height: "32px",
-                borderRadius: "5px",
-                background: isPlaying ? "rgba(239, 68, 68, 0.16)" : "var(--accent-primary)",
-                border: isPlaying ? "1px solid rgba(239, 68, 68, 0.4)" : "none",
-                color: "#ffffff",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                gap: "6px",
-                fontSize: "0.8rem",
-                fontWeight: 700,
-                cursor: "pointer",
-                textTransform: "lowercase",
+              onClick={() => {
+                if (activeAudioTarget === "music") {
+                  onSongVolumeChange?.(songVolume === 0 ? 0.8 : 0);
+                } else {
+                  onVolumeChange?.(volume === 0 ? 1 : 0);
+                }
               }}
+              style={{
+                background: "transparent",
+                border: "none",
+                color: (activeAudioTarget === "music" ? songVolume === 0 : volume === 0) ? "#ef4444" : "#475569",
+                cursor: "pointer",
+                display: "flex",
+                padding: 0,
+              }}
+              title="Mute / Unmute"
             >
-              {isPlaying ? (
-                <>
-                  <Pause size={13} fill="currentColor" />
-                  <span>pause</span>
-                </>
+              {(activeAudioTarget === "music" ? songVolume === 0 : volume === 0) ? (
+                <VolumeX size={14} />
               ) : (
-                <>
-                  <Play size={13} fill="currentColor" style={{ marginLeft: "1px" }} />
-                  <span>play</span>
-                </>
+                <Volume2 size={14} />
               )}
             </button>
 
-            <button
-              type="button"
-              onClick={() => setActiveAudioTarget(prev => (prev === "audio" ? "music" : "audio"))}
+            <input
+              type="range"
+              min="0"
+              max="1"
+              step="0.01"
+              value={activeAudioTarget === "music" ? songVolume : volume}
+              onInput={e => {
+                const val = Number((e.target as HTMLInputElement).value);
+                if (activeAudioTarget === "music") {
+                  onSongVolumeChange?.(val);
+                } else {
+                  onVolumeChange?.(val);
+                }
+              }}
+              onChange={e => {
+                const val = Number(e.target.value);
+                if (activeAudioTarget === "music") {
+                  onSongVolumeChange?.(val);
+                } else {
+                  onVolumeChange?.(val);
+                }
+              }}
               style={{
                 flex: 1,
-                height: "32px",
-                borderRadius: "5px",
-                background: activeAudioTarget === "music" ? "rgba(52, 211, 153, 0.16)" : "var(--accent-glow, rgba(59, 130, 246, 0.16)",
-                border: activeAudioTarget === "music" ? "1px solid rgba(52, 211, 153, 0.45)" : "1px solid var(--accent-glow, rgba(59, 130, 246, 0.45)",
-                color: activeAudioTarget === "music" ? "#60a5fa" : "#93c5fd",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                fontSize: "0.8rem",
-                fontWeight: 700,
+                accentColor: activeAudioTarget === "music" ? "#0284c7" : "var(--accent-primary)",
                 cursor: "pointer",
-                textTransform: "lowercase",
+                height: "4px",
               }}
-              title="Click to switch volume between audio and music"
-            >
-              {activeAudioTarget}
-            </button>
-          </div>
+            />
 
-          {/* bottom row: time on left, volume controls on right */}
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "8px" }}>
-            <div
+            <span
               style={{
-                flex: 1,
+                fontSize: "0.72rem",
+                color: "#64748b",
                 fontFamily: "monospace",
-                fontSize: "0.78rem",
-                fontWeight: 600,
-                color: "rgba(255, 255, 255, 0.8)",
-                display: "flex",
-                alignItems: "center",
+                minWidth: "32px",
+                textAlign: "right",
               }}
             >
-              <span style={{ color: "#93c5fd" }}>{formatDuration(currentTime)}</span>
-              <span style={{ margin: "0 2px", color: "rgba(255, 255, 255, 0.35)" }}>/</span>
-              <span>{formatDuration(duration || mediaDuration)}</span>
-            </div>
-
-            <div
-              style={{
-                flex: 1.2,
-                display: "flex",
-                alignItems: "center",
-                gap: "6px",
-              }}
-            >
-              <button
-                type="button"
-                onClick={() => {
-                  if (activeAudioTarget === "music") {
-                    onSongVolumeChange?.(songVolume === 0 ? 0.8 : 0);
-                  } else {
-                    onVolumeChange?.(volume === 0 ? 1 : 0);
-                  }
-                }}
-                style={{
-                  background: "transparent",
-                  border: "none",
-                  color: (activeAudioTarget === "music" ? songVolume === 0 : volume === 0) ? "#ef4444" : "rgba(255, 255, 255, 0.7)",
-                  cursor: "pointer",
-                  display: "flex",
-                  padding: 0,
-                }}
-                title="Mute / Unmute"
-              >
-                {(activeAudioTarget === "music" ? songVolume === 0 : volume === 0) ? (
-                  <VolumeX size={14} />
-                ) : (
-                  <Volume2 size={14} />
-                )}
-              </button>
-
-              <input
-                type="range"
-                min="0"
-                max="1"
-                step="0.01"
-                value={activeAudioTarget === "music" ? songVolume : volume}
-                onInput={e => {
-                  const val = Number((e.target as HTMLInputElement).value);
-                  if (activeAudioTarget === "music") {
-                    onSongVolumeChange?.(val);
-                  } else {
-                    onVolumeChange?.(val);
-                  }
-                }}
-                onChange={e => {
-                  const val = Number(e.target.value);
-                  if (activeAudioTarget === "music") {
-                    onSongVolumeChange?.(val);
-                  } else {
-                    onVolumeChange?.(val);
-                  }
-                }}
-                style={{
-                  flex: 1,
-                  accentColor: activeAudioTarget === "music" ? "#60a5fa" : "var(--accent-primary)",
-                  cursor: "pointer",
-                  height: "4px",
-                }}
-              />
-
-              <span
-                style={{
-                  fontSize: "0.72rem",
-                  color: "rgba(255, 255, 255, 0.6)",
-                  fontFamily: "monospace",
-                  minWidth: "32px",
-                  textAlign: "right",
-                }}
-              >
-                {Math.round((activeAudioTarget === "music" ? songVolume : volume) * 100)}%
-              </span>
-            </div>
+              {Math.round((activeAudioTarget === "music" ? songVolume : volume) * 100)}%
+            </span>
           </div>
         </div>
+      </div>
     </aside>
   );
 };

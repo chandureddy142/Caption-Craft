@@ -1446,7 +1446,7 @@ const [selectedSegmentId, setSelectedSegmentId] = useState<string | null>(null);
             maxHeight: "48px",
             padding: "0 14px",
             boxSizing: "border-box",
-            background: "#0d1117",
+            background: "#12141a",
             borderBottom: "1px solid rgba(255, 255, 255, 0.08)",
             gap: "14px",
             overflow: "hidden",
@@ -1522,7 +1522,7 @@ const [selectedSegmentId, setSelectedSegmentId] = useState<string | null>(null);
                   background: "transparent",
                   border: "none",
                   cursor: "pointer",
-                  color: "rgba(255, 255, 255, 0.45)",
+                  color: "#64748b",
                   display: "inline-flex",
                   alignItems: "center",
                   padding: "2px",
@@ -1693,14 +1693,14 @@ const [selectedSegmentId, setSelectedSegmentId] = useState<string | null>(null);
                 minWidth: "120px",
                 flexShrink: 0,
                 zIndex: 30,
-                background: "#0c1017",
+                background: "#12141a",
                 borderRight: "1px solid #1a2230",
                 display: "flex",
                 flexDirection: "column",
                 userSelect: "none"
               }}
             >
-              <div style={{ height: "26px", borderBottom: "1px solid #1a2230", background: "#090c12" }} />
+              <div style={{ height: "26px", borderBottom: "1px solid #1a2230", background: "#0d0f14" }} />
               <div style={{ display: "flex", flexDirection: "column", gap: "6px", paddingTop: "6px", paddingBottom: "14px" }}>
                 <div
                   className={`track-name-tag ${selectedLayer === "audio" ? "is-selected" : ""}`}
@@ -2258,18 +2258,18 @@ const [selectedSegmentId, setSelectedSegmentId] = useState<string | null>(null);
       </main>
 
       {/* RIGHT PANEL: STUDIO CATALOG & INSPECTOR */}
-      <aside className="style-sidebar">
+      <aside className="style-sidebar" style={{ background: "#12141a", borderLeft: "1px solid rgba(255, 255, 255, 0.08)", color: "#ffffff" }}>
         <div className="style-sidebar-scroll">
 
           {/* MAIN HEADING & 4 TOP TABS */}
           <div className="catalog-header">
-            <span className="catalog-title">Style &amp; Appearance</span>
+            <span className="catalog-title" style={{ color: "#ffffff", fontWeight: 700 }}>Style &amp; Appearance</span>
             <div className="catalog-tabs" role="tablist" aria-label="Style panels" style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: "4px" }}>
               <button
                 type="button"
                 role="tab"
                 aria-selected={activeCatalogTab === "backgrounds"}
-                className={"catalog-tab-btn " + (activeCatalogTab === "backgrounds" ? "is-active" : "")}
+                className={"catalog-tab-btn " + (activeCatalogTab === "backgrounds" ? "is-active" : "")} style={{ background: activeCatalogTab === "backgrounds" ? "var(--accent-primary)" : "var(--bg-app, #fbf8ef)", color: activeCatalogTab === "backgrounds" ? "#ffffff" : "#1e232d", border: "1px solid rgba(0,0,0,0.1)", fontWeight: 600 }}
                 onClick={() => setActiveCatalogTab("backgrounds")}
               >
                 <ImageIcon size={13} />
@@ -2279,7 +2279,7 @@ const [selectedSegmentId, setSelectedSegmentId] = useState<string | null>(null);
                 type="button"
                 role="tab"
                 aria-selected={activeCatalogTab === "templates"}
-                className={"catalog-tab-btn " + (activeCatalogTab === "templates" ? "is-active" : "")}
+                className={"catalog-tab-btn " + (activeCatalogTab === "templates" ? "is-active" : "")} style={{ background: activeCatalogTab === "templates" ? "var(--accent-primary)" : "var(--bg-app, #fbf8ef)", color: activeCatalogTab === "templates" ? "#ffffff" : "#1e232d", border: "1px solid rgba(0,0,0,0.1)", fontWeight: 600 }}
                 onClick={() => setActiveCatalogTab("templates")}
               >
                 <LayoutTemplate size={13} />
@@ -2289,7 +2289,7 @@ const [selectedSegmentId, setSelectedSegmentId] = useState<string | null>(null);
                 type="button"
                 role="tab"
                 aria-selected={activeCatalogTab === "typography"}
-                className={"catalog-tab-btn " + (activeCatalogTab === "typography" ? "is-active" : "")}
+                className={"catalog-tab-btn " + (activeCatalogTab === "typography" ? "is-active" : "")} style={{ background: activeCatalogTab === "typography" ? "var(--accent-primary)" : "var(--bg-app, #fbf8ef)", color: activeCatalogTab === "typography" ? "#ffffff" : "#1e232d", border: "1px solid rgba(0,0,0,0.1)", fontWeight: 600 }}
                 onClick={() => setActiveCatalogTab("typography")}
               >
                 <span>Typography</span>
@@ -2298,7 +2298,7 @@ const [selectedSegmentId, setSelectedSegmentId] = useState<string | null>(null);
                 type="button"
                 role="tab"
                 aria-selected={activeCatalogTab === "advanced"}
-                className={"catalog-tab-btn " + (activeCatalogTab === "advanced" ? "is-active" : "")}
+                className={"catalog-tab-btn " + (activeCatalogTab === "advanced" ? "is-active" : "")} style={{ background: activeCatalogTab === "advanced" ? "var(--accent-primary)" : "var(--bg-app, #fbf8ef)", color: activeCatalogTab === "advanced" ? "#ffffff" : "#1e232d", border: "1px solid rgba(0,0,0,0.1)", fontWeight: 600 }}
                 onClick={() => setActiveCatalogTab("advanced")}
               >
                 <span>Advanced</span>
@@ -2311,7 +2311,7 @@ const [selectedSegmentId, setSelectedSegmentId] = useState<string | null>(null);
             <div className="catalog-pane" style={{ display: "flex", flexDirection: "column", gap: "18px", padding: "4px 0" }}>
               {/* 1. Plain Colors */}
               <div className="sub-catalog-group">
-                <span className="sub-group-title" style={{ fontSize: "0.68rem", fontWeight: 700, letterSpacing: "0.06em", color: "rgba(255, 255, 255, 0.45)", textTransform: "uppercase", display: "block", marginBottom: "8px" }}>
+                <span className="sub-group-title" style={{ fontSize: "0.68rem", fontWeight: 700, letterSpacing: "0.06em", color: "#64748b", textTransform: "uppercase", display: "block", marginBottom: "8px" }}>
                   Plain Colors
                 </span>
                 <div style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" }}>
@@ -2375,7 +2375,7 @@ const [selectedSegmentId, setSelectedSegmentId] = useState<string | null>(null);
 
               {/* 2. 10 Gradients in horizontal row */}
               <div className="sub-catalog-group">
-                <span className="sub-group-title" style={{ fontSize: "0.68rem", fontWeight: 700, letterSpacing: "0.06em", color: "rgba(255, 255, 255, 0.45)", textTransform: "uppercase", display: "block", marginBottom: "8px" }}>
+                <span className="sub-group-title" style={{ fontSize: "0.68rem", fontWeight: 700, letterSpacing: "0.06em", color: "#64748b", textTransform: "uppercase", display: "block", marginBottom: "8px" }}>
                   Gradients
                 </span>
                 <div
@@ -2433,7 +2433,7 @@ const [selectedSegmentId, setSelectedSegmentId] = useState<string | null>(null);
 
               {/* 3. 10 Patterns in horizontal row */}
               <div className="sub-catalog-group">
-                <span className="sub-group-title" style={{ fontSize: "0.68rem", fontWeight: 700, letterSpacing: "0.06em", color: "rgba(255, 255, 255, 0.45)", textTransform: "uppercase", display: "block", marginBottom: "8px" }}>
+                <span className="sub-group-title" style={{ fontSize: "0.68rem", fontWeight: 700, letterSpacing: "0.06em", color: "#64748b", textTransform: "uppercase", display: "block", marginBottom: "8px" }}>
                   Patterns
                 </span>
                 <div
@@ -2492,28 +2492,29 @@ const [selectedSegmentId, setSelectedSegmentId] = useState<string | null>(null);
 
               {/* 4. Upload Background Box supporting all formats */}
               <div className="sub-catalog-group">
-                <span className="sub-group-title" style={{ fontSize: "0.68rem", fontWeight: 700, letterSpacing: "0.06em", color: "rgba(255, 255, 255, 0.45)", textTransform: "uppercase", display: "block", marginBottom: "8px" }}>
+                <span className="sub-group-title" style={{ fontSize: "0.68rem", fontWeight: 700, letterSpacing: "0.06em", color: "#64748b", textTransform: "uppercase", display: "block", marginBottom: "8px" }}>
                   Upload Background
                 </span>
                 <label
                   className="upload-dropzone"
-                  style={{
-                    display: "flex",
-                    flexDirection: "column",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    gap: "6px",
-                    padding: "18px 12px",
-                    border: "1px dashed rgba(255, 255, 255, 0.2)",
-                    borderRadius: "8px",
-                    background: "rgba(18, 24, 38, 0.5)",
-                    cursor: "pointer",
-                    textAlign: "center"
-                  }}
+    style={{
+      display: "flex",
+      flexDirection: "column",
+      alignItems: "center",
+      justifyContent: "center",
+      gap: "6px",
+      padding: "18px 12px",
+      border: "1.5px dashed rgba(0, 0, 0, 0.2)",
+      borderRadius: "8px",
+      background: "var(--bg-app, #fbf8ef)",
+      color: "#1e232d",
+      cursor: "pointer",
+      textAlign: "center"
+    }}
                 >
                   <FolderUp size={18} color="var(--accent-primary)" />
                   <span style={{ fontSize: "0.74rem", fontWeight: 600, color: "#ffffff" }}>Choose Photo or Video</span>
-                  <small style={{ fontSize: "0.65rem", color: "rgba(255, 255, 255, 0.45)" }}>All image and video formats supported</small>
+                  <small style={{ fontSize: "0.65rem", color: "#64748b" }}>All image and video formats supported</small>
                   <input
                     type="file"
                     accept="image/*,video/*"
@@ -2606,7 +2607,7 @@ const [selectedSegmentId, setSelectedSegmentId] = useState<string | null>(null);
                         fontSize: "0.68rem",
                         fontWeight: 700,
                         letterSpacing: "0.06em",
-                        color: "rgba(255, 255, 255, 0.45)",
+                        color: "#64748b",
                         textTransform: "lowercase",
                         display: "block",
                       }}
@@ -2703,7 +2704,7 @@ const [selectedSegmentId, setSelectedSegmentId] = useState<string | null>(null);
           {activeCatalogTab === "typography" && (
             <div className="catalog-pane" style={{ display: "flex", flexDirection: "column", gap: "16px", padding: "4px 0" }}>
               <div className="sub-catalog-group">
-                <span className="sub-group-title" style={{ fontSize: "0.68rem", fontWeight: 700, letterSpacing: "0.06em", color: "rgba(255, 255, 255, 0.45)", textTransform: "uppercase", display: "block", marginBottom: "8px" }}>
+                <span className="sub-group-title" style={{ fontSize: "0.68rem", fontWeight: 700, letterSpacing: "0.06em", color: "#64748b", textTransform: "uppercase", display: "block", marginBottom: "8px" }}>
                   Font and Weight
                 </span>
                 <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
@@ -2833,7 +2834,7 @@ const [selectedSegmentId, setSelectedSegmentId] = useState<string | null>(null);
               </div>
 
               <div className="sub-catalog-group">
-                <span className="sub-group-title" style={{ fontSize: "0.68rem", fontWeight: 700, letterSpacing: "0.06em", color: "rgba(255, 255, 255, 0.45)", textTransform: "uppercase", display: "block", marginBottom: "8px" }}>
+                <span className="sub-group-title" style={{ fontSize: "0.68rem", fontWeight: 700, letterSpacing: "0.06em", color: "#64748b", textTransform: "uppercase", display: "block", marginBottom: "8px" }}>
                   Size
                 </span>
                 <div className="control-group">
@@ -2856,7 +2857,7 @@ const [selectedSegmentId, setSelectedSegmentId] = useState<string | null>(null);
               </div>
 
               <div className="sub-catalog-group">
-                <span className="sub-group-title" style={{ fontSize: "0.68rem", fontWeight: 700, letterSpacing: "0.06em", color: "rgba(255, 255, 255, 0.45)", textTransform: "uppercase", display: "block", marginBottom: "8px" }}>
+                <span className="sub-group-title" style={{ fontSize: "0.68rem", fontWeight: 700, letterSpacing: "0.06em", color: "#64748b", textTransform: "uppercase", display: "block", marginBottom: "8px" }}>
                   Position and Alignment
                 </span>
                 <div className="field-split">
@@ -2905,7 +2906,7 @@ const [selectedSegmentId, setSelectedSegmentId] = useState<string | null>(null);
               </div>
 
               <div className="sub-catalog-group">
-                <span className="sub-group-title" style={{ fontSize: "0.68rem", fontWeight: 700, letterSpacing: "0.06em", color: "rgba(255, 255, 255, 0.45)", textTransform: "uppercase", display: "block", marginBottom: "8px" }}>
+                <span className="sub-group-title" style={{ fontSize: "0.68rem", fontWeight: 700, letterSpacing: "0.06em", color: "#64748b", textTransform: "uppercase", display: "block", marginBottom: "8px" }}>
                   Colors and Styling
                 </span>
                 <div className="palette-chip-grid" style={{ gridTemplateColumns: "repeat(4, 1fr)" }}>
@@ -2961,7 +2962,7 @@ const [selectedSegmentId, setSelectedSegmentId] = useState<string | null>(null);
           {activeCatalogTab === "advanced" && (
             <div className="catalog-pane" style={{ display: "flex", flexDirection: "column", gap: "16px", padding: "4px 0" }}>
               <div className="sub-catalog-group">
-                <span className="sub-group-title" style={{ fontSize: "0.68rem", fontWeight: 700, letterSpacing: "0.06em", color: "rgba(255, 255, 255, 0.45)", textTransform: "uppercase", display: "block", marginBottom: "8px" }}>
+                <span className="sub-group-title" style={{ fontSize: "0.68rem", fontWeight: 700, letterSpacing: "0.06em", color: "#64748b", textTransform: "uppercase", display: "block", marginBottom: "8px" }}>
                   Platform Safe Zones
                 </span>
                 <label className="studio-toggle-bar">
@@ -3006,7 +3007,7 @@ const [selectedSegmentId, setSelectedSegmentId] = useState<string | null>(null);
 
               <div style={{ padding: "16px 12px", border: "1px dashed rgba(255, 255, 255, 0.15)", borderRadius: "8px", textAlign: "center" }}>
                 <p style={{ fontSize: "0.75rem", margin: 0, fontWeight: 600, color: "#ffffff" }}>Coming Soon</p>
-                <p style={{ fontSize: "0.68rem", marginTop: "4px", color: "rgba(255, 255, 255, 0.45)", lineHeight: 1.4 }}>
+                <p style={{ fontSize: "0.68rem", marginTop: "4px", color: "#64748b", lineHeight: 1.4 }}>
                   Audio ducking curve, vocal equalizer sync, and custom export profiles.
                 </p>
               </div>
