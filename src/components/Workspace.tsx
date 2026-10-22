@@ -1500,7 +1500,7 @@ const [selectedSegmentId, setSelectedSegmentId] = useState<string | null>(null);
                 aria-label="Project title"
                 style={{
                   background: "transparent",
-                  border: "none",
+                  border: "1px solid #4a5568", 
                   outline: "none",
                   color: "#f3f4f6",
                   fontSize: "12px",
@@ -1617,14 +1617,14 @@ const [selectedSegmentId, setSelectedSegmentId] = useState<string | null>(null);
                 gap: "5px",
                 padding: "5px 13px",
                 borderRadius: "6px",
-                background: "var(--accent-primary)",
+                background: "#2d3345",
                 color: "#ffffff",
                 border: "none",
                 fontSize: "11px",
                 fontWeight: 700,
                 cursor: !duration || isExporting ? "not-allowed" : "pointer",
                 opacity: !duration || isExporting ? 0.5 : 1,
-                boxShadow: "0 2px 8px var(--accent-glow, var(--accent-glow)",
+                boxShadow: "none",
                 whiteSpace: "nowrap"
               }}
             >
@@ -1634,7 +1634,7 @@ const [selectedSegmentId, setSelectedSegmentId] = useState<string | null>(null);
           </div>
         </header>
 
-        <div className="preview-stage" ref={canvasAreaRef} tabIndex={0} onKeyDown={handleCanvasKeyDown}>
+        <div className="preview-stage" style={{ background: "#000000", display: "flex", alignItems: "center", justifyContent: "center", position: "relative" }} ref={canvasAreaRef} tabIndex={0} onKeyDown={handleCanvasKeyDown}>
           <div className={`canvas-frame ratio-${settings.aspectRatio.replace(":", "-")} ${isZoom100 ? "canvas-actual-size" : ""}`}>
             <canvas
               ref={canvasRef}
@@ -1673,7 +1673,7 @@ const [selectedSegmentId, setSelectedSegmentId] = useState<string | null>(null);
 
         {/* BOTTOM STUDIO TIMELINE PANEL */}
         <section
-          className="player-panel"
+          className="player-panel" style={{ background: "#12141a", borderTop: "1px solid rgba(255, 255, 255, 0.08)" }}
           onClick={e => {
             const target = e.target as HTMLElement;
             if (!target.closest(".track-lane-clip") && !target.closest(".caption-segment-pill") && !target.closest(".track-name-tag") && !target.closest(".track-add-song-slot")) {
@@ -1694,17 +1694,17 @@ const [selectedSegmentId, setSelectedSegmentId] = useState<string | null>(null);
                 flexShrink: 0,
                 zIndex: 30,
                 background: "#12141a",
-                borderRight: "1px solid #1a2230",
+                borderRight: "1px solid rgba(255, 255, 255, 0.08)",
                 display: "flex",
                 flexDirection: "column",
                 userSelect: "none"
               }}
             >
-              <div style={{ height: "26px", borderBottom: "1px solid #1a2230", background: "#0d0f14" }} />
+              <div style={{ height: "26px", borderBottom: "1px solid rgba(255, 255, 255, 0.08)", background: "#0d0f14" }} />
               <div style={{ display: "flex", flexDirection: "column", gap: "6px", paddingTop: "6px", paddingBottom: "14px" }}>
                 <div
                   className={`track-name-tag ${selectedLayer === "audio" ? "is-selected" : ""}`}
-                  style={{ height: "34px", display: "flex", alignItems: "center", padding: "0 12px", fontSize: "0.65rem", fontWeight: 800, letterSpacing: "0.05em", color: "#38bdf8", cursor: "pointer" }}
+                  style={{ height: "34px", display: "flex", alignItems: "center", padding: "0 12px", fontSize: "0.65rem", fontWeight: 800, letterSpacing: "0.05em", color: "#ffffff", cursor: "pointer" }}
                   onClick={e => {
                     e.stopPropagation();
                     setSelectedLayer("audio");
@@ -1716,7 +1716,7 @@ const [selectedSegmentId, setSelectedSegmentId] = useState<string | null>(null);
 
                 <div
                   className={`track-name-tag ${selectedLayer === "background" ? "is-selected" : ""}`}
-                  style={{ height: "34px", display: "flex", alignItems: "center", padding: "0 12px", fontSize: "0.65rem", fontWeight: 800, letterSpacing: "0.05em", color: "#93c5fd", cursor: "pointer" }}
+                  style={{ height: "34px", display: "flex", alignItems: "center", padding: "0 12px", fontSize: "0.65rem", fontWeight: 800, letterSpacing: "0.05em", color: "#cbd5e1", cursor: "pointer" }}
                   onClick={e => {
                     e.stopPropagation();
                     setSelectedLayer("background");
@@ -1728,7 +1728,7 @@ const [selectedSegmentId, setSelectedSegmentId] = useState<string | null>(null);
 
                 <div
                   className={`track-name-tag ${selectedLayer === "caption" ? "is-selected" : ""}`}
-                  style={{ height: "40px", display: "flex", alignItems: "center", padding: "0 12px", fontSize: "0.65rem", fontWeight: 800, letterSpacing: "0.05em", color: "#e879f9", cursor: "pointer" }}
+                  style={{ height: "40px", display: "flex", alignItems: "center", padding: "0 12px", fontSize: "0.65rem", fontWeight: 800, letterSpacing: "0.05em", color: "#ffffff", cursor: "pointer" }}
                   onClick={e => {
                     e.stopPropagation();
                     setSelectedLayer("caption");
@@ -1739,7 +1739,7 @@ const [selectedSegmentId, setSelectedSegmentId] = useState<string | null>(null);
 
                 <div
                   className={`track-name-tag ${selectedLayer === "music" ? "is-selected" : ""}`}
-                  style={{ height: "34px", display: "flex", alignItems: "center", justifyContent: "space-between", padding: "0 12px", fontSize: "0.65rem", fontWeight: 800, letterSpacing: "0.05em", color: "#60a5fa", cursor: "pointer" }}
+                  style={{ height: "34px", display: "flex", alignItems: "center", justifyContent: "space-between", padding: "0 12px", fontSize: "0.65rem", fontWeight: 800, letterSpacing: "0.05em", color: "#cbd5e1", cursor: "pointer" }}
                   onClick={e => {
                     e.stopPropagation();
                     setSelectedLayer("music");
@@ -1872,7 +1872,7 @@ const [selectedSegmentId, setSelectedSegmentId] = useState<string | null>(null);
                     {/* TRACK 1: AUDIO */}
                     <div
                       className={`timeline-unified-row row-audio ${selectedLayer === "audio" ? "is-selected" : selectedLayer ? "is-dimmed" : "is-active"}`}
-                      style={{ height: "34px", display: "block", background: "rgba(12, 16, 23, 0.45)", borderRadius: "4px", overflow: "hidden" }}
+                      style={{ height: "34px", display: "block", background: "#181b24", border: "1px solid rgba(255, 255, 255, 0.05)", borderRadius: "4px", overflow: "hidden" }}
                       onClick={e => {
                         e.stopPropagation();
                         setSelectedLayer("audio");
@@ -1881,8 +1881,7 @@ const [selectedSegmentId, setSelectedSegmentId] = useState<string | null>(null);
                     >
                       <div className="track-lane" onClick={handleTimelineClick} style={{ height: "100%", width: "100%", position: "relative" }}>
                         <div
-                          className="track-lane-clip clip-audio-fill"
-                          style={{
+                          className="track-lane-clip clip-audio-fill" style={{ background: "#232734", border: "1px solid #373e52",
                             width: `${Math.min(100, ((duration || mediaDuration || 0) / totalTimelineDuration) * 100)}%`,
                             height: "100%"
                           }}
@@ -1895,7 +1894,7 @@ const [selectedSegmentId, setSelectedSegmentId] = useState<string | null>(null);
                     {/* TRACK 2: BACKGROUND */}
                     <div
                       className={`timeline-unified-row row-bg ${selectedLayer === "background" ? "is-selected" : selectedLayer ? "is-dimmed" : "is-active"}`}
-                      style={{ height: "34px", display: "block", background: "rgba(12, 16, 23, 0.45)", borderRadius: "4px" }}
+                      style={{ height: "34px", display: "block", background: "#181b24", border: "1px solid rgba(255, 255, 255, 0.05)", borderRadius: "4px" }}
                       onClick={e => {
                         e.stopPropagation();
                         setSelectedLayer("background");
@@ -1913,8 +1912,7 @@ const [selectedSegmentId, setSelectedSegmentId] = useState<string | null>(null);
                           return (
                             <div
                               key={seg.id}
-                              className={`track-lane-clip clip-bg-fill ${isSegSelected ? "is-segment-active" : ""}`}
-                              style={{
+                              className={`track-lane-clip clip-bg-fill ${isSegSelected ? "is-segment-active" : ""}`} style={{ background: "#1e222d", border: "1px solid #373e52",
                                 left: `${leftPct}%`,
                                 width: `${widthPct}%`,
                                 height: "100%"
@@ -1955,7 +1953,7 @@ const [selectedSegmentId, setSelectedSegmentId] = useState<string | null>(null);
                     {/* TRACK 3: CAPTION */}
                     <div
                       className={`timeline-unified-row row-caption track-row-captions ${selectedLayer === "caption" ? "is-selected" : selectedLayer ? "is-dimmed" : "is-active"}`}
-                      style={{ height: "40px", display: "block", background: "rgba(12, 16, 23, 0.45)", borderRadius: "4px" }}
+                      style={{ height: "40px", display: "block", background: "#181b24", border: "1px solid rgba(255, 255, 255, 0.05)", borderRadius: "4px" }}
                       onClick={e => {
                         e.stopPropagation();
                         setSelectedLayer("caption");
@@ -2040,7 +2038,7 @@ const [selectedSegmentId, setSelectedSegmentId] = useState<string | null>(null);
                     {/* TRACK 4: MUSIC */}
                     <div
                       className={`timeline-unified-row row-music ${selectedLayer === "music" ? "is-selected" : selectedLayer ? "is-dimmed" : "is-active"}`}
-                      style={{ height: "34px", display: "block", background: "rgba(12, 16, 23, 0.45)", borderRadius: "4px" }}
+                      style={{ height: "34px", display: "block", background: "#181b24", border: "1px solid rgba(255, 255, 255, 0.05)", borderRadius: "4px" }}
                       onClick={e => {
                         e.stopPropagation();
                         setSelectedLayer("music");
@@ -2269,7 +2267,7 @@ const [selectedSegmentId, setSelectedSegmentId] = useState<string | null>(null);
                 type="button"
                 role="tab"
                 aria-selected={activeCatalogTab === "backgrounds"}
-                className={"catalog-tab-btn " + (activeCatalogTab === "backgrounds" ? "is-active" : "")} style={{ background: activeCatalogTab === "backgrounds" ? "var(--accent-primary)" : "var(--bg-app, #fbf8ef)", color: activeCatalogTab === "backgrounds" ? "#ffffff" : "#1e232d", border: "1px solid rgba(0,0,0,0.1)", fontWeight: 600 }}
+                className={"catalog-tab-btn " + (activeCatalogTab === "backgrounds" ? "is-active" : "")} style={{ background: activeCatalogTab === "backgrounds" ? "var(--accent-primary)" : "#181b24", color: "#ffffff", border: "1px solid rgba(255, 255, 255, 0.08)", fontWeight: 600 }}
                 onClick={() => setActiveCatalogTab("backgrounds")}
               >
                 <ImageIcon size={13} />
@@ -2279,7 +2277,7 @@ const [selectedSegmentId, setSelectedSegmentId] = useState<string | null>(null);
                 type="button"
                 role="tab"
                 aria-selected={activeCatalogTab === "templates"}
-                className={"catalog-tab-btn " + (activeCatalogTab === "templates" ? "is-active" : "")} style={{ background: activeCatalogTab === "templates" ? "var(--accent-primary)" : "var(--bg-app, #fbf8ef)", color: activeCatalogTab === "templates" ? "#ffffff" : "#1e232d", border: "1px solid rgba(0,0,0,0.1)", fontWeight: 600 }}
+                className={"catalog-tab-btn " + (activeCatalogTab === "templates" ? "is-active" : "")} style={{ background: activeCatalogTab === "templates" ? "var(--accent-primary)" : "#181b24", color: "#ffffff", border: "1px solid rgba(255, 255, 255, 0.08)", fontWeight: 600 }}
                 onClick={() => setActiveCatalogTab("templates")}
               >
                 <LayoutTemplate size={13} />
@@ -2289,7 +2287,7 @@ const [selectedSegmentId, setSelectedSegmentId] = useState<string | null>(null);
                 type="button"
                 role="tab"
                 aria-selected={activeCatalogTab === "typography"}
-                className={"catalog-tab-btn " + (activeCatalogTab === "typography" ? "is-active" : "")} style={{ background: activeCatalogTab === "typography" ? "var(--accent-primary)" : "var(--bg-app, #fbf8ef)", color: activeCatalogTab === "typography" ? "#ffffff" : "#1e232d", border: "1px solid rgba(0,0,0,0.1)", fontWeight: 600 }}
+                className={"catalog-tab-btn " + (activeCatalogTab === "typography" ? "is-active" : "")} style={{ background: activeCatalogTab === "typography" ? "var(--accent-primary)" : "#181b24", color: "#ffffff", border: "1px solid rgba(255, 255, 255, 0.08)", fontWeight: 600 }}
                 onClick={() => setActiveCatalogTab("typography")}
               >
                 <span>Typography</span>
@@ -2298,7 +2296,7 @@ const [selectedSegmentId, setSelectedSegmentId] = useState<string | null>(null);
                 type="button"
                 role="tab"
                 aria-selected={activeCatalogTab === "advanced"}
-                className={"catalog-tab-btn " + (activeCatalogTab === "advanced" ? "is-active" : "")} style={{ background: activeCatalogTab === "advanced" ? "var(--accent-primary)" : "var(--bg-app, #fbf8ef)", color: activeCatalogTab === "advanced" ? "#ffffff" : "#1e232d", border: "1px solid rgba(0,0,0,0.1)", fontWeight: 600 }}
+                className={"catalog-tab-btn " + (activeCatalogTab === "advanced" ? "is-active" : "")} style={{ background: activeCatalogTab === "advanced" ? "var(--accent-primary)" : "#181b24", color: "#ffffff", border: "1px solid rgba(255, 255, 255, 0.08)", fontWeight: 600 }}
                 onClick={() => setActiveCatalogTab("advanced")}
               >
                 <span>Advanced</span>
@@ -2504,10 +2502,10 @@ const [selectedSegmentId, setSelectedSegmentId] = useState<string | null>(null);
       justifyContent: "center",
       gap: "6px",
       padding: "18px 12px",
-      border: "1.5px dashed rgba(0, 0, 0, 0.2)",
+      border: "1.5px dashed rgba(255, 255, 255, 0.15)",
       borderRadius: "8px",
-      background: "var(--bg-app, #fbf8ef)",
-      color: "#1e232d",
+      background: "#181b24",
+      color: "#ffffff",
       cursor: "pointer",
       textAlign: "center"
     }}
@@ -2540,7 +2538,7 @@ const [selectedSegmentId, setSelectedSegmentId] = useState<string | null>(null);
                         border: "1px solid rgba(168, 85, 247, 0.25)"
                       }}
                     >
-                      <span style={{ fontSize: "0.72rem", color: "#93c5fd", fontWeight: 500 }}>Active custom media</span>
+                      <span style={{ fontSize: "0.72rem", color: "#cbd5e1", fontWeight: 500 }}>Active custom media</span>
                       <button
                         type="button"
                         style={{ background: "transparent", border: "none", color: "#ffffff", cursor: "pointer", padding: "2px", display: "flex", alignItems: "center" }}
@@ -2558,7 +2556,7 @@ const [selectedSegmentId, setSelectedSegmentId] = useState<string | null>(null);
 
                     <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
                       <span style={{ fontSize: "0.68rem", fontWeight: 600, color: "rgba(255, 255, 255, 0.6)" }}>Fit Mode</span>
-                      <div style={{ display: "flex", gap: "4px", background: "rgba(18, 24, 38, 0.9)", padding: "2px", borderRadius: "6px", border: "1px solid rgba(255, 255, 255, 0.1)" }}>
+                      <div style={{ display: "flex", gap: "4px", background: "#181b24", border: "1px solid rgba(255, 255, 255, 0.08)", padding: "2px", borderRadius: "6px" }}>
                         {[
                           { key: "cover", label: "Fill" },
                           { key: "contain", label: "Fit" },
@@ -2575,11 +2573,7 @@ const [selectedSegmentId, setSelectedSegmentId] = useState<string | null>(null);
                                 padding: "4px 8px",
                                 fontSize: "0.63rem",
                                 fontWeight: 600,
-                                border: "none",
-                                borderRadius: "4px",
-                                cursor: "pointer",
-                                color: "#ffffff",
-                                background: isActive ? "var(--accent-hover)" : "transparent"
+                                borderRadius: "4px", cursor: "pointer", color: "#ffffff", background: isActive ? "#2d3345" : "transparent", border: isActive ? "1px solid #4a5568" : "none"
                               }}
                             >
                               {item.label}
@@ -2666,7 +2660,7 @@ const [selectedSegmentId, setSelectedSegmentId] = useState<string | null>(null);
                                   style={{
                                     fontSize: "0.58rem",
                                     fontWeight: 700,
-                                    color: "#38bdf8",
+                                    color: "#ffffff",
                                     border: "1px solid rgba(56, 189, 248, 0.25)",
                                     borderRadius: "4px",
                                     padding: "1px 4px",
@@ -2709,7 +2703,7 @@ const [selectedSegmentId, setSelectedSegmentId] = useState<string | null>(null);
                 </span>
                 <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
                   <div className="custom-select-wrap">
-                    <select className="studio-select" value={settings.fontFamily} onChange={e => setAppearance("fontFamily", e.target.value)} style={{ fontFamily: settings.fontFamily }}>
+                    <select className="studio-select" value={settings.fontFamily} onChange={e => setAppearance("fontFamily", e.target.value)} style={{ background: "#1c202a", color: "#ffffff", border: "1px solid rgba(255, 255, 255, 0.12)", borderRadius: "6px", fontFamily: settings.fontFamily }}>
                       <optgroup label="serif">
                         <option key="Times New Roman" value={"\"Times New Roman\", Times, serif"} style={{ fontFamily: "\"Times New Roman\", Times, serif" }}>Times New Roman</option>
                         <option key="Georgia" value={"Georgia, serif"} style={{ fontFamily: "Georgia, serif" }}>Georgia</option>
@@ -2761,7 +2755,7 @@ const [selectedSegmentId, setSelectedSegmentId] = useState<string | null>(null);
                       </select>
                   </div>
 
-                  <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: "4px", background: "rgba(18, 24, 38, 0.9)", padding: "2px", borderRadius: "6px", border: "1px solid rgba(255, 255, 255, 0.1)" }}>
+                  <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: "4px", background: "#181b24", border: "1px solid rgba(255, 255, 255, 0.08)", padding: "2px", borderRadius: "6px" }}>
                     {[
                       { key: "normal", label: "Regular" },
                       { key: "600", label: "Semi" },
@@ -2778,11 +2772,7 @@ const [selectedSegmentId, setSelectedSegmentId] = useState<string | null>(null);
                             padding: "4px 6px",
                             fontSize: "0.63rem",
                             fontWeight: 600,
-                            border: "none",
-                            borderRadius: "4px",
-                            cursor: "pointer",
-                            color: "#ffffff",
-                            background: isActive ? "var(--accent-hover)" : "transparent"
+                            borderRadius: "4px", cursor: "pointer", color: "#ffffff", background: isActive ? "#2d3345" : "transparent", border: isActive ? "1px solid #4a5568" : "none"
                           }}
                         >
                           {w.label}
@@ -2797,17 +2787,17 @@ const [selectedSegmentId, setSelectedSegmentId] = useState<string | null>(null);
                 <div className="field-split">
                   <div className="control-group" style={{ flex: 1 }}>
                     <span className="control-label">Case</span>
-                    <div className="studio-segmented-pill">
+                    <div className="studio-segmented-pill" style={{ background: "#141720", border: "1px solid rgba(255, 255, 255, 0.08)", padding: "2px", borderRadius: "6px" }}>
                       <button
                         type="button"
-                        className={"pill-btn " + (settings.textTransform === "uppercase" ? "is-active" : "")}
+                        style={{ background: settings.textTransform === "uppercase"  ? "#2d3345" : "transparent", color: "#ffffff", border: settings.textTransform === "uppercase"  ? "1px solid #4a5568" : "none", borderRadius: "4px", padding: "4px 10px", fontSize: "0.68rem", fontWeight: 600, cursor: "pointer" }}
                         onClick={() => setAppearance("textTransform", "uppercase")}
                       >
                         ALL CAPS
                       </button>
                       <button
                         type="button"
-                        className={"pill-btn " + (settings.textTransform !== "uppercase" ? "is-active" : "")}
+                        style={{ background: settings.textTransform !== "uppercase"  ? "#2d3345" : "transparent", color: "#ffffff", border: settings.textTransform !== "uppercase"  ? "1px solid #4a5568" : "none", borderRadius: "4px", padding: "4px 10px", fontSize: "0.68rem", fontWeight: 600, cursor: "pointer" }}
                         onClick={() => setAppearance("textTransform", "none")}
                       >
                         Normal
@@ -2819,7 +2809,7 @@ const [selectedSegmentId, setSelectedSegmentId] = useState<string | null>(null);
                     <span className="control-label">Style</span>
                     <div className="custom-select-wrap">
                       <select
-                        className="studio-select"
+                        className="studio-select" style={{ background: "#1c202a", color: "#ffffff", border: "1px solid rgba(255, 255, 255, 0.12)", borderRadius: "6px" }}
                         value={settings.style}
                         onChange={e => setAppearance("style", e.target.value as CanvasSettings["style"])}
                       >
@@ -2840,12 +2830,12 @@ const [selectedSegmentId, setSelectedSegmentId] = useState<string | null>(null);
                 <div className="control-group">
                   <div className="slider-header">
                     <span className="control-label">Font Size</span>
-                    <span className="slider-badge">{settings.fontSize || 24}px</span>
+                    <span className="slider-badge" style={{ background: "#232734", color: "#ffffff", border: "1px solid rgba(255, 255, 255, 0.12)", padding: "2px 6px", borderRadius: "4px", fontSize: "11px" }}>{settings.fontSize || 24}px</span>
                   </div>
                   <div className="slider-wrap">
                     <input
                       type="range"
-                      className="studio-slider"
+                      className="studio-slider" style={{ accentColor: "#cbd5e1" }}
                       min="16"
                       max="100"
                       step="1"
@@ -2865,7 +2855,7 @@ const [selectedSegmentId, setSelectedSegmentId] = useState<string | null>(null);
                     <span className="control-label">Anchor</span>
                     <div className="custom-select-wrap">
                       <select
-                        className="studio-select"
+                        className="studio-select" style={{ background: "#1c202a", color: "#ffffff", border: "1px solid rgba(255, 255, 255, 0.12)", borderRadius: "6px" }}
                         value={settings.verticalPosition <= 0.35 ? "0.2" : settings.verticalPosition >= 0.75 ? "0.88" : "0.5"}
                         onChange={e => setAppearance("verticalPosition", Number(e.target.value))}
                       >
@@ -2878,24 +2868,24 @@ const [selectedSegmentId, setSelectedSegmentId] = useState<string | null>(null);
 
                   <div className="control-group" style={{ flex: 1 }}>
                     <span className="control-label">Align</span>
-                    <div className="studio-segmented-pill">
+                    <div className="studio-segmented-pill" style={{ background: "#141720", border: "1px solid rgba(255, 255, 255, 0.08)", padding: "2px", borderRadius: "6px" }}>
                       <button
                         type="button"
-                        className={"pill-btn " + (settings.alignment === "left" ? "is-active" : "")}
+                        style={{ background: settings.alignment === "left"  ? "#2d3345" : "transparent", color: "#ffffff", border: settings.alignment === "left"  ? "1px solid #4a5568" : "none", borderRadius: "4px", padding: "4px 10px", fontSize: "0.68rem", fontWeight: 600, cursor: "pointer" }}
                         onClick={() => setAppearance("alignment", "left")}
                       >
                         Left
                       </button>
                       <button
                         type="button"
-                        className={"pill-btn " + (settings.alignment === "center" ? "is-active" : "")}
+                        style={{ background: settings.alignment === "center"  ? "#2d3345" : "transparent", color: "#ffffff", border: settings.alignment === "center"  ? "1px solid #4a5568" : "none", borderRadius: "4px", padding: "4px 10px", fontSize: "0.68rem", fontWeight: 600, cursor: "pointer" }}
                         onClick={() => setAppearance("alignment", "center")}
                       >
                         Center
                       </button>
                       <button
                         type="button"
-                        className={"pill-btn " + (settings.alignment === "right" ? "is-active" : "")}
+                        style={{ background: settings.alignment === "right"  ? "#2d3345" : "transparent", color: "#ffffff", border: settings.alignment === "right"  ? "1px solid #4a5568" : "none", borderRadius: "4px", padding: "4px 10px", fontSize: "0.68rem", fontWeight: 600, cursor: "pointer" }}
                         onClick={() => setAppearance("alignment", "right")}
                       >
                         Right
@@ -2979,7 +2969,7 @@ const [selectedSegmentId, setSelectedSegmentId] = useState<string | null>(null);
                 </label>
 
                 {settings.safeZones?.show && (
-                  <div className="studio-segmented-pill" style={{ marginTop: "10px" }}>
+                  <div className="studio-segmented-pill" style={{ background: "#141720", border: "1px solid rgba(255, 255, 255, 0.08)", padding: "2px", borderRadius: "6px", marginTop: "10px" }}>
                     <button
                       type="button"
                       className={"pill-btn " + (settings.safeZones?.platform === "instagram" ? "is-active" : "")}

@@ -214,20 +214,20 @@ export const Sidebar: React.FC<SidebarProps> = ({
   const backendButton = sourceLanguage === "te" ? (
     <button
       type="button"
-      className="active"
+      style={{ width: "100%", background: "#2d3345", color: "#ffffff", border: "1px solid #4a5568", fontWeight: 600, padding: "8px 12px", borderRadius: "6px" }}
       onClick={() => onSelectBackend?.("gemini")}
       disabled={isTranscribing}
-      style={{ width: "100%" }}
+
     >
       ⚡ CaptionCraft AI
     </button>
   ) : (
     <button
       type="button"
-      className="active"
+      style={{ width: "100%", background: "#2d3345", color: "#ffffff", border: "1px solid #4a5568", fontWeight: 600, padding: "8px 12px", borderRadius: "6px" }}
       onClick={() => onSelectBackend?.("local")}
       disabled={isTranscribing}
-      style={{ width: "100%" }}
+
     >
       🖥 On-Device
     </button>
@@ -239,7 +239,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
       <div className="sidebar-brand-row" style={{ paddingBottom: "2px", marginBottom: "0" }}>
         <div className="brand-lockup compact">
           <img src="/media/logo.png" alt="CaptionCraft" style={{ width: "28px", height: "28px", borderRadius: "7px", objectFit: "contain", border: "1.5px solid rgba(255, 255, 255, 0.85)", padding: "2px" }} />
-          <div style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}><span style={{ fontSize: "15px", fontWeight: 700, color: "var(--card-text-primary, #ffffff)" }}>CaptionCraft</span><span style={{ fontSize: "9px", padding: "2px 6px", borderRadius: "4px", background: "rgba(59, 130, 246, 0.14)", color: "var(--accent-primary)", fontWeight: 700 }}>studio</span></div>
+          <div style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}><span style={{ fontSize: "15px", fontWeight: 700, color: "var(--card-text-primary, #ffffff)" }}>CaptionCraft</span><span style={{ fontSize: "9px", padding: "2px 6px", borderRadius: "4px", background: "#232734", color: "#e2e8f0", border: "1px solid rgba(255,255,255,0.1)", fontWeight: 700 }}>studio</span></div>
         </div>
         <button className="ghost-button" onClick={onBackToUpload}>
           ← Back to Upload
@@ -247,12 +247,12 @@ export const Sidebar: React.FC<SidebarProps> = ({
       </div>
 
       {/* 2. media summary */}
-      <div className="media-summary" style={{ margin: "2px 0 6px", padding: "8px 10px", borderRadius: "8px", background: "var(--bg-app, #fbf8ef)", color: "#1e232d", border: "1px solid rgba(0,0,0,0.08)", boxShadow: "0 2px 8px rgba(0,0,0,0.18)" }}>
+      <div className="media-summary" style={{ margin: "2px 0 6px", padding: "8px 10px", borderRadius: "8px", background: "#181b24", color: "#ffffff", border: "1px solid rgba(255, 255, 255, 0.08)", boxShadow: "0 2px 8px rgba(0,0,0,0.25)" }}>
         <div className="media-summary-icon">
           <FileText size={17} />
         </div>
         <div className="media-summary-copy">
-          <strong style={{ color: "#1e232d", fontWeight: 700 }}>{mediaFile?.name || "Untitled project"}</strong>
+          <strong style={{ color: "#ffffff", fontWeight: 700 }}>{mediaFile?.name || "Untitled project"}</strong>
           <span>
             {mediaFile
               ? `${formatBytes(mediaFile.size)} · ${formatDuration(mediaDuration)}`
@@ -283,16 +283,16 @@ export const Sidebar: React.FC<SidebarProps> = ({
             <h2 style={{ color: "#ffffff", fontWeight: 700, fontSize: "0.82rem", margin: 0 }}>Source language</h2>
           </div>
         </div>
-        <div className="language-pills source-language-pills" role="group" aria-label="Source language">
+        <div className="language-pills source-language-pills" style={{ background: "#181b24", padding: "3px", borderRadius: "8px", border: "1px solid rgba(255, 255, 255, 0.08)" }} role="group" aria-label="Source language">
           <button
-            className={sourceLanguage === "en" ? "active" : ""}
+            style={{ background: sourceLanguage === "en" ? "#2d3345" : "#181b24", color: "#ffffff", border: sourceLanguage === "en" ? "1px solid #4a5568" : "1px solid rgba(255,255,255,0.08)", fontWeight: 600 }}
             onClick={() => setSourceLanguage("en")}
             disabled={isTranscribing}
           >
             English
           </button>
           <button
-            className={sourceLanguage === "te" ? "active" : ""}
+            style={{ background: sourceLanguage === "te" ? "#2d3345" : "#181b24", color: "#ffffff", border: sourceLanguage === "te" ? "1px solid #4a5568" : "1px solid rgba(255,255,255,0.08)", fontWeight: 600 }}
             onClick={() => setSourceLanguage("te")}
             disabled={isTranscribing}
           >
@@ -308,7 +308,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
             <h2 style={{ color: "#ffffff", fontWeight: 700, fontSize: "0.82rem", margin: 0 }}>Output format</h2>
           </div>
         </div>
-        <div className="language-pills output-language-pills" role="group" aria-label="Caption output format">
+        <div className="language-pills output-language-pills" style={{ background: "#181b24", padding: "3px", borderRadius: "8px", border: "1px solid rgba(255, 255, 255, 0.08)" }} role="group" aria-label="Caption output format">
           {sourceLanguage === "te" ? (
             <>
               <button
@@ -331,10 +331,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
           ) : (
             <button
               type="button"
-              className={language === "en" ? "active" : ""}
+              style={{ gridColumn: "1 / -1", background: language === "en" ? "#2d3345" : "#181b24", color: "#ffffff", border: language === "en" ? "1px solid #4a5568" : "1px solid rgba(255,255,255,0.08)", fontWeight: 600 }}
               onClick={() => setLanguage("en")}
               disabled={isTranscribing}
-              style={{ gridColumn: "1 / -1" }}
+
             >
               English
             </button>
@@ -354,7 +354,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
           </span>
         </div>
 
-        <div className="language-pills backend-pills" role="group" aria-label="Transcription backend" style={{ gridTemplateColumns: "1fr" }}>
+        <div className="language-pills backend-pills" role="group" aria-label="Transcription backend" style={{ gridTemplateColumns: "1fr", background: "#181b24", padding: "3px", borderRadius: "8px", border: "1px solid rgba(255, 255, 255, 0.08)" }}>
           {backendButton}
         </div>
 
@@ -368,10 +368,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
         )}
 
         {sourceLanguage === "en" && (
-          <div className="language-pills model-choice-pills" role="group" aria-label="Whisper model accuracy" style={{ margin: "8px 0" }}>
+          <div className="language-pills model-choice-pills" role="group" aria-label="Whisper model accuracy" style={{ margin: "8px 0", background: "#181b24", padding: "3px", borderRadius: "8px", border: "1px solid rgba(255, 255, 255, 0.08)" }}>
             <button
               type="button"
-              className={whisperModel === "tiny" ? "active" : ""}
+              style={{ background: whisperModel === "tiny" ? "#2d3345" : "#181b24", color: "#ffffff", border: whisperModel === "tiny" ? "1px solid #4a5568" : "1px solid rgba(255,255,255,0.08)", fontWeight: 600 }}
               onClick={() => onSelectWhisperModel?.("tiny")}
               disabled={isTranscribing}
             >
@@ -379,7 +379,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
             </button>
             <button
               type="button"
-              className={whisperModel === "base" ? "active" : ""}
+              style={{ background: whisperModel === "base" ? "#2d3345" : "#181b24", color: "#ffffff", border: whisperModel === "base" ? "1px solid #4a5568" : "1px solid rgba(255,255,255,0.08)", fontWeight: 600 }}
               onClick={() => onSelectWhisperModel?.("base")}
               disabled={isTranscribing}
             >
@@ -390,10 +390,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
         <button
           type="button"
-          className="primary-action"
+          className="primary-action" style={{ background: "#2d3345", color: "#ffffff", border: "1px solid #4a5568", fontWeight: 700, padding: "10px", borderRadius: "6px", display: "flex", alignItems: "center", justifyContent: "center", gap: "8px", width: "100%", cursor: "pointer" }}
           onClick={onGenerateCaptions}
           disabled={isTranscribing || !onGenerateCaptions || (sourceLanguage === "te" && geminiKeyMissing)}
-          style={{ marginTop: "8px" }}
+
         >
           <RefreshCw size={16} className={isTranscribing || modelStatus === "loading" ? "spin" : ""} />
           {subtitles.length ? "Regenerate captions" : "Generate captions"}
@@ -410,11 +410,11 @@ export const Sidebar: React.FC<SidebarProps> = ({
         </div>
         <div className="sidebar-timeline-actions">
           <div className="sidebar-action-row">
-            <button className="sidebar-tool-btn" style={{ background: "var(--bg-app, #fbf8ef)", color: "#1e232d", border: "1px solid rgba(0,0,0,0.12)", fontWeight: 600 }} onClick={onUndo} disabled={!canUndo} title="Undo">
+            <button className="sidebar-tool-btn" style={{ background: "#1c202a", color: "#ffffff", border: "1px solid rgba(255, 255, 255, 0.12)", fontWeight: 600 }} onClick={onUndo} disabled={!canUndo} title="Undo">
               <Undo2 size={14} />
               <span>Undo</span>
             </button>
-            <button className="sidebar-tool-btn" style={{ background: "var(--bg-app, #fbf8ef)", color: "#1e232d", border: "1px solid rgba(0,0,0,0.12)", fontWeight: 600 }} onClick={onRedo} disabled={!canRedo} title="Redo">
+            <button className="sidebar-tool-btn" style={{ background: "#1c202a", color: "#ffffff", border: "1px solid rgba(255, 255, 255, 0.12)", fontWeight: 600 }} onClick={onRedo} disabled={!canRedo} title="Redo">
               <Redo2 size={14} />
               <span>Redo</span>
             </button>
@@ -439,7 +439,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
             {/* Split */}
             <button
-              className="sidebar-tool-btn" style={{ background: "var(--bg-app, #fbf8ef)", color: "#1e232d", border: "1px solid rgba(0,0,0,0.12)", fontWeight: 600 }}
+              className="sidebar-tool-btn" style={{ background: "#1c202a", color: "#ffffff", border: "1px solid rgba(255, 255, 255, 0.12)", fontWeight: 600 }}
               onClick={onSplitSubtitle}
               disabled={
                 !selectedLayer ||
@@ -470,7 +470,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
           {/* Add caption */}
           <button
-            className="secondary-action sidebar-add-caption-btn" style={{ background: "var(--bg-app, #fbf8ef)", color: "#1e232d", border: "1px solid rgba(0,0,0,0.12)", fontWeight: 700 }}
+            className="secondary-action sidebar-add-caption-btn" style={{ background: "#1c202a", color: "#ffffff", border: "1px solid rgba(255, 255, 255, 0.12)", fontWeight: 700 }}
             onClick={onAddSubtitle}
             disabled={selectedLayer !== "caption" || !mediaDuration}
             title={selectedLayer === "caption" ? "Add new caption at playhead needle" : "Select caption track to add caption"}
@@ -486,8 +486,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
             marginTop: "8px",
             display: "flex",
             alignItems: "center",
-            background: "rgba(12, 16, 23, 0.75)",
-            border: "1px solid rgba(255, 255, 255, 0.1)",
+            background: "#1a1d26", border: "1px solid rgba(255, 255, 255, 0.12)",
             borderRadius: "8px",
             padding: "3px 6px 3px 10px",
             gap: "6px",
@@ -615,13 +614,13 @@ export const Sidebar: React.FC<SidebarProps> = ({
           marginTop: "12px",
           padding: "10px 12px",
           borderRadius: "8px",
-          background: "var(--bg-app, #fbf8ef)",
-          border: "1px solid rgba(0, 0, 0, 0.08)",
+          background: "#181b24",
+          border: "1px solid rgba(255, 255, 255, 0.08)",
           boxShadow: "0 2px 8px rgba(0,0,0,0.18)",
           display: "flex",
           flexDirection: "column",
           gap: "10px",
-          color: "#1e232d"
+          color: "#ffffff"
         }}
       >
         {/* top row: play/pause on left, music/audio toggle on right */}
@@ -633,8 +632,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
               flex: 1,
               height: "32px",
               borderRadius: "5px",
-              background: isPlaying ? "rgba(239, 68, 68, 0.16)" : "var(--accent-primary)",
-              border: isPlaying ? "1px solid rgba(239, 68, 68, 0.4)" : "none",
+              background: "#2d3345",
+              border: "1px solid #4a5568",
               color: "#ffffff",
               display: "flex",
               alignItems: "center",
@@ -666,9 +665,9 @@ export const Sidebar: React.FC<SidebarProps> = ({
               flex: 1,
               height: "32px",
               borderRadius: "5px",
-              background: activeAudioTarget === "music" ? "rgba(52, 211, 153, 0.16)" : "rgba(59, 130, 246, 0.16)",
+              background: "#1c202a",
               border: activeAudioTarget === "music" ? "1px solid rgba(52, 211, 153, 0.45)" : "1px solid rgba(59, 130, 246, 0.45)",
-              color: activeAudioTarget === "music" ? "#0284c7" : "#2563eb",
+              color: "#ffffff",
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
@@ -693,11 +692,11 @@ export const Sidebar: React.FC<SidebarProps> = ({
               fontWeight: 600,
               display: "flex",
               alignItems: "center",
-              color: "#334155"
+              color: "#ffffff"
             }}
           >
-            <span style={{ color: "#2563eb" }}>{formatDuration(currentTime)}</span>
-            <span style={{ margin: "0 2px", color: "#64748b" }}>/</span>
+            <span style={{ color: "#ffffff", fontWeight: 700 }}>{formatDuration(currentTime)}</span>
+            <span style={{ margin: "0 2px", color: "rgba(255, 255, 255, 0.6)" }}>/</span>
             <span>{formatDuration(duration || mediaDuration)}</span>
           </div>
 
@@ -759,7 +758,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
               }}
               style={{
                 flex: 1,
-                accentColor: activeAudioTarget === "music" ? "#0284c7" : "var(--accent-primary)",
+                accentColor: "#cbd5e1",
                 cursor: "pointer",
                 height: "4px",
               }}
@@ -768,7 +767,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
             <span
               style={{
                 fontSize: "0.72rem",
-                color: "#64748b",
+                color: "rgba(255, 255, 255, 0.6)",
                 fontFamily: "monospace",
                 minWidth: "32px",
                 textAlign: "right",

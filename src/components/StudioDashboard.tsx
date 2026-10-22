@@ -486,7 +486,7 @@ export const StudioDashboard: React.FC<StudioDashboardProps> = ({
                     </span>
                   </div>
                   <div>
-                    <div style={{ display: "flex", justifyContent: "space-between", fontSize: "10px", color: "var(--text-secondary)", marginBottom: "4px" }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", fontSize: "10px", color: "#94a3b8", marginBottom: "4px" }}>
                       <span style={{ color: "var(--card-text-secondary)" }}>transcription usage</span>
                       <span>{totalTranscriptionMinutes} / 60 min</span>
                     </div>
@@ -658,7 +658,7 @@ export const StudioDashboard: React.FC<StudioDashboardProps> = ({
           <h2 style={{ fontSize: "20px", fontWeight: 800, color: "var(--text-primary)", margin: "0 0 6px 0", letterSpacing: "-0.02em" }}>
             <span style={{ color: "var(--card-text-primary)", fontWeight: 600 }}>Drop your video or audio clip here</span>
           </h2>
-          <p style={{ fontSize: "13px", color: "var(--text-secondary)", margin: "0 0 18px 0", maxWidth: "460px", lineHeight: "1.5" }}>
+          <p style={{ fontSize: "13px", color: "#94a3b8", margin: "0 0 18px 0", maxWidth: "460px", lineHeight: "1.5" }}>
             <span style={{ color: "var(--card-text-secondary)" }}>Auto-generate word-by-word synced Telugu or Tenglish subtitles without server uploads.</span>
           </p>
 
@@ -683,7 +683,7 @@ export const StudioDashboard: React.FC<StudioDashboardProps> = ({
               <UploadCloud size={14} />
               <span>browse media file</span>
             </button>
-            <span style={{ fontSize: "11px", color: "var(--text-secondary)" }}>MP4, MOV, WEBM, WAV, MP3</span>
+            <span style={{ fontSize: "11px", color: "#94a3b8" }}>MP4, MOV, WEBM, WAV, MP3</span>
           </div>
 
           <div style={{
@@ -696,7 +696,7 @@ export const StudioDashboard: React.FC<StudioDashboardProps> = ({
             flexWrap: "wrap",
             justifyContent: "center"
           }}>
-            <div style={{ display: "flex", alignItems: "center", gap: "6px", fontSize: "11px", color: "var(--text-secondary)" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: "6px", fontSize: "11px", color: "#94a3b8" }}>
               <Zap size={13} color="var(--accent-primary)" />
               <span>WebGPU Hardware Acceleration</span>
             </div>
@@ -704,7 +704,7 @@ export const StudioDashboard: React.FC<StudioDashboardProps> = ({
               <Lock size={13} color="#10b981" />
               <span>100% Private (Runs In-Browser)</span>
             </div>
-            <div style={{ display: "flex", alignItems: "center", gap: "6px", fontSize: "11px", color: "var(--text-secondary)" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: "6px", fontSize: "11px", color: "#94a3b8" }}>
               <Sparkles size={13} color="#f59e0b" />
               <span>Telugu Lipi & Tenglish Dual Engine</span>
             </div>
@@ -715,7 +715,7 @@ export const StudioDashboard: React.FC<StudioDashboardProps> = ({
         <div style={{ marginBottom: "36px" }}>
           <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "14px" }}>
             <Layers size={14} color="var(--text-secondary)" />
-            <h3 style={{ fontSize: "11px", fontWeight: 700, color: "var(--text-secondary)", letterSpacing: "0.06em", textTransform: "uppercase", margin: 0 }}>
+            <h3 style={{ fontSize: "11px", fontWeight: 700, color: "#94a3b8", letterSpacing: "0.06em", textTransform: "uppercase", margin: 0 }}>
               Quick-Start Format
             </h3>
           </div>
@@ -741,11 +741,11 @@ export const StudioDashboard: React.FC<StudioDashboardProps> = ({
                   <span style={{ fontSize: "10px", fontWeight: 700, padding: "2px 7px", borderRadius: "4px", background: "rgba(59, 130, 246, 0.14)", color: "var(--accent-primary)" }}>
                     9:16 vertical
                   </span>
-                  <span style={{ fontSize: "15px", fontWeight: 700, color: "var(--text-primary)" }}>
+                  <span style={{ fontSize: "15px", fontWeight: 700, color: "var(--bg-app, #fbf8ef)" }}>
                     <span style={{ color: "var(--card-text-primary)", fontWeight: 600 }}>Instagram Reel & YouTube Shorts</span>
                   </span>
                 </div>
-                <div style={{ fontSize: "12px", color: "var(--text-secondary)", lineHeight: "1.4" }}>
+                <div style={{ fontSize: "12px", color: "#94a3b8", lineHeight: "1.4" }}>
                   <span style={{ color: "var(--card-text-secondary)" }}>1–3 word kinetic chunks with Instagram and YouTube Shorts UI safe-zone guides and high-contrast word highlights.</span>
                 </div>
               </div>
@@ -863,7 +863,7 @@ export const StudioDashboard: React.FC<StudioDashboardProps> = ({
 
         {/* Project Cards or Exports Table */}
         {isLoading ? (
-          <div style={{ padding: "60px 0", textAlign: "center", color: "var(--text-secondary)", fontSize: "14px" }}>
+          <div style={{ padding: "60px 0", textAlign: "center", color: "#94a3b8", fontSize: "14px" }}>
             Loading creator workspace...
           </div>
         ) : activeTab === "projects" ? (
@@ -882,7 +882,7 @@ export const StudioDashboard: React.FC<StudioDashboardProps> = ({
             }}>
               <FolderOpen size={32} color="var(--text-secondary)" />
               <div style={{ fontSize: "14px", fontWeight: 700, color: "var(--text-primary)" }}>No active projects yet</div>
-              <p style={{ fontSize: "12px", color: "var(--text-secondary)", maxWidth: "340px", margin: 0 }}>
+              <p style={{ fontSize: "12px", color: "#94a3b8", maxWidth: "340px", margin: 0 }}>
                 Drop a file into the command center above or pick a quick-start format to begin editing.
               </p>
             </div>
@@ -978,14 +978,11 @@ export const StudioDashboard: React.FC<StudioDashboardProps> = ({
                     <h3 style={{
                       fontSize: "15px",
                       fontWeight: 700,
-                      color: "var(--text-primary)",
-                      margin: 0,
-                      lineHeight: "1.4"
-                    }}>
+                      color: "var(--bg-app, #fbf8ef)", margin: 0, lineHeight: "1.4" }}>
                       {item.title}
                     </h3>
 
-                    <div style={{ display: "flex", alignItems: "center", gap: "10px", fontSize: "11px", color: "var(--text-secondary)" }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: "10px", fontSize: "11px", color: "#94a3b8" }}>
                       <span>{item.wordsCount} words</span>
                       <span>•</span>
                       <span>{item.updatedAt}</span>
@@ -1007,7 +1004,7 @@ export const StudioDashboard: React.FC<StudioDashboardProps> = ({
                         style={{
                           background: "transparent",
                           border: "none",
-                          color: "var(--text-secondary)",
+                          color: "#94a3b8",
                           cursor: "pointer",
                           padding: "4px"
                         }}
@@ -1036,7 +1033,7 @@ export const StudioDashboard: React.FC<StudioDashboardProps> = ({
             }}>
               <Download size={32} color="var(--text-secondary)" />
               <div style={{ fontSize: "14px", fontWeight: 700, color: "var(--text-primary)" }}>No exports yet</div>
-              <p style={{ fontSize: "12px", color: "var(--text-secondary)", maxWidth: "340px", margin: 0 }}>
+              <p style={{ fontSize: "12px", color: "#94a3b8", maxWidth: "340px", margin: 0 }}>
                 When you render a video or download SRT captions in the editor, your export history appears here.
               </p>
             </div>
@@ -1044,7 +1041,7 @@ export const StudioDashboard: React.FC<StudioDashboardProps> = ({
             <div style={{ background: "var(--card-bg, var(--bg-surface))", border: "1px solid var(--box-border)", borderRadius: "12px", overflow: "hidden" }}>
               <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "13px" }}>
                 <thead>
-                  <tr style={{ borderBottom: "1px solid var(--box-border)", color: "var(--text-secondary)", textAlign: "left" }}>
+                  <tr style={{ borderBottom: "1px solid var(--box-border)", color: "#94a3b8", textAlign: "left" }}>
                     <th style={{ padding: "14px 18px", fontWeight: 600 }}>project name</th>
                     <th style={{ padding: "14px 18px", fontWeight: 600 }}>script format</th>
                     <th style={{ padding: "14px 18px", fontWeight: 600 }}>ready exports</th>
@@ -1057,8 +1054,8 @@ export const StudioDashboard: React.FC<StudioDashboardProps> = ({
                     <tr key={exp.id} style={{ borderBottom: "1px solid var(--box-border)" }}>
                       <td style={{ padding: "14px 18px", color: "var(--bg-app, #fbf8ef)", fontWeight: 600 }}>{exp.project_title}</td>
                       <td style={{ padding: "14px 18px", color: "var(--accent-primary)" }}>{exp.script_format}</td>
-                      <td style={{ padding: "14px 18px", color: "var(--text-secondary)" }}>{exp.export_types}</td>
-                      <td style={{ padding: "14px 18px", color: "var(--text-secondary)", fontSize: "12px" }}>{exp.created_at}</td>
+                      <td style={{ padding: "14px 18px", color: "#94a3b8" }}>{exp.export_types}</td>
+                      <td style={{ padding: "14px 18px", color: "#94a3b8", fontSize: "12px" }}>{exp.created_at}</td>
                       <td style={{ padding: "14px 18px" }}>
                         <button
                           type="button"
@@ -1124,7 +1121,7 @@ export const StudioDashboard: React.FC<StudioDashboardProps> = ({
               </div>
               <button
                 onClick={() => setShowBillingModal(false)}
-                style={{ background: "transparent", border: "none", color: "var(--text-secondary)", cursor: "pointer" }}
+                style={{ background: "transparent", border: "none", color: "#94a3b8", cursor: "pointer" }}
               >
                 <X size={18} />
               </button>
@@ -1218,7 +1215,7 @@ export const StudioDashboard: React.FC<StudioDashboardProps> = ({
               <h2 style={{ fontSize: "16px", fontWeight: 700, margin: 0, color: "var(--card-text-primary)" }}>Account Settings</h2>
               <button
                 onClick={() => setShowSettingsModal(false)}
-                style={{ background: "transparent", border: "none", color: "var(--text-secondary)", cursor: "pointer" }}
+                style={{ background: "transparent", border: "none", color: "#94a3b8", cursor: "pointer" }}
               >
                 <X size={18} />
               </button>
@@ -1337,7 +1334,7 @@ export const StudioDashboard: React.FC<StudioDashboardProps> = ({
                   </div>
 
                   <div>
-                    <label style={{ display: "block", fontSize: "12px", color: "var(--text-secondary)", marginBottom: "6px" }}>
+                    <label style={{ display: "block", fontSize: "12px", color: "#94a3b8", marginBottom: "6px" }}>
                       Type <strong>DELETE</strong> below to confirm account deletion:
                     </label>
                     <input

@@ -149,9 +149,8 @@ export function ExportPage({
   const previewDims = getPreviewAspectStyles();
 
   return (
-    <div style={{
-      minHeight: "100vh",
-      background: "#0b0d11",
+    <div style={{ minHeight: "100vh",
+      background: "#12141a",
       color: "#f3f4f6",
       fontFamily: "Inter, -apple-system, BlinkMacSystemFont, sans-serif",
       padding: "20px 36px 40px",
@@ -162,7 +161,7 @@ export function ExportPage({
         display: "flex",
         alignItems: "center",
         justifyContent: "flex-start",
-        borderBottom: "1px solid #161e27",
+        borderBottom: "1px solid rgba(255, 255, 255, 0.08)",
         paddingBottom: "16px",
         marginBottom: "24px"
       }}>
@@ -177,9 +176,7 @@ export function ExportPage({
               gap: "8px",
               padding: "8px 14px",
               borderRadius: "8px",
-              background: "#101620",
-              border: "1px solid #1e2836",
-              color: "#d1d5db",
+              background: "var(--bg-app, #fbf8ef)", border: "1px solid rgba(0, 0, 0, 0.12)", color: "#1e232d",
               fontSize: "13px",
               fontWeight: 600,
               cursor: busy ? "not-allowed" : "pointer"
@@ -216,8 +213,8 @@ export function ExportPage({
           display: "flex",
           alignItems: "center",
           gap: "10px",
-          background: "#0d131a",
-          border: "1px solid #1a2330",
+          background: "#12141a",
+          border: "1px solid #181b24",
           borderRadius: "8px",
           padding: "7px 16px",
           fontSize: "12px",
@@ -231,16 +228,16 @@ export function ExportPage({
       </div>
 
       {/* 3. TWO-COLUMN DASHBOARD */}
-      <div style={{
+      <div  style={{
         display: "grid",
-        gridTemplateColumns: "1.25fr 1fr",
+        gridTemplateColumns: "1fr 1.25fr",
         gap: "28px",
         maxWidth: "1180px",
         margin: "0 auto"
       }}>
         {/* LEFT COLUMN: RENDER SETTINGS */}
         <section style={{
-          background: "#131720",
+          background: "#12141a",
           border: "1px solid rgba(255, 255, 255, 0.08)",
           borderRadius: "14px",
           padding: "24px",
@@ -248,7 +245,7 @@ export function ExportPage({
           flexDirection: "column",
           gap: "22px"
         }}>
-          <div style={{ display: "flex", alignItems: "center", gap: "8px", borderBottom: "1px solid #151e2b", paddingBottom: "12px" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: "8px", borderBottom: "1px solid #1c202a", paddingBottom: "12px" }}>
             <Sliders size={16} color="var(--accent-primary)" />
             <span style={{ fontSize: "13px", fontWeight: 700, color: "#f3f4f6" }}>Render Settings</span>
           </div>
@@ -269,9 +266,9 @@ export function ExportPage({
                     onClick={() => setResolution(val)}
                     style={{
                       padding: "10px 0",
-                      background: isSelected ? "var(--accent-glow, rgba(59, 130, 246, 0.14)" : "#181f2a",
-                      border: isSelected ? "1.5px solid var(--accent-primary)" : "1px solid #1c2635",
-                      color: isSelected ? "#93c5fd" : "#94a3b8",
+                      background: isSelected ? "var(--accent-glow, rgba(255, 255, 255, 0.08)" : "#1c202a",
+                      border: isSelected ? "1.5px solid var(--accent-primary)" : "1px solid #232836",
+                      color: isSelected ? "#fbf8ef" : "#94a3b8",
                       borderRadius: "8px",
                       fontSize: "12px",
                       fontWeight: 700,
@@ -280,7 +277,7 @@ export function ExportPage({
                     }}
                   >
                     <div>{val}</div>
-                    <div style={{ fontSize: "10px", fontWeight: 500, color: isSelected ? "#60a5fa" : "#64748b", marginTop: "2px" }}>
+                    <div style={{ fontSize: "10px", fontWeight: 500, color: isSelected ? "#ffffff" : "#64748b", marginTop: "2px" }}>
                       {EXPORT_RESOLUTION_PRESETS[val].label}
                     </div>
                   </button>
@@ -309,8 +306,8 @@ export function ExportPage({
                       justifyContent: "space-between",
                       padding: "10px 14px",
                       borderRadius: "8px",
-                      background: isSelected ? "var(--accent-glow, rgba(59, 130, 246, 0.12)" : "#181f2a",
-                      border: isSelected ? "1.5px solid var(--accent-primary)" : "1px solid #1c2635",
+                      background: isSelected ? "var(--accent-glow, rgba(255, 255, 255, 0.08)" : "#1c202a",
+                      border: isSelected ? "1.5px solid var(--accent-primary)" : "1px solid #232836",
                       color: isSelected ? "#ffffff" : "#94a3b8",
                       cursor: busy ? "not-allowed" : "pointer",
                       fontSize: "12px",
@@ -318,7 +315,7 @@ export function ExportPage({
                     }}
                   >
                     <span>{item.label}</span>
-                    <span style={{ fontSize: "10px", color: isSelected ? "#93c5fd" : "#64748b", padding: "2px 6px", background: "rgba(0,0,0,0.3)", borderRadius: "4px" }}>
+                    <span style={{ fontSize: "10px", color: isSelected ? "#fbf8ef" : "#64748b", padding: "2px 6px", background: "rgba(0,0,0,0.3)", borderRadius: "4px" }}>
                       {item.iconLabel}
                     </span>
                   </button>
@@ -346,8 +343,8 @@ export function ExportPage({
                         flex: 1,
                         padding: "8px 0",
                         borderRadius: "7px",
-                        background: isSelected ? "var(--accent-primary)" : "#181f2a",
-                        border: isSelected ? "1px solid var(--accent-primary)" : "1px solid #1c2635",
+                        background: isSelected ? "var(--accent-primary)" : "#1c202a",
+                        border: isSelected ? "1px solid var(--accent-primary)" : "1px solid #232836",
                         color: isSelected ? "#ffffff" : "#94a3b8",
                         fontSize: "12px",
                         fontWeight: 700,
@@ -373,8 +370,8 @@ export function ExportPage({
                   width: "100%",
                   padding: "9px 12px",
                   borderRadius: "7px",
-                  background: "#181f2a",
-                  border: "1px solid #1c2635",
+                  background: "#1c202a",
+                  border: "1px solid #232836",
                   color: "#f3f4f6",
                   fontSize: "12px",
                   fontWeight: 600,
@@ -398,8 +395,8 @@ export function ExportPage({
             <div style={{
               display: "flex",
               alignItems: "center",
-              background: "#181f2a",
-              border: "1px solid #1c2635",
+              background: "#1c202a",
+              border: "1px solid #232836",
               borderRadius: "8px",
               padding: "0 12px"
             }}>
@@ -433,8 +430,8 @@ export function ExportPage({
               alignItems: "center",
               justifyContent: "space-between",
               padding: "10px 14px",
-              background: "#181f2a",
-              border: "1px solid #1c2635",
+              background: "#1c202a",
+              border: "1px solid #232836",
               borderRadius: "8px",
               cursor: busy ? "not-allowed" : "pointer",
               marginTop: "4px"
@@ -462,7 +459,7 @@ export function ExportPage({
           
           {/* PREVIEW + CAPCUT-STYLE OUTLINE PROGRESS BOX */}
           <div style={{
-            background: "#131720",
+            background: "#12141a",
             border: "1px solid rgba(255, 255, 255, 0.08)",
             borderRadius: "14px",
             padding: "20px",
@@ -490,12 +487,12 @@ export function ExportPage({
               background: busy
                 ? `conic-gradient(var(--accent-primary) ${progress * 3.6}deg, #d946ef ${progress * 3.6}deg, rgba(255, 255, 255, 0.08) 0deg)`
                 : "rgba(255, 255, 255, 0.1)",
-              boxShadow: busy ? "0 0 20px var(--accent-glow, rgba(59, 130, 246, 0.35)" : "none",
+              boxShadow: busy ? "0 0 20px var(--accent-glow, rgba(255, 255, 255, 0.18)" : "none",
               transition: "box-shadow 0.3s ease"
             }}>
               <div style={{
                 ...previewDims,
-                background: "#05070a",
+                background: "#12141a",
                 borderRadius: "10px",
                 overflow: "hidden",
                 position: "relative",
@@ -550,7 +547,7 @@ export function ExportPage({
                     <span style={{ fontSize: "28px", fontWeight: 900, color: "#ffffff", letterSpacing: "-0.03em" }}>
                       {progress}%
                     </span>
-                    <span style={{ fontSize: "11px", color: "#93c5fd", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.06em" }}>
+                    <span style={{ fontSize: "11px", color: "#fbf8ef", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.06em" }}>
                       Rendering...
                     </span>
                     <button
@@ -563,8 +560,7 @@ export function ExportPage({
                         gap: "4px",
                         padding: "4px 10px",
                         borderRadius: "6px",
-                        background: "rgba(239, 68, 68, 0.2)",
-                        border: "1px solid rgba(239, 68, 68, 0.4)",
+                        background: "var(--bg-app, #fbf8ef)", border: "1.5px solid var(--accent-primary, #ff6347)",
                         color: "#fca5a5",
                         fontSize: "11px",
                         fontWeight: 600,
@@ -587,14 +583,14 @@ export function ExportPage({
             )}
 
             {!formatSupported && (
-              <div style={{ width: "100%", display: "flex", alignItems: "center", gap: "8px", padding: "10px 12px", background: "rgba(239, 68, 68, 0.1)", border: "1px solid rgba(239, 68, 68, 0.25)", borderRadius: "8px", fontSize: "12px", color: "#f87171" }}>
+              <div style={{ width: "100%", display: "flex", alignItems: "center", gap: "8px", padding: "10px 12px", background: "var(--bg-app, #fbf8ef)", border: "1px solid rgba(239, 68, 68, 0.25)", borderRadius: "8px", fontSize: "12px", color: "#f87171" }}>
                 <XCircle size={16} />
                 <span>{availability.message ?? `${format.toUpperCase()} export is unavailable.`}</span>
               </div>
             )}
 
             {status === "error" && (
-              <div style={{ width: "100%", display: "flex", alignItems: "center", gap: "8px", padding: "10px 12px", background: "rgba(239, 68, 68, 0.1)", border: "1px solid rgba(239, 68, 68, 0.25)", borderRadius: "8px", fontSize: "12px", color: "#f87171" }}>
+              <div style={{ width: "100%", display: "flex", alignItems: "center", gap: "8px", padding: "10px 12px", background: "var(--bg-app, #fbf8ef)", border: "1px solid rgba(239, 68, 68, 0.25)", borderRadius: "8px", fontSize: "12px", color: "#f87171" }}>
                 <XCircle size={16} />
                 <span>{error}</span>
               </div>
@@ -620,13 +616,13 @@ export function ExportPage({
                 width: "100%",
                 padding: "14px",
                 borderRadius: "10px",
-                background: busy || !formatSupported ? "#1e293b" : "linear-gradient(135deg, var(--accent-primary) 0%, var(--accent-hover) 100%)",
+                background: busy || !formatSupported ? "#181b24" : "linear-gradient(135deg, var(--accent-primary) 0%, var(--accent-hover) 100%)",
                 color: "#ffffff",
                 border: "none",
                 fontSize: "14px",
                 fontWeight: 700,
                 cursor: busy || !formatSupported ? "not-allowed" : "pointer",
-                boxShadow: busy || !formatSupported ? "none" : "0 4px 18px var(--accent-glow, rgba(59, 130, 246, 0.35)",
+                boxShadow: busy || !formatSupported ? "none" : "0 4px 18px var(--accent-glow, rgba(255, 255, 255, 0.18)",
                 transition: "all 0.15s ease"
               }}
             >
@@ -638,7 +634,7 @@ export function ExportPage({
 
           {/* Subtitle Interchange Downloads */}
           <div style={{
-            background: "#131720",
+            background: "#12141a",
             border: "1px solid rgba(255, 255, 255, 0.08)",
             borderRadius: "14px",
             padding: "18px",
@@ -662,14 +658,14 @@ export function ExportPage({
                   gap: "10px",
                   padding: "10px 12px",
                   borderRadius: "8px",
-                  background: "#181f2a",
-                  border: "1px solid #1c2635",
+                  background: "#1c202a",
+                  border: "1px solid #232836",
                   color: "#e5e7eb",
                   cursor: busy || subtitles.length === 0 ? "not-allowed" : "pointer",
                   textAlign: "left"
                 }}
               >
-                <FileText size={16} color="#38bdf8" />
+                <FileText size={16} color="#ffffff" />
                 <div>
                   <div style={{ fontSize: "12px", fontWeight: 700 }}>Download SRT</div>
                   <div style={{ fontSize: "10px", color: "#64748b" }}>SubRip interchange</div>
@@ -686,8 +682,8 @@ export function ExportPage({
                   gap: "10px",
                   padding: "10px 12px",
                   borderRadius: "8px",
-                  background: "#181f2a",
-                  border: "1px solid #1c2635",
+                  background: "#1c202a",
+                  border: "1px solid #232836",
                   color: "#e5e7eb",
                   cursor: busy || subtitles.length === 0 ? "not-allowed" : "pointer",
                   textAlign: "left"
