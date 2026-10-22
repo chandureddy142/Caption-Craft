@@ -17,7 +17,6 @@ import {
   FolderOpen,
   Zap,
   Lock,
-  Layers,
   ArrowRight,
   Home
 } from "lucide-react";
@@ -84,7 +83,7 @@ export const StudioDashboard: React.FC<StudioDashboardProps> = ({
   const [editName, setEditName] = useState<string>("");
   const [deleteConfirmText, setDeleteConfirmText] = useState<string>("");
   const [isSavingSettings, setIsSavingSettings] = useState<boolean>(false);
-  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [_isLoading, setIsLoading] = useState<boolean>(true);
   const [isDragging, setIsDragging] = useState<boolean>(false);
 
   const [activeTab, setActiveTab] = useState<"projects" | "exports">("projects");
@@ -378,7 +377,7 @@ export const StudioDashboard: React.FC<StudioDashboardProps> = ({
   });
 
   return (
-    <div style={{ minHeight: "100vh", background: "var(--bg-[var(--card-bg)]pp)", color: "var(--text-primary)", fontFamily: "inherit" }}>
+    <div style={{ minHeight: "100vh", background: "var(--bg-app)", color: "var(--text-primary)", fontFamily: "inherit" }}>
       {/* Top Navbar */}
       <nav style={{
         height: "64px",
@@ -395,52 +394,52 @@ export const StudioDashboard: React.FC<StudioDashboardProps> = ({
         boxSizing: "border-box"
       }}>
         <div
-    onClick={() => navigate("/")}
-    style={{ display: "inline-flex", alignItems: "center", gap: "14px", cursor: "pointer" }}
-    title="Back to Home"
-  >
-    <div style={{ width: "50px", height: "50px", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-      <img
-        src={theme === "dark" ? "/media/Llogo.png" : "/media/Dlogo.png"}
-        alt="CaptionCraft"
-        style={{ width: "100%", height: "100%", objectFit: "contain" }}
-      />
-    </div>
-    <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-      <span style={{ fontSize: "20px", fontWeight: 700, color: "var(--nav-text-primary, #ffffff)", letterSpacing: "-0.02em", lineHeight: 1.1 }}>
-        CaptionCraft
-      </span>
-      <span style={{ fontSize: "10px", padding: "2px 7px", borderRadius: "6px", background: "rgba(239, 68, 68, 0.15)", color: "var(--accent-primary, #ef4444)", fontWeight: 700, textTransform: "lowercase", letterSpacing: "0.02em" }}>
-        studio
-      </span>
-    </div>
-  </div>
+          onClick={() => navigate("/")}
+          style={{ display: "inline-flex", alignItems: "center", gap: "14px", cursor: "pointer" }}
+          title="Back to Home"
+        >
+          <div style={{ width: "50px", height: "50px", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+            <img
+              src={theme === "dark" ? "/media/Llogo.png" : "/media/Dlogo.png"}
+              alt="CaptionCraft"
+              style={{ width: "100%", height: "100%", objectFit: "contain" }}
+            />
+          </div>
+          <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+            <span style={{ fontSize: "20px", fontWeight: 700, color: "var(--nav-text-primary, #ffffff)", letterSpacing: "-0.02em", lineHeight: 1.1 }}>
+              CaptionCraft
+            </span>
+            <span style={{ fontSize: "10px", padding: "2px 7px", borderRadius: "6px", background: "rgba(239, 68, 68, 0.15)", color: "var(--accent-primary, #ef4444)", fontWeight: 700, textTransform: "lowercase", letterSpacing: "0.02em" }}>
+              studio
+            </span>
+          </div>
+        </div>
 
         {/* Right side: ThemeToggle beside Profile Avatar */}
         <div style={{ display: "flex", alignItems: "center", gap: "14px" }}>
           <div style={{ position: "relative" }} ref={menuRef}>
             <div style={{ display: "inline-flex", alignItems: "center", gap: "10px" }}>
-          <ThemeToggle />
-          <button
-              onClick={() => setShowProfileMenu(!showProfileMenu)}
-              style={{
-                width: "36px",
-                height: "36px",
-                borderRadius: "50%",
-                background: "var(--bg-surface-elevated)",
-                border: "2px solid var(--border-subtle)",
-                color: "var(--accent-primary)",
-                display: "grid",
-                placeItems: "center",
-                fontSize: "13px",
-                fontWeight: 700,
-                cursor: "pointer",
-                outline: "none"
-              }}
-            >
-              {userName ? userName.charAt(0).toUpperCase() : "C"}
-            </button>
-        </div>
+              <ThemeToggle />
+              <button
+                onClick={() => setShowProfileMenu(!showProfileMenu)}
+                style={{
+                  width: "36px",
+                  height: "36px",
+                  borderRadius: "50%",
+                  background: "var(--bg-surface-elevated)",
+                  border: "2px solid var(--border-subtle)",
+                  color: "var(--accent-primary)",
+                  display: "grid",
+                  placeItems: "center",
+                  fontSize: "13px",
+                  fontWeight: 700,
+                  cursor: "pointer",
+                  outline: "none"
+                }}
+              >
+                {userName ? userName.charAt(0).toUpperCase() : "C"}
+              </button>
+            </div>
 
             {showProfileMenu && (
               <div style={{
@@ -473,20 +472,20 @@ export const StudioDashboard: React.FC<StudioDashboardProps> = ({
                     {userName ? userName.charAt(0).toUpperCase() : "C"}
                   </div>
                   <div style={{ overflow: "hidden" }}>
-                    <div style={{ fontSize: "13px", fontWeight: 700, color: "var(--bg-app)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{userName}</div>
-                    <div style={{ fontSize: "11px", color: "var(--bg-app)", opacity: 0.82, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{userEmail}</div>
+                    <div style={{ fontSize: "13px", fontWeight: 700, color: "var(--card-text-primary, #12141a)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{userName}</div>
+                    <div style={{ fontSize: "11px", color: "var(--card-text-secondary, #475569)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{userEmail}</div>
                   </div>
                 </div>
 
                 <div style={{ padding: "10px", background: "var(--bg-surface-elevated)", borderRadius: "10px", border: "1px solid var(--box-border)", display: "flex", flexDirection: "column", gap: "8px" }}>
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                    <span style={{ fontSize: "11px", color: "var(--card-text-secondary)" }}>plan</span>
+                    <span style={{ fontSize: "11px", color: "var(--card-text-primary, #12141a)" }}>plan</span>
                     <span style={{ fontSize: "11px", color: "var(--accent-primary)", fontWeight: 700, display: "flex", alignItems: "center", gap: "4px" }}>
                       <CheckCircle2 size={12} /> creator free
                     </span>
                   </div>
                   <div>
-                    <div style={{ display: "flex", justifyContent: "space-between", fontSize: "10px", color: "var(--bg-app)", opacity: 0.8, marginBottom: "4px" }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", fontSize: "10px", color: "#94a3b8", marginBottom: "4px" }}>
                       <span style={{ color: "var(--card-text-secondary)" }}>transcription usage</span>
                       <span>{totalTranscriptionMinutes} / 60 min</span>
                     </div>
@@ -506,7 +505,7 @@ export const StudioDashboard: React.FC<StudioDashboardProps> = ({
                     style={{
                       background: "transparent",
                       border: "none",
-                      color: "var(--text-primary)",
+                      color: "var(--card-text-primary, #12141a)",
                       padding: "8px",
                       fontSize: "12px",
                       fontWeight: 600,
@@ -521,7 +520,7 @@ export const StudioDashboard: React.FC<StudioDashboardProps> = ({
                     onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
                   >
                     <User size={14} color="var(--accent-primary)" />
-                    <span style={{ color: "var(--card-text-secondary)" }}>Profile Settings</span>
+                    <span>Profile Settings</span>
                   </button>
 
                   <button
@@ -532,7 +531,7 @@ export const StudioDashboard: React.FC<StudioDashboardProps> = ({
                     style={{
                       background: "transparent",
                       border: "none",
-                      color: "var(--text-primary)",
+                      color: "var(--card-text-primary, #12141a)",
                       padding: "8px",
                       fontSize: "12px",
                       fontWeight: 600,
@@ -547,7 +546,7 @@ export const StudioDashboard: React.FC<StudioDashboardProps> = ({
                     onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
                   >
                     <CreditCard size={14} color="var(--accent-primary)" />
-                    <span style={{ color: "var(--card-text-secondary)" }}>Billing & Subscription</span>
+                    <span>Billing & Subscription</span>
                   </button>
 
                   <button
@@ -558,7 +557,7 @@ export const StudioDashboard: React.FC<StudioDashboardProps> = ({
                     style={{
                       background: "transparent",
                       border: "none",
-                      color: "var(--text-primary)",
+                      color: "var(--card-text-primary, #12141a)",
                       padding: "8px",
                       fontSize: "12px",
                       fontWeight: 600,
@@ -573,7 +572,7 @@ export const StudioDashboard: React.FC<StudioDashboardProps> = ({
                     onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
                   >
                     <Home size={14} color="var(--accent-primary)" />
-                    <span style={{ color: "var(--card-text-secondary)" }}>Home</span>
+                    <span>Home</span>
                   </button>
                 </div>
 
@@ -645,7 +644,7 @@ export const StudioDashboard: React.FC<StudioDashboardProps> = ({
             width: "56px",
             height: "56px",
             borderRadius: "16px",
-            background: "rgba(59, 130, 246, 0.12)",
+            background: "var(--bg-surface-elevated)",
             border: "1px solid rgba(59, 130, 246, 0.3)",
             display: "grid",
             placeItems: "center",
@@ -655,133 +654,81 @@ export const StudioDashboard: React.FC<StudioDashboardProps> = ({
             <UploadCloud size={28} />
           </div>
 
-          <h2 style={{ fontSize: "20px", fontWeight: 800, color: "var(--text-primary)", margin: "0 0 6px 0", letterSpacing: "-0.02em" }}>
-            <span style={{ color: "var(--card-text-primary)", fontWeight: 600 }}>Drop your video or audio clip here</span>
+          <h2 style={{ fontSize: "20px", fontWeight: 700, margin: "0 0 8px 0", color: "var(--card-text-primary)" }}>
+            Drop your video or audio clip here
           </h2>
-          <p style={{ fontSize: "13px", color: "#94a3b8", margin: "0 0 18px 0", maxWidth: "460px", lineHeight: "1.5" }}>
-            <span style={{ color: "var(--card-text-secondary)" }}>Auto-generate word-by-word synced Telugu or Tenglish subtitles without server uploads.</span>
+          <p style={{ fontSize: "13px", color: "var(--card-text-secondary)", margin: "0 0 20px 0", maxWidth: "480px", lineHeight: "1.5" }}>
+            Auto-generate word-by-word synced Telugu or Tenglish subtitles without server uploads.
           </p>
 
-          <div style={{ display: "flex", gap: "10px", alignItems: "center" }}>
-            <button
-              type="button"
-              style={{
-                background: "var(--accent-primary)",
-                color: "#ffffff",
-                border: "none",
-                padding: "10px 22px",
-                borderRadius: "10px",
-                fontWeight: 700,
-                fontSize: "12px",
-                display: "inline-flex",
-                alignItems: "center",
-                gap: "8px",
-                cursor: "pointer",
-                boxShadow: "0 4px 16px rgba(59, 130, 246, 0.25)"
-              }}
-            >
-              <UploadCloud size={14} />
-              <span>browse media file</span>
-            </button>
-            <span style={{ fontSize: "11px", color: "#94a3b8" }}>MP4, MOV, WEBM, WAV, MP3</span>
-          </div>
+          <button
+            type="button"
+            onClick={(e) => { e.stopPropagation(); fileInputRef.current?.click(); }}
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: "8px",
+              padding: "10px 22px",
+              background: "var(--bg-surface-elevated)",
+              border: "1px solid var(--box-border)",
+              borderRadius: "10px",
+              fontSize: "13px",
+              fontWeight: 600,
+              color: "var(--card-text-primary)",
+              cursor: "pointer",
+              boxShadow: "0 2px 8px rgba(0,0,0,0.06)",
+              transition: "transform 0.15s ease"
+            }}
+          >
+            <FolderOpen size={16} color="var(--accent-primary)" />
+            browse media file
+            <span style={{ fontSize: "11px", color: "var(--card-text-secondary)", fontWeight: 400, marginLeft: "4px" }}>
+              MP4, MOV, WEBM, WAV, MP3
+            </span>
+          </button>
 
-          <div style={{
-            display: "flex",
-            alignItems: "center",
-            gap: "20px",
-            marginTop: "26px",
-            paddingTop: "20px",
-            borderTop: "1px solid var(--border-subtle)",
-            flexWrap: "wrap",
-            justifyContent: "center"
-          }}>
-            <div style={{ display: "flex", alignItems: "center", gap: "6px", fontSize: "11px", color: "#94a3b8" }}>
-              <Zap size={13} color="var(--accent-primary)" />
-              <span>WebGPU Hardware Acceleration</span>
-            </div>
-            <div style={{ display: "flex", alignItems: "center", gap: "6px", fontSize: "11px", color: "#10b981" }}>
-              <Lock size={13} color="#10b981" />
-              <span>100% Private (Runs In-Browser)</span>
-            </div>
-            <div style={{ display: "flex", alignItems: "center", gap: "6px", fontSize: "11px", color: "#94a3b8" }}>
-              <Sparkles size={13} color="#f59e0b" />
-              <span>Telugu Lipi & Tenglish Dual Engine</span>
-            </div>
+          <div style={{ display: "flex", alignItems: "center", gap: "24px", marginTop: "24px", fontSize: "11px", color: "var(--card-text-secondary)" }}>
+            <span style={{ display: "flex", alignItems: "center", gap: "6px" }}><Zap size={13} color="#f59e0b" /> WebGPU Hardware Acceleration</span>
+            <span style={{ display: "flex", alignItems: "center", gap: "6px" }}><Lock size={13} color="#10b981" /> 100% Private (Runs In-Browser)</span>
+            <span style={{ display: "flex", alignItems: "center", gap: "6px" }}><Sparkles size={13} color="var(--accent-primary)" /> Telugu Lipi & Tenglish Dual Engine</span>
           </div>
         </div>
 
-        {/* Single Quick-Start Format */}
-        <div style={{ marginBottom: "36px" }}>
-          <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "14px" }}>
-            <Layers size={14} color="var(--text-secondary)" />
-            <h3 style={{ fontSize: "11px", fontWeight: 700, color: "#94a3b8", letterSpacing: "0.06em", textTransform: "uppercase", margin: 0 }}>
-              Quick-Start Format
-            </h3>
-          </div>
-
-          <div style={{ display: "grid", gridTemplateColumns: "1fr", gap: "16px" }}>
-            <div
-              onClick={() => fileInputRef.current?.click()}
-              style={{
-                background: "var(--card-bg, var(--bg-surface))",
-                border: "1px solid var(--box-border)",
-                borderRadius: "14px",
-                padding: "20px 24px",
-                cursor: "pointer",
-                transition: "all 0.15s ease",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "space-between",
-                gap: "16px"
-              }}
-            >
-              <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
-                <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-                  <span style={{ fontSize: "10px", fontWeight: 700, padding: "2px 7px", borderRadius: "4px", background: "rgba(59, 130, 246, 0.14)", color: "var(--accent-primary)" }}>
-                    9:16 vertical
-                  </span>
-                  <span style={{ fontSize: "15px", fontWeight: 700, color: "var(--bg-app, #fbf8ef)" }}>
-                    <span style={{ color: "var(--card-text-primary)", fontWeight: 600 }}>Instagram Reel & YouTube Shorts</span>
-                  </span>
-                </div>
-                <div style={{ fontSize: "12px", color: "#94a3b8", lineHeight: "1.4" }}>
-                  <span style={{ color: "var(--card-text-secondary)" }}>1–3 word kinetic chunks with Instagram and YouTube Shorts UI safe-zone guides and high-contrast word highlights.</span>
-                </div>
-              </div>
-
-              <div style={{
-                width: "36px",
-                height: "36px",
-                borderRadius: "50%",
-                background: "var(--bg-surface-elevated)",
-                border: "1px solid var(--box-border)",
-                display: "grid",
-                placeItems: "center",
-                color: "var(--accent-primary)",
-                flexShrink: 0
-              }}>
-                <ArrowRight size={16} />
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Tab Header & Filter Controls */}
+        {/* Quick Start Horizontal Banner */}
         <div style={{
+          background: "var(--card-bg, var(--bg-surface))",
+          border: "1px solid var(--box-border)",
+          borderRadius: "16px",
+          padding: "20px 24px",
           display: "flex",
-          justifyContent: "space-between",
           alignItems: "center",
-          flexWrap: "wrap",
-          gap: "16px",
-          marginBottom: "20px"
-        }}>
+          justifyContent: "space-between",
+          marginBottom: "32px",
+          cursor: "pointer",
+          boxShadow: "var(--card-shadow, 0 4px 20px rgba(0,0,0,0.05))"
+        }}
+          onClick={() => fileInputRef.current?.click()}
+        >
+          <div style={{ display: "flex", alignItems: "center", gap: "16px" }}>
+            <span style={{ fontSize: "11px", fontWeight: 700, padding: "4px 8px", borderRadius: "6px", background: "rgba(239, 68, 68, 0.1)", color: "var(--accent-primary)" }}>9:16 vertical</span>
+            <div>
+              <div style={{ fontSize: "14px", fontWeight: 700, color: "var(--card-text-primary)", marginBottom: "4px" }}>Instagram Reel & YouTube Shorts</div>
+              <div style={{ fontSize: "12px", color: "var(--card-text-secondary)" }}>1–3 word kinetic chunks with Instagram and YouTube Shorts UI safe-zone guides and high-contrast word highlights.</div>
+            </div>
+          </div>
+          <div style={{ width: "36px", height: "36px", borderRadius: "50%", border: "1px solid var(--box-border)", display: "grid", placeItems: "center", color: "var(--accent-primary)" }}>
+            <ArrowRight size={18} />
+          </div>
+        </div>
+
+        {/* Tab & Language Filter Bar */}
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px", flexWrap: "wrap", gap: "14px" }}>
           <div style={{ display: "flex", gap: "8px", background: "var(--card-bg, var(--bg-surface))", padding: "4px", borderRadius: "10px", border: "1px solid var(--box-border)" }}>
             <button
               onClick={() => setActiveTab("projects")}
               style={{
                 background: activeTab === "projects" ? "var(--bg-surface-elevated)" : "transparent",
-                color: activeTab === "projects" ? "var(--accent-primary)" : "var(--text-secondary)",
+                color: activeTab === "projects" ? "var(--accent-primary)" : "var(--bg-app)",
                 border: "none",
                 padding: "8px 18px",
                 borderRadius: "7px",
@@ -796,7 +743,7 @@ export const StudioDashboard: React.FC<StudioDashboardProps> = ({
               onClick={() => setActiveTab("exports")}
               style={{
                 background: activeTab === "exports" ? "var(--bg-surface-elevated)" : "transparent",
-                color: activeTab === "exports" ? "var(--accent-primary)" : "var(--text-secondary)",
+                color: activeTab === "exports" ? "var(--accent-primary)" : "var(--bg-app)",
                 border: "none",
                 padding: "8px 18px",
                 borderRadius: "7px",
@@ -817,7 +764,7 @@ export const StudioDashboard: React.FC<StudioDashboardProps> = ({
                   onClick={() => setSelectedLang(lang)}
                   style={{
                     background: selectedLang === lang ? "var(--accent-primary)" : "var(--card-bg, var(--bg-surface))",
-                    color: selectedLang === lang ? "#ffffff" : "var(--text-secondary)",
+                    color: selectedLang === lang ? "#ffffff" : "var(--bg-app)",
                     border: "1px solid " + (selectedLang === lang ? "var(--accent-primary)" : "var(--box-border)"),
                     padding: "5px 12px",
                     borderRadius: "6px",
@@ -841,7 +788,7 @@ export const StudioDashboard: React.FC<StudioDashboardProps> = ({
               borderRadius: "8px",
               width: "200px"
             }}>
-              <Search size={14} color="var(--text-secondary)" />
+              <Search size={14} color="var(--bg-app)" style={{ opacity: 0.7 }} />
               <input
                 type="text"
                 placeholder="search projects..."
@@ -851,165 +798,100 @@ export const StudioDashboard: React.FC<StudioDashboardProps> = ({
                   background: "transparent",
                   border: "none",
                   outline: "none",
-                  color: "var(--text-primary)",
+                  color: "var(--bg-app)",
                   fontSize: "12px",
                   width: "100%"
                 }}
               />
             </div>
-
-            </div>
+          </div>
         </div>
 
-        {/* Project Cards or Exports Table */}
-        {isLoading ? (
-          <div style={{ padding: "60px 0", textAlign: "center", color: "#94a3b8", fontSize: "14px" }}>
-            Loading creator workspace...
-          </div>
-        ) : activeTab === "projects" ? (
+        {/* Content Section: Projects Grid or Exports Table */}
+        {activeTab === "projects" ? (
           filteredProjects.length === 0 ? (
             <div style={{
               background: "var(--card-bg, var(--bg-surface))",
-              border: "1px dashed var(--box-border)",
-              borderRadius: "14px",
-              padding: "48px 20px",
+              border: "1px solid var(--box-border)",
+              borderRadius: "16px",
+              padding: "60px 20px",
               textAlign: "center",
-              display: "flex",
-              flexDirection: "column",
-              alignItems: "center",
-              justifyContent: "center",
-              gap: "10px"
+              color: "var(--card-text-secondary)"
             }}>
-              <FolderOpen size={32} color="var(--text-secondary)" />
-              <div style={{ fontSize: "14px", fontWeight: 700, color: "var(--text-primary)" }}>No active projects yet</div>
-              <p style={{ fontSize: "12px", color: "#94a3b8", maxWidth: "340px", margin: 0 }}>
-                Drop a file into the command center above or pick a quick-start format to begin editing.
-              </p>
+              <p style={{ margin: "0 0 12px 0", fontSize: "14px" }}>No projects found matching your search or filters.</p>
+              <button
+                onClick={() => fileInputRef.current?.click()}
+                style={{
+                  background: "var(--accent-primary)",
+                  color: "#ffffff",
+                  border: "none",
+                  padding: "8px 18px",
+                  borderRadius: "8px",
+                  fontSize: "12px",
+                  fontWeight: 600,
+                  cursor: "pointer"
+                }}
+              >
+                Create New Project
+              </button>
             </div>
           ) : (
-            <div style={{
-              display: "grid",
-              gridTemplateColumns: "repeat(auto-fill, minmax(320px, 1fr))",
-              gap: "20px"
-            }}>
-              {filteredProjects.map((item) => (
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: "20px" }}>
+              {filteredProjects.map(p => (
                 <div
-                  key={item.id}
-                  onClick={() => {
-                    if (onOpenEditor) onOpenEditor(item.id);
-                  }}
+                  key={p.id}
+                  onClick={() => onOpenEditor ? onOpenEditor(p.id) : null}
                   style={{
                     background: "var(--card-bg, var(--bg-surface))",
                     border: "1px solid var(--box-border)",
                     borderRadius: "14px",
                     overflow: "hidden",
                     cursor: "pointer",
+                    boxShadow: "var(--card-shadow, 0 4px 16px rgba(0,0,0,0.06))",
+                    transition: "transform 0.15s ease, box-shadow 0.15s ease",
                     display: "flex",
-                    flexDirection: "column",
-                    boxShadow: "var(--card-shadow, 0 4px 12px rgba(0,0,0,0.06))"
+                    flexDirection: "column"
                   }}
                 >
                   <div style={{
                     height: "140px",
                     background: "var(--bg-surface-elevated)",
                     position: "relative",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    borderBottom: "1px solid var(--box-border)"
+                    display: "grid",
+                    placeItems: "center"
                   }}>
-                    <div style={{
-                      width: "42px",
-                      height: "42px",
-                      borderRadius: "50%",
-                      background: "rgba(59, 130, 246, 0.14)",
-                      border: "1px solid var(--accent-primary)",
-                      display: "grid",
-                      placeItems: "center",
-                      color: "var(--accent-primary)"
-                    }}>
-                      <Play size={18} fill="var(--accent-primary)" />
+                    <span style={{ position: "absolute", top: "10px", left: "10px", fontSize: "10px", fontWeight: 700, padding: "2px 6px", borderRadius: "4px", background: "rgba(0,0,0,0.4)", color: "#ffffff" }}>
+                      {p.ratio}
+                    </span>
+                    <span style={{ position: "absolute", top: "10px", right: "10px", fontSize: "10px", fontWeight: 700, padding: "2px 6px", borderRadius: "4px", background: "rgba(59, 130, 246, 0.15)", color: "var(--accent-primary)" }}>
+                      {p.language}
+                    </span>
+                    <div style={{ width: "42px", height: "42px", borderRadius: "50%", background: "rgba(239, 68, 68, 0.15)", display: "grid", placeItems: "center", color: "var(--accent-primary)" }}>
+                      <Play size={18} fill="currentColor" />
                     </div>
-
-                    <span style={{
-                      position: "absolute",
-                      top: "12px",
-                      left: "12px",
-                      fontSize: "10px",
-                      fontWeight: 700,
-                      padding: "3px 7px",
-                      borderRadius: "4px",
-                      background: "rgba(0,0,0,0.6)",
-                      color: "#fff"
-                    }}>
-                      {item.ratio}
-                    </span>
-
-                    <span style={{
-                      position: "absolute",
-                      top: "12px",
-                      right: "12px",
-                      fontSize: "10px",
-                      fontWeight: 700,
-                      padding: "3px 8px",
-                      borderRadius: "4px",
-                      background: item.language === "Telugu" ? "rgba(59, 130, 246, 0.18)" : "rgba(255, 255, 255, 0.14)",
-                      color: item.language === "Telugu" ? "var(--accent-primary)" : "#fff"
-                    }}>
-                      {item.language}
-                    </span>
-
-                    <span style={{
-                      position: "absolute",
-                      bottom: "10px",
-                      right: "12px",
-                      fontSize: "11px",
-                      fontWeight: 600,
-                      color: "#fff",
-                      background: "rgba(0, 0, 0, 0.75)",
-                      padding: "2px 6px",
-                      borderRadius: "4px"
-                    }}>
-                      {item.duration}
+                    <span style={{ position: "absolute", bottom: "10px", right: "10px", fontSize: "10px", color: "var(--card-text-secondary)", background: "rgba(0,0,0,0.4)", padding: "2px 6px", borderRadius: "4px" }}>
+                      {p.duration}
                     </span>
                   </div>
 
-                  <div style={{ padding: "16px", display: "flex", flexDirection: "column", gap: "8px", flex: 1 }}>
-                    <h3 style={{
-                      fontSize: "15px",
-                      fontWeight: 700,
-                      color: "var(--bg-app, #fbf8ef)", margin: 0, lineHeight: "1.4" }}>
-                      {item.title}
-                    </h3>
-
-                    <div style={{ display: "flex", alignItems: "center", gap: "10px", fontSize: "11px", color: "#94a3b8" }}>
-                      <span>{item.wordsCount} words</span>
-                      <span>•</span>
-                      <span>{item.updatedAt}</span>
+                  <div style={{ padding: "16px", flexGrow: 1, display: "flex", flexDirection: "column", justifyContent: "space-between" }}>
+                    <div>
+                      <h3 style={{ fontSize: "14px", fontWeight: 700, margin: "0 0 6px 0", color: "var(--card-text-primary)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                        {p.title}
+                      </h3>
+                      <div style={{ fontSize: "11px", color: "var(--card-text-secondary)" }}>
+                        {p.wordsCount} words • {p.updatedAt}
+                      </div>
                     </div>
 
-                    <div style={{
-                      display: "flex",
-                      justifyContent: "space-between",
-                      alignItems: "center",
-                      marginTop: "auto",
-                      paddingTop: "12px",
-                      borderTop: "1px solid var(--box-border)"
-                    }}>
-                      <span style={{ fontSize: "12px", color: "var(--accent-primary)", fontWeight: 700 }}>
-                        open studio editor →
-                      </span>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: "14px", paddingTop: "10px", borderTop: "1px solid var(--box-border)" }}>
+                      <span style={{ fontSize: "11px", color: "var(--accent-primary)", fontWeight: 600 }}>open studio editor →</span>
                       <button
-                        onClick={(e) => deleteProject(item.id, e)}
-                        style={{
-                          background: "transparent",
-                          border: "none",
-                          color: "#94a3b8",
-                          cursor: "pointer",
-                          padding: "4px"
-                        }}
+                        onClick={(e) => deleteProject(p.id, e)}
+                        style={{ background: "transparent", border: "none", color: "#94a3b8", cursor: "pointer", padding: "4px", borderRadius: "4px" }}
+                        title="Delete project"
                       >
-                        <Trash2 size={15} />
+                        <Trash2 size={14} />
                       </button>
                     </div>
                   </div>
@@ -1018,44 +900,31 @@ export const StudioDashboard: React.FC<StudioDashboardProps> = ({
             </div>
           )
         ) : (
-          exportsList.length === 0 ? (
-            <div style={{
-              background: "var(--card-bg, var(--bg-surface))",
-              border: "1px dashed var(--box-border)",
-              borderRadius: "14px",
-              padding: "48px 20px",
-              textAlign: "center",
-              display: "flex",
-              flexDirection: "column",
-              alignItems: "center",
-              justifyContent: "center",
-              gap: "10px"
-            }}>
-              <Download size={32} color="var(--text-secondary)" />
-              <div style={{ fontSize: "14px", fontWeight: 700, color: "var(--text-primary)" }}>No exports yet</div>
-              <p style={{ fontSize: "12px", color: "#94a3b8", maxWidth: "340px", margin: 0 }}>
-                When you render a video or download SRT captions in the editor, your export history appears here.
-              </p>
-            </div>
-          ) : (
-            <div style={{ background: "var(--card-bg, var(--bg-surface))", border: "1px solid var(--box-border)", borderRadius: "12px", overflow: "hidden" }}>
-              <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "13px" }}>
-                <thead>
-                  <tr style={{ borderBottom: "1px solid var(--box-border)", color: "#94a3b8", textAlign: "left" }}>
-                    <th style={{ padding: "14px 18px", fontWeight: 600 }}>project name</th>
-                    <th style={{ padding: "14px 18px", fontWeight: 600 }}>script format</th>
-                    <th style={{ padding: "14px 18px", fontWeight: 600 }}>ready exports</th>
-                    <th style={{ padding: "14px 18px", fontWeight: 600 }}>date</th>
-                    <th style={{ padding: "14px 18px", fontWeight: 600 }}>action</th>
+          <div style={{ background: "var(--card-bg, var(--bg-surface))", border: "1px solid var(--box-border)", borderRadius: "12px", overflow: "hidden" }}>
+            <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "13px" }}>
+              <thead>
+                <tr style={{ borderBottom: "1px solid var(--box-border)", color: "var(--bg-app)", opacity: 0.85, textAlign: "left" }}>
+                  <th style={{ padding: "14px 18px", fontWeight: 600 }}>project name</th>
+                  <th style={{ padding: "14px 18px", fontWeight: 600 }}>script format</th>
+                  <th style={{ padding: "14px 18px", fontWeight: 600 }}>ready exports</th>
+                  <th style={{ padding: "14px 18px", fontWeight: 600 }}>date</th>
+                  <th style={{ padding: "14px 18px", fontWeight: 600 }}>action</th>
+                </tr>
+              </thead>
+              <tbody>
+                {exportsList.length === 0 ? (
+                  <tr>
+                    <td colSpan={5} style={{ padding: "30px 18px", textAlign: "center", color: "var(--card-text-secondary)" }}>
+                      No rendered exports available. Export your project from the studio editor.
+                    </td>
                   </tr>
-                </thead>
-                <tbody>
-                  {exportsList.map(exp => (
+                ) : (
+                  exportsList.map(exp => (
                     <tr key={exp.id} style={{ borderBottom: "1px solid var(--box-border)" }}>
                       <td style={{ padding: "14px 18px", color: "var(--bg-app, #fbf8ef)", fontWeight: 600 }}>{exp.project_title}</td>
                       <td style={{ padding: "14px 18px", color: "var(--accent-primary)" }}>{exp.script_format}</td>
-                      <td style={{ padding: "14px 18px", color: "#94a3b8" }}>{exp.export_types}</td>
-                      <td style={{ padding: "14px 18px", color: "#94a3b8", fontSize: "12px" }}>{exp.created_at}</td>
+                      <td style={{ padding: "14px 18px", color: "var(--bg-app)", opacity: 0.85 }}>{exp.export_types}</td>
+                      <td style={{ padding: "14px 18px", color: "var(--bg-app)", opacity: 0.85, fontSize: "12px" }}>{exp.created_at}</td>
                       <td style={{ padding: "14px 18px" }}>
                         <button
                           type="button"
@@ -1074,16 +943,15 @@ export const StudioDashboard: React.FC<StudioDashboardProps> = ({
                             gap: "6px"
                           }}
                         >
-                          <Download size={13} />
-                          <span>download</span>
+                          <Download size={12} /> download
                         </button>
                       </td>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
         )}
       </main>
 
@@ -1092,7 +960,7 @@ export const StudioDashboard: React.FC<StudioDashboardProps> = ({
         <div style={{
           position: "fixed",
           inset: 0,
-          background: "rgba(0, 0, 0, 0.8)",
+          background: "rgba(0, 0, 0, 0.75)",
           backdropFilter: "blur(6px)",
           display: "grid",
           placeItems: "center",
@@ -1117,11 +985,11 @@ export const StudioDashboard: React.FC<StudioDashboardProps> = ({
             }}>
               <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
                 <CreditCard size={18} color="var(--accent-primary)" />
-                <h2 style={{ fontSize: "16px", fontWeight: 700, margin: 0, color: "var(--text-primary)" }}><span style={{ color: "#ffffff", fontWeight: 700, fontSize: "18px" }}>Billing & Subscription</span></h2>
+                <h2 style={{ fontSize: "18px", fontWeight: 700, margin: 0, color: "var(--card-text-primary, #12141a)" }}>Billing & Subscription</h2>
               </div>
               <button
                 onClick={() => setShowBillingModal(false)}
-                style={{ background: "transparent", border: "none", color: "#94a3b8", cursor: "pointer" }}
+                style={{ background: "transparent", border: "none", color: "var(--card-text-secondary, #64748b)", cursor: "pointer" }}
               >
                 <X size={18} />
               </button>
@@ -1141,10 +1009,10 @@ export const StudioDashboard: React.FC<StudioDashboardProps> = ({
               }}>
                 <div>
                   <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-                    <span style={{ fontSize: "15px", fontWeight: 700, color: "var(--card-text-primary)" }}>Creator Free Tier</span>
-                    <span style={{ fontSize: "10px", padding: "2px 6px", borderRadius: "4px", background: "rgba(59, 130, 246, 0.14)", color: "var(--accent-primary)", fontWeight: 700 }}>active</span>
+                    <span style={{ fontSize: "15px", fontWeight: 700, color: "var(--card-text-primary, #12141a)" }}>Creator Free Tier</span>
+                    <span style={{ fontSize: "10px", padding: "2px 6px", borderRadius: "4px", background: "rgba(59, 130, 246, 0.15)", color: "var(--accent-primary)", fontWeight: 700 }}>active</span>
                   </div>
-                  <div style={{ fontSize: "12px", color: "var(--card-text-secondary)", marginTop: "4px" }}>60 minutes free client-side transcription per month</div>
+                  <div style={{ fontSize: "12px", color: "var(--card-text-secondary, #64748b)", marginTop: "4px" }}>60 minutes free client-side transcription per month</div>
                 </div>
                 <button
                   onClick={() => {
@@ -1153,7 +1021,7 @@ export const StudioDashboard: React.FC<StudioDashboardProps> = ({
                   }}
                   style={{
                     background: "var(--accent-primary)",
-                    color: "#fff",
+                    color: "#ffffff",
                     border: "none",
                     padding: "9px 16px",
                     borderRadius: "8px",
@@ -1167,29 +1035,22 @@ export const StudioDashboard: React.FC<StudioDashboardProps> = ({
               </div>
 
               <div>
-                <h4 style={{ fontSize: "11px", color: "var(--card-text-secondary)", textTransform: "uppercase", letterSpacing: "0.06em", margin: "0 0 10px 0" }}>Billing History</h4>
-                <div style={{
-    backgroundColor: "rgba(255, 255, 255, 0.05)",
-    border: "1px solid rgba(255, 255, 255, 0.12)",
-    borderRadius: "8px",
-    padding: "14px 16px",
-    fontSize: "13px",
-    color: "rgba(255, 255, 255, 0.8)"
-  }}>
-    No previous invoices found for this free account.
-  </div>
+                <h4 style={{ fontSize: "11px", color: "var(--card-text-primary, #12141a)", textTransform: "uppercase", letterSpacing: "0.06em", margin: "0 0 10px 0" }}>Billing History</h4>
+                <div style={{ padding: "14px 16px", borderRadius: "8px", border: "1px solid var(--box-border, rgba(0,0,0,0.1))", fontSize: "13px", color: "var(--card-text-secondary, #64748b)" }}>
+                  No previous invoices found for this free account.
+                </div>
               </div>
             </div>
           </div>
         </div>
       )}
 
-      {/* Profile Settings Modal */}
+      {/* Standalone Profile Settings Modal */}
       {showSettingsModal && (
         <div style={{
           position: "fixed",
           inset: 0,
-          background: "rgba(0, 0, 0, 0.8)",
+          background: "rgba(0, 0, 0, 0.75)",
           backdropFilter: "blur(6px)",
           display: "grid",
           placeItems: "center",
@@ -1212,10 +1073,10 @@ export const StudioDashboard: React.FC<StudioDashboardProps> = ({
               padding: "18px 24px",
               borderBottom: "1px solid var(--box-border)"
             }}>
-              <h2 style={{ fontSize: "16px", fontWeight: 700, margin: 0, color: "var(--card-text-primary)" }}>Account Settings</h2>
+              <h2 style={{ fontSize: "16px", fontWeight: 700, margin: 0, color: "var(--card-text-primary, #12141a)" }}>Account Settings</h2>
               <button
                 onClick={() => setShowSettingsModal(false)}
-                style={{ background: "transparent", border: "none", color: "#94a3b8", cursor: "pointer" }}
+                style={{ background: "transparent", border: "none", color: "var(--card-text-secondary, #64748b)", cursor: "pointer" }}
               >
                 <X size={18} />
               </button>
@@ -1228,7 +1089,7 @@ export const StudioDashboard: React.FC<StudioDashboardProps> = ({
                   background: "transparent",
                   border: "none",
                   borderBottom: settingsTab === "general" ? "2px solid var(--accent-primary)" : "2px solid transparent",
-                  color: settingsTab === "general" ? "var(--accent-primary)" : "var(--text-secondary)",
+                  color: settingsTab === "general" ? "var(--accent-primary)" : "var(--card-text-secondary, #64748b)",
                   padding: "12px 4px",
                   fontSize: "13px",
                   fontWeight: 600,
@@ -1243,7 +1104,7 @@ export const StudioDashboard: React.FC<StudioDashboardProps> = ({
                   background: "transparent",
                   border: "none",
                   borderBottom: settingsTab === "danger" ? "2px solid #ef4444" : "2px solid transparent",
-                  color: settingsTab === "danger" ? "#ef4444" : "var(--text-secondary)",
+                  color: settingsTab === "danger" ? "#ef4444" : "var(--card-text-secondary, #64748b)",
                   padding: "12px 4px",
                   fontSize: "13px",
                   fontWeight: 600,
@@ -1258,7 +1119,7 @@ export const StudioDashboard: React.FC<StudioDashboardProps> = ({
               {settingsTab === "general" && (
                 <div style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
                   <div>
-                    <label style={{ display: "block", fontSize: "12px", color: "var(--card-text-secondary)", marginBottom: "6px" }}>Display Name</label>
+                    <label style={{ display: "block", fontSize: "12px", color: "var(--card-text-primary, #12141a)", marginBottom: "6px" }}>Display Name</label>
                     <input
                       type="text"
                       value={editName}
@@ -1266,11 +1127,11 @@ export const StudioDashboard: React.FC<StudioDashboardProps> = ({
                       placeholder="Your creator name"
                       style={{
                         width: "100%",
-                        background: "var(--bg-[var(--card-bg)]pp)",
+                        background: "var(--bg-surface-elevated, #ffffff)",
                         border: "1px solid var(--box-border)",
                         borderRadius: "8px",
                         padding: "10px 14px",
-                        color: "var(--text-primary)",
+                        color: "var(--card-text-primary, #12141a)",
                         fontSize: "13px",
                         outline: "none"
                       }}
@@ -1278,22 +1139,23 @@ export const StudioDashboard: React.FC<StudioDashboardProps> = ({
                   </div>
 
                   <div>
-                    <label style={{ display: "block", fontSize: "12px", color: "var(--card-text-secondary)", marginBottom: "6px" }}>Registered Email</label>
+                    <label style={{ display: "block", fontSize: "12px", color: "var(--card-text-primary, #12141a)", marginBottom: "6px" }}>Registered Email</label>
                     <input
-    type="email"
-    value={userEmail}
-    disabled
-    style={{
-      width: "100%",
-      background: "rgba(255, 255, 255, 0.08)",
-      border: "1px solid rgba(255, 255, 255, 0.15)",
-      borderRadius: "8px",
-      padding: "10px 14px",
-      color: "#ffffff",
-      fontSize: "13px",
-      cursor: "not-allowed"
-    }}
-  />
+                      type="email"
+                      value={userEmail}
+                      disabled
+                      style={{
+                        width: "100%",
+                        background: "var(--bg-surface-elevated, #ffffff)",
+                        border: "1px solid var(--box-border)",
+                        borderRadius: "8px",
+                        padding: "10px 14px",
+                        color: "var(--card-text-primary, #12141a)",
+                        fontSize: "13px",
+                        cursor: "not-allowed",
+                        opacity: 0.8
+                      }}
+                    />
                   </div>
 
                   <button
@@ -1302,7 +1164,7 @@ export const StudioDashboard: React.FC<StudioDashboardProps> = ({
                     style={{
                       marginTop: "12px",
                       background: "var(--accent-primary)",
-                      color: "#fff",
+                      color: "#ffffff",
                       border: "none",
                       padding: "10px 20px",
                       borderRadius: "8px",
@@ -1320,7 +1182,7 @@ export const StudioDashboard: React.FC<StudioDashboardProps> = ({
               {settingsTab === "danger" && (
                 <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
                   <div style={{
-                    background: "rgba(239, 68, 68, 0.08)",
+                    background: "rgba(239, 68, 68, 0.1)",
                     border: "1px solid rgba(239, 68, 68, 0.2)",
                     borderRadius: "10px",
                     padding: "14px",
@@ -1328,13 +1190,13 @@ export const StudioDashboard: React.FC<StudioDashboardProps> = ({
                     gap: "12px"
                   }}>
                     <ShieldAlert size={20} color="#ef4444" style={{ flexShrink: 0, marginTop: "2px" }} />
-                    <div style={{ fontSize: "12px", color: "#fca5a5", lineHeight: "1.5" }}>
+                    <div style={{ fontSize: "12px", color: "#dc2626", lineHeight: "1.5" }}>
                       Deleting your account will erase all your saved projects, transcripts, and preferences permanently. This action cannot be reversed.
                     </div>
                   </div>
 
                   <div>
-                    <label style={{ display: "block", fontSize: "12px", color: "#94a3b8", marginBottom: "6px" }}>
+                    <label style={{ display: "block", fontSize: "12px", color: "var(--card-text-primary, #12141a)", marginBottom: "6px" }}>
                       Type <strong>DELETE</strong> below to confirm account deletion:
                     </label>
                     <input
@@ -1344,11 +1206,11 @@ export const StudioDashboard: React.FC<StudioDashboardProps> = ({
                       onChange={(e) => setDeleteConfirmText(e.target.value)}
                       style={{
                         width: "100%",
-                        background: "var(--bg-[var(--card-bg)]pp)",
+                        background: "var(--bg-surface-elevated, #ffffff)",
                         border: "1px solid rgba(239, 68, 68, 0.3)",
                         borderRadius: "8px",
                         padding: "10px 14px",
-                        color: "#ef4444",
+                        color: "var(--card-text-primary, #12141a)",
                         fontSize: "13px",
                         outline: "none"
                       }}
