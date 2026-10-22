@@ -1,4 +1,4 @@
-import { ThemeToggle } from "../lib/theme";
+import { ThemeToggle, useTheme } from "../lib/theme";
 import React, { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import {
@@ -64,7 +64,12 @@ function parseDurationToMinutes(durationStr?: string): number {
   return 0.5;
 }
 
-export const StudioDashboard: React.FC<StudioDashboardProps> = ({ onOpenFile, onOpenEditor, onSignOut }) => {
+export const StudioDashboard: React.FC<StudioDashboardProps> = ({
+  onOpenFile,
+  onOpenEditor,
+  onSignOut
+}) => {
+  const { theme } = useTheme();
   const navigate = useNavigate();
 
   const [userId, setUserId] = useState<string>("");
@@ -390,39 +395,26 @@ export const StudioDashboard: React.FC<StudioDashboardProps> = ({ onOpenFile, on
         boxSizing: "border-box"
       }}>
         <div
-          onClick={() => navigate("/")}
-          style={{ display: "inline-flex", alignItems: "center", gap: "10px", cursor: "pointer" }}
-          title="Back to Home"
-        >
-          <img
-            src="/media/logo.png"
-            alt="CaptionCraft"
-            style={{
-              width: "32px",
-              height: "32px",
-              borderRadius: "8px",
-              objectFit: "contain",
-              border: "1.5px solid rgba(255, 255, 255, 0.85)",
-              padding: "2px"
-            }}
-          />
-          <div style={{ display: "inline-flex", alignItems: "center", gap: "8px" }}>
-            <span style={{ fontSize: "16px", fontWeight: 700, letterSpacing: "-0.02em", color: "var(--text-primary)" }}>
-              <span style={{ color: "var(--card-text-primary)", fontWeight: 700, fontSize: "16px", letterSpacing: "-0.02em" }}>CaptionCraft</span>
-            </span>
-            <span style={{
-              fontSize: "10px",
-              padding: "2px 7px",
-              borderRadius: "4px",
-              background: "rgba(59, 130, 246, 0.12)",
-              color: "var(--accent-primary)",
-              fontWeight: 700,
-              letterSpacing: "0.04em"
-            }}>
-              studio
-            </span>
-          </div>
-        </div>
+    onClick={() => navigate("/")}
+    style={{ display: "inline-flex", alignItems: "center", gap: "14px", cursor: "pointer" }}
+    title="Back to Home"
+  >
+    <div style={{ width: "50px", height: "50px", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+      <img
+        src={theme === "dark" ? "/media/Llogo.png" : "/media/Dlogo.png"}
+        alt="CaptionCraft"
+        style={{ width: "100%", height: "100%", objectFit: "contain" }}
+      />
+    </div>
+    <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+      <span style={{ fontSize: "20px", fontWeight: 700, color: "var(--nav-text-primary, #ffffff)", letterSpacing: "-0.02em", lineHeight: 1.1 }}>
+        CaptionCraft
+      </span>
+      <span style={{ fontSize: "10px", padding: "2px 7px", borderRadius: "6px", background: "rgba(239, 68, 68, 0.15)", color: "var(--accent-primary, #ef4444)", fontWeight: 700, textTransform: "lowercase", letterSpacing: "0.02em" }}>
+        studio
+      </span>
+    </div>
+  </div>
 
         {/* Right side: ThemeToggle beside Profile Avatar */}
         <div style={{ display: "flex", alignItems: "center", gap: "14px" }}>
