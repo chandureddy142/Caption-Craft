@@ -69,9 +69,9 @@ export const SiteLayout: React.FC<SiteLayoutProps> = ({ user }) => {
           {/* Brand Logo */}
           <div
             onClick={() => navigate("/")}
-            style={{ display: "flex", alignItems: "center", gap: "10px", cursor: "pointer" }}
+            style={{ display: "flex", alignItems: "center", gap: "14px", cursor: "pointer" }}
           >
-            <div style={{ width: "32px", height: "32px", display: "flex", alignItems: "center", justifyContent: "center" }}>
+            <div style={{ width: "50px", height: "50px", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
       <img
         src={theme === "dark" ? "/media/Llogo.png" : "/media/Dlogo.png"}
         alt="CaptionCraft"
@@ -79,10 +79,10 @@ export const SiteLayout: React.FC<SiteLayoutProps> = ({ user }) => {
       />
     </div>
     <div>
-              <div style={{ fontSize: "14px", fontWeight: 700, color: "var(--nav-text-primary)", letterSpacing: "-0.01em" }}>
+              <div style={{ fontSize: "20px", fontWeight: 700, color: "var(--nav-text-primary)", letterSpacing: "-0.02em", lineHeight: 1.1 }}>
                 CaptionCraft
               </div>
-              <div style={{ fontSize: "10px", color: "var(--nav-text-secondary)", marginTop: "-2px" }}>
+              <div style={{ fontSize: "11px", color: "var(--nav-text-secondary)", marginTop: "2px", fontWeight: 500 }}>
                 smart captions for creators
               </div>
             </div>
@@ -111,7 +111,7 @@ export const SiteLayout: React.FC<SiteLayoutProps> = ({ user }) => {
           </nav>
 
           {/* Action buttons */}
-          <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: "14px" }}>
             <ThemeToggle />
             {!user && (
               <button

@@ -1,8 +1,10 @@
+import { useTheme } from "../lib/theme";
 import React from "react";
 import { Link } from "react-router-dom";
 import { Sparkles, Shield, Heart } from "lucide-react";
 
 export const SiteFooter: React.FC = () => {
+  const { theme } = useTheme();
   return (
     <footer
       style={{
@@ -27,16 +29,13 @@ export const SiteFooter: React.FC = () => {
         {/* Brand Column */}
         <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
           <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-            <img
-              src="/media/logo.png"
-              alt="CaptionCraft"
-              style={{
-                width: "28px",
-                height: "28px",
-                borderRadius: "7px",
-                objectFit: "contain"
-              }}
-            />
+            <div style={{ width: "50px", height: "50px", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+      <img
+        src={theme === "dark" ? "/media/Llogo.png" : "/media/Dlogo.png"}
+        alt="CaptionCraft"
+        style={{ width: "100%", height: "100%", objectFit: "contain" }}
+      />
+    </div>
             <span style={{ fontSize: "16px", fontWeight: 700, letterSpacing: "-0.02em", color: "var(--card-text-primary)" }}>
               CaptionCraft
             </span>

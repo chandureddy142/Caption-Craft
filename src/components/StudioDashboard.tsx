@@ -1055,7 +1055,7 @@ export const StudioDashboard: React.FC<StudioDashboardProps> = ({
                 <tbody>
                   {exportsList.map(exp => (
                     <tr key={exp.id} style={{ borderBottom: "1px solid var(--box-border)" }}>
-                      <td style={{ padding: "14px 18px", color: "var(--text-primary)", fontWeight: 600 }}>{exp.project_title}</td>
+                      <td style={{ padding: "14px 18px", color: "var(--bg-app, #fbf8ef)", fontWeight: 600 }}>{exp.project_title}</td>
                       <td style={{ padding: "14px 18px", color: "var(--accent-primary)" }}>{exp.script_format}</td>
                       <td style={{ padding: "14px 18px", color: "var(--text-secondary)" }}>{exp.export_types}</td>
                       <td style={{ padding: "14px 18px", color: "var(--text-secondary)", fontSize: "12px" }}>{exp.created_at}</td>
