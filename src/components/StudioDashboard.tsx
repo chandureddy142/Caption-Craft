@@ -19,7 +19,7 @@ import {
   Lock,
   Layers,
   ArrowRight,
-  Globe
+  Home
 } from "lucide-react";
 import { supabase } from "../lib/supabase";
 import { getPersistentEmailUsage, recordPersistentUsage } from "../lib/usageTracker";
@@ -392,7 +392,7 @@ export const StudioDashboard: React.FC<StudioDashboardProps> = ({ onOpenFile, on
         <div
           onClick={() => navigate("/")}
           style={{ display: "inline-flex", alignItems: "center", gap: "10px", cursor: "pointer" }}
-          title="Back to Landing Page"
+          title="Back to Home"
         >
           <img
             src="/media/logo.png"
@@ -481,25 +481,21 @@ export const StudioDashboard: React.FC<StudioDashboardProps> = ({ onOpenFile, on
                     {userName ? userName.charAt(0).toUpperCase() : "C"}
                   </div>
                   <div style={{ overflow: "hidden" }}>
-                    <div style={{ fontSize: "13px", fontWeight: 700, color: "var(--text-primary)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
-                      {userName}
-                    </div>
-                    <div style={{ fontSize: "11px", color: "var(--text-secondary)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
-                      {userEmail}
-                    </div>
+                    <div style={{ fontSize: "13px", fontWeight: 700, color: "#ffffff", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{userName}</div>
+                    <div style={{ fontSize: "11px", color: "rgba(255, 255, 255, 0.75)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{userEmail}</div>
                   </div>
                 </div>
 
                 <div style={{ padding: "10px", background: "var(--bg-surface-elevated)", borderRadius: "10px", border: "1px solid var(--box-border)", display: "flex", flexDirection: "column", gap: "8px" }}>
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                    <span style={{ fontSize: "11px", color: "var(--text-secondary)" }}>plan</span>
+                    <span style={{ fontSize: "11px", color: "var(--card-text-secondary)" }}>plan</span>
                     <span style={{ fontSize: "11px", color: "var(--accent-primary)", fontWeight: 700, display: "flex", alignItems: "center", gap: "4px" }}>
                       <CheckCircle2 size={12} /> creator free
                     </span>
                   </div>
                   <div>
                     <div style={{ display: "flex", justifyContent: "space-between", fontSize: "10px", color: "var(--text-secondary)", marginBottom: "4px" }}>
-                      <span>transcription usage</span>
+                      <span style={{ color: "var(--card-text-secondary)" }}>transcription usage</span>
                       <span>{totalTranscriptionMinutes} / 60 min</span>
                     </div>
                     <div style={{ width: "100%", height: "4px", background: "var(--border-subtle)", borderRadius: "99px", overflow: "hidden" }}>
@@ -584,8 +580,8 @@ export const StudioDashboard: React.FC<StudioDashboardProps> = ({ onOpenFile, on
                     onMouseEnter={(e) => (e.currentTarget.style.background = "var(--bg-surface-elevated)")}
                     onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
                   >
-                    <Globe size={14} color="var(--accent-primary)" />
-                    <span style={{ color: "var(--card-text-secondary)" }}>Landing Page</span>
+                    <Home size={14} color="var(--accent-primary)" />
+                    <span style={{ color: "var(--card-text-secondary)" }}>Home</span>
                   </button>
                 </div>
 
@@ -1132,9 +1128,7 @@ export const StudioDashboard: React.FC<StudioDashboardProps> = ({ onOpenFile, on
             }}>
               <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
                 <CreditCard size={18} color="var(--accent-primary)" />
-                <h2 style={{ fontSize: "16px", fontWeight: 700, margin: 0, color: "var(--text-primary)" }}>
-                  Billing & Subscription
-                </h2>
+                <h2 style={{ fontSize: "16px", fontWeight: 700, margin: 0, color: "var(--text-primary)" }}><span style={{ color: "#ffffff", fontWeight: 700, fontSize: "18px" }}>Billing & Subscription</span></h2>
               </div>
               <button
                 onClick={() => setShowBillingModal(false)}
@@ -1158,12 +1152,10 @@ export const StudioDashboard: React.FC<StudioDashboardProps> = ({ onOpenFile, on
               }}>
                 <div>
                   <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-                    <span style={{ fontSize: "15px", fontWeight: 700, color: "var(--text-primary)" }}>Creator Free Tier</span>
+                    <span style={{ fontSize: "15px", fontWeight: 700, color: "var(--card-text-primary)" }}>Creator Free Tier</span>
                     <span style={{ fontSize: "10px", padding: "2px 6px", borderRadius: "4px", background: "rgba(59, 130, 246, 0.14)", color: "var(--accent-primary)", fontWeight: 700 }}>active</span>
                   </div>
-                  <div style={{ fontSize: "12px", color: "var(--text-secondary)", marginTop: "4px" }}>
-                    60 minutes free client-side transcription per month
-                  </div>
+                  <div style={{ fontSize: "12px", color: "var(--card-text-secondary)", marginTop: "4px" }}>60 minutes free client-side transcription per month</div>
                 </div>
                 <button
                   onClick={() => {
@@ -1186,12 +1178,17 @@ export const StudioDashboard: React.FC<StudioDashboardProps> = ({ onOpenFile, on
               </div>
 
               <div>
-                <h4 style={{ fontSize: "11px", color: "var(--text-secondary)", textTransform: "uppercase", letterSpacing: "0.06em", margin: "0 0 10px 0" }}>
-                  Billing History
-                </h4>
-                <div style={{ background: "var(--bg-[var(--card-bg)]pp)", border: "1px solid var(--box-border)", borderRadius: "8px", padding: "14px 16px", fontSize: "12px", color: "var(--text-secondary)" }}>
-                  No previous invoices found for this free account.
-                </div>
+                <h4 style={{ fontSize: "11px", color: "var(--card-text-secondary)", textTransform: "uppercase", letterSpacing: "0.06em", margin: "0 0 10px 0" }}>Billing History</h4>
+                <div style={{
+    backgroundColor: "rgba(255, 255, 255, 0.05)",
+    border: "1px solid rgba(255, 255, 255, 0.12)",
+    borderRadius: "8px",
+    padding: "14px 16px",
+    fontSize: "13px",
+    color: "rgba(255, 255, 255, 0.8)"
+  }}>
+    No previous invoices found for this free account.
+  </div>
               </div>
             </div>
           </div>
@@ -1226,9 +1223,7 @@ export const StudioDashboard: React.FC<StudioDashboardProps> = ({ onOpenFile, on
               padding: "18px 24px",
               borderBottom: "1px solid var(--box-border)"
             }}>
-              <h2 style={{ fontSize: "16px", fontWeight: 700, margin: 0, color: "var(--text-primary)" }}>
-                Account Settings
-              </h2>
+              <h2 style={{ fontSize: "16px", fontWeight: 700, margin: 0, color: "var(--card-text-primary)" }}>Account Settings</h2>
               <button
                 onClick={() => setShowSettingsModal(false)}
                 style={{ background: "transparent", border: "none", color: "var(--text-secondary)", cursor: "pointer" }}
@@ -1274,9 +1269,7 @@ export const StudioDashboard: React.FC<StudioDashboardProps> = ({ onOpenFile, on
               {settingsTab === "general" && (
                 <div style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
                   <div>
-                    <label style={{ display: "block", fontSize: "12px", color: "var(--text-secondary)", marginBottom: "6px" }}>
-                      Display Name
-                    </label>
+                    <label style={{ display: "block", fontSize: "12px", color: "var(--card-text-secondary)", marginBottom: "6px" }}>Display Name</label>
                     <input
                       type="text"
                       value={editName}
@@ -1296,24 +1289,22 @@ export const StudioDashboard: React.FC<StudioDashboardProps> = ({ onOpenFile, on
                   </div>
 
                   <div>
-                    <label style={{ display: "block", fontSize: "12px", color: "var(--text-secondary)", marginBottom: "6px" }}>
-                      Registered Email
-                    </label>
+                    <label style={{ display: "block", fontSize: "12px", color: "var(--card-text-secondary)", marginBottom: "6px" }}>Registered Email</label>
                     <input
-                      type="email"
-                      value={userEmail}
-                      disabled
-                      style={{
-                        width: "100%",
-                        background: "var(--bg-[var(--card-bg)]pp)",
-                        border: "1px solid var(--box-border)",
-                        borderRadius: "8px",
-                        padding: "10px 14px",
-                        color: "var(--text-secondary)",
-                        fontSize: "13px",
-                        cursor: "not-allowed"
-                      }}
-                    />
+    type="email"
+    value={userEmail}
+    disabled
+    style={{
+      width: "100%",
+      background: "rgba(255, 255, 255, 0.08)",
+      border: "1px solid rgba(255, 255, 255, 0.15)",
+      borderRadius: "8px",
+      padding: "10px 14px",
+      color: "#ffffff",
+      fontSize: "13px",
+      cursor: "not-allowed"
+    }}
+  />
                   </div>
 
                   <button

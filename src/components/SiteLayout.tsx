@@ -1,5 +1,6 @@
+import { supabase } from "../lib/supabase";
 import { SiteFooter } from "./SiteFooter";
-import { ThemeToggle } from "../lib/theme";
+import { ThemeToggle, useTheme } from "../lib/theme";
 import React from "react";
 import { Outlet, NavLink, useNavigate } from "react-router-dom";
 
@@ -8,7 +9,36 @@ interface SiteLayoutProps {
 }
 
 export const SiteLayout: React.FC<SiteLayoutProps> = ({ user }) => {
+  const { theme } = useTheme();
+
+  const [currentUser, setCurrentUser] = React.useState<any>(null);
   const navigate = useNavigate();
+
+  React.useEffect(() => {
+    if (typeof supabase !== "undefined") {
+      supabase.auth.getSession().then(({ data: { session } }) => {
+        setCurrentUser(session?.user ?? null);
+      });
+      const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+        setCurrentUser(session?.user ?? null);
+      });
+      return () => subscription.unsubscribe();
+    }
+  }, []);
+
+  const handleAuthAction = async () => {
+    if (currentUser) {
+      if (typeof supabase !== "undefined") {
+        await supabase.auth.signOut();
+      }
+      setCurrentUser(null);
+      navigate("/");
+    } else {
+      navigate("/login");
+    }
+  };
+
+  
 
   return (
     <div style={{ minHeight: "100vh", display: "flex", flexDirection: "column", background: "var(--bg-app)" }}>
@@ -41,22 +71,14 @@ export const SiteLayout: React.FC<SiteLayoutProps> = ({ user }) => {
             onClick={() => navigate("/")}
             style={{ display: "flex", alignItems: "center", gap: "10px", cursor: "pointer" }}
           >
-            <div
-              style={{
-                width: "32px",
-                height: "32px",
-                borderRadius: "8px",
-                background: "var(--accent-surface)",
-                border: "1px solid var(--nav-btn-border)",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                fontSize: "16px"
-              }}
-            >
-              🎬
-            </div>
-            <div>
+            <div style={{ width: "32px", height: "32px", display: "flex", alignItems: "center", justifyContent: "center" }}>
+      <img
+        src={theme === "dark" ? "/media/Llogo.png" : "/media/Dlogo.png"}
+        alt="CaptionCraft"
+        style={{ width: "100%", height: "100%", objectFit: "contain" }}
+      />
+    </div>
+    <div>
               <div style={{ fontSize: "14px", fontWeight: 700, color: "var(--nav-text-primary)", letterSpacing: "-0.01em" }}>
                 CaptionCraft
               </div>
@@ -93,22 +115,31 @@ export const SiteLayout: React.FC<SiteLayoutProps> = ({ user }) => {
             <ThemeToggle />
             {!user && (
               <button
-                type="button"
-                onClick={() => navigate("/login")}
-                style={{
-                  background: "var(--nav-btn-bg)",
-                  border: "1px solid var(--nav-btn-border)",
-                  borderRadius: "10px",
-                  padding: "8px 18px",
-                  fontSize: "13px",
-                  fontWeight: 500,
-                  color: "var(--nav-text-primary)",
-                  cursor: "pointer",
-                  transition: "all 0.15s ease"
-                }}
-              >
-                sign in
-              </button>
+    type="button"
+    onClick={handleAuthAction}
+    style={{
+      backgroundColor: "var(--card-bg)",
+      color: "var(--card-text-primary)",
+      border: "1px solid var(--box-border)",
+      borderRadius: "10px",
+      padding: "8px 16px",
+      fontSize: "13px",
+      fontWeight: 600,
+      cursor: "pointer",
+      display: "inline-flex",
+      alignItems: "center",
+      justifyContent: "center",
+      transition: "all 0.2s ease"
+    }}
+    onMouseEnter={(e) => {
+      (e.currentTarget as HTMLElement).style.opacity = "0.85";
+    }}
+    onMouseLeave={(e) => {
+      (e.currentTarget as HTMLElement).style.opacity = "1";
+    }}
+  >
+    {currentUser ? "sign out" : "sign in"}
+  </button>
             )}
 
             <button
