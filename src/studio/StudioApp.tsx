@@ -24,7 +24,8 @@ import {
   GeminiTranscriptionError,
   GeminiKeyMissingError,
 } from '../services/geminiCaptionService';
-import { normalizeSubtitles } from '../utils/subtitleValidation';
+import { normalizeSubtitles } from "../utils/subtitleValidation";
+import { applyTemplateToSettings } from "../utils/captionTemplates";
 import { validateMediaFile } from '../utils/mediaValidation';
 import { TranscriptionSession } from '../services/transcriptionSession';
 import { useHistory } from '../utils/history';
@@ -72,8 +73,13 @@ function App({ initialTemplateId: _initialTemplateId, initialFile, projectId, on
     songVolume?: number;
     selectedLayer?: "audio" | "background" | "caption" | "music" | null;
     selectedSegmentId?: string | null;
+    bgSegmentsCount?: number;
+    songSegmentsCount?: number;
+    localSongUrl?: string | null;
+    hasSong?: boolean;
     splitActiveLayer?: () => void;
     deleteActiveLayer?: () => void;
+    copyActiveLayer?: () => void;
     togglePlay: () => void;
     seek: (t: number) => void;
     setVolume: (v: number) => void;
@@ -98,7 +104,7 @@ function App({ initialTemplateId: _initialTemplateId, initialFile, projectId, on
     backgroundTheme: 'midnight',
     backgroundOverlayOpacity: 0.25,
     fitMode: 'cover',
-    selectedTemplateId: 'classic-white',
+    selectedTemplateId: "classic-two-tone",
     fontFamily: "'Inter', sans-serif",
     fontSize: 24,
     textColor: '#ffffff',
@@ -256,6 +262,7 @@ const applyProgress = (progress: LocalTranscriptionProgress) => {
       });
       if (!session.isCurrent(jobId)) return;
       updateSubtitles(result);
+      setSettings(prev => (prev.selectedTemplateId === "classic-white" || !prev.selectedTemplateId) ? applyTemplateToSettings(prev, "classic-two-tone") : prev);
       setTranscriptionProgress(100);
       setTranscriptionProcessedDuration(previous => Math.max(previous, mediaDuration));
       setTranscriptionStatus(`Complete · ${result.length} caption segment${result.length === 1 ? '' : 's'}`);
@@ -331,6 +338,7 @@ const applyProgress = (progress: LocalTranscriptionProgress) => {
       });
       if (!session.isCurrent(jobId)) return;
       updateSubtitles(result);
+      setSettings(prev => (prev.selectedTemplateId === "classic-white" || !prev.selectedTemplateId) ? applyTemplateToSettings(prev, "classic-two-tone") : prev);
       setTranscriptionProgress(100);
       setTranscriptionProcessedDuration(previous => Math.max(previous, transcriptionTotalDuration, mediaDuration));
       setTranscriptionStatus(`Complete · ${result.length} caption segment${result.length === 1 ? '' : 's'}`);
@@ -575,6 +583,11 @@ const applyProgress = (progress: LocalTranscriptionProgress) => {
   };
 
   const handleCopyOrPaste = () => {
+    const currentLayer = playbackState.selectedLayer || "caption";
+    if (currentLayer === "background" || currentLayer === "music") {
+      playbackState.copyActiveLayer?.();
+      return;
+    }
     const audioLimit = mediaDuration || playbackState.duration || 0;
     if (copiedCaption) {
       const needle = playbackState.currentTime || 0;
@@ -636,7 +649,12 @@ const applyProgress = (progress: LocalTranscriptionProgress) => {
           initialFilename={videoFile.name.replace(/\.[^.]+$/, '')}
           onBack={() => setShowExportPage(false)}
           renderExport={async (options, onProgress, signal) => {
-            const blob = await renderProjectToBlob(videoFile, subtitles, settings, language, options, onProgress, signal);
+            const blob = await renderProjectToBlob(videoFile, subtitles, settings, language, {
+              ...options,
+              musicUrl: playbackState.localSongUrl || undefined,
+              musicVolume: playbackState.songVolume ?? 0.8,
+              audioVolume: playbackState.volume ?? 1,
+            }, onProgress, signal);
             const exportId = "exp-" + Date.now();
             const exportName = (videoFile.name.replace(/.[^/.]+$/, "") || "export") + ".mp4";
 
@@ -706,6 +724,8 @@ const applyProgress = (progress: LocalTranscriptionProgress) => {
         <div className="editor-shell">
           <div className="editor-columns">
             <Sidebar
+              bgSegmentsCount={playbackState.bgSegmentsCount ?? 1}
+              hasSong={Boolean(playbackState.hasSong)}
             onSearchQueryChange={setCaptionSearchQuery}
               onFileUpload={handleFileUpload}
               onBackToUpload={handleRemoveMedia}
@@ -755,7 +775,7 @@ const applyProgress = (progress: LocalTranscriptionProgress) => {
               onDuplicateSubtitle={handleCopyOrPaste}
               onSplitSubtitle={handleUnifiedSplit}
               onDeleteSubtitle={handleUnifiedDelete}
-              selectedLayer={playbackState.selectedLayer ?? null}
+              selectedLayer={playbackState.selectedLayer || "caption"}
               copiedCaption={copiedCaption}
               onCopyOrPaste={handleCopyOrPaste}
               onAddSubtitle={addTimelineCaption}

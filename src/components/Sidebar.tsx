@@ -24,6 +24,7 @@ import {
 } from "lucide-react";
 
 interface SidebarProps {
+  bgSegmentsCount?: number;
   onSelectSubtitle?: (id: string | null) => void;
   onSearchQueryChange?: (query: string) => void;
   onFileUpload: (file: File) => void;
@@ -142,6 +143,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   songVolume = 0.8,
   onSongVolumeChange,
   hasSong: _hasSong = false,
+  bgSegmentsCount: _bgSegmentsCount = 1,
 }) => {
     const [searchQuery, setSearchQuery] = useState("");
   const [activeMatchIndex, setActiveMatchIndex] = useState(0);
@@ -425,7 +427,11 @@ export const Sidebar: React.FC<SidebarProps> = ({
             <button
               className={`sidebar-tool-btn ${copiedCaption ? "active-toggle" : ""}`}
               onClick={onCopyOrPaste}
-              disabled={selectedLayer !== "caption" || (!copiedCaption && !hasSelectedSubtitle)}
+              disabled={
+                !selectedLayer ||
+                selectedLayer === "audio" ||
+                (selectedLayer === "caption" && !copiedCaption && !hasSelectedSubtitle)
+              }
               title={copiedCaption ? "Click to paste caption at needle position" : "Copy selected caption"}
               style={{
                 background: copiedCaption ? "var(--accent-glow, rgba(59, 130, 246, 0.28)" : undefined,

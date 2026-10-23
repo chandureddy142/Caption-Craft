@@ -65,7 +65,7 @@ export async function renderProjectToBlob(
   subtitles: Subtitle[],
   settings: CanvasSettings,
   language: CaptionLanguage,
-  options: ExportOptions,
+  options: ExportOptions & { musicUrl?: string; musicVolume?: number; audioVolume?: number },
   onProgress: (progress: number) => void,
   signal: AbortSignal,
 ): Promise<Blob> {

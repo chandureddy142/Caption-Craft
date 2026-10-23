@@ -1603,3 +1603,8 @@ button:disabled { cursor: not-allowed; opacity: 0.5; }
 }
 
 .project-card h3, .project-card h4, .project-card-title, .project-title { color: var(--bg-app, var(--bg-main, #fbf8ef)) !important; font-weight: 700 !important; }
+
+/* NO CANVAS CURVES */
+.canvas-frame, .canvas-frame canvas, .preview-stage canvas, [class*="ratio-"] canvas {
+  border-radius: 0px !important;
+}

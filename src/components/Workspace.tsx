@@ -148,9 +148,7 @@ export const Workspace: React.FC<WorkspaceProps> = ({
     }
   }, []);
 
-  const [bgSegments, setBgSegments] = useState<Array<{ id: string; start: number; end: number }>>([
-    { id: "bg-default", start: 0, end: 0 }
-  ]);
+  const [bgSegments, setBgSegments] = useState<Array<{ id: string; start: number; end: number; themeId?: string; color?: string }>>([]);
   const [songSegments, setSongSegments] = useState<Array<{ id: string; start: number; end: number }>>([
     { id: "song-default", start: 0, end: 0 }
   ]);
@@ -442,18 +440,24 @@ const [selectedSegmentId, setSelectedSegmentId] = useState<string | null>(null);
       }
     }
 
-    drawBackgroundToCanvas(ctx, {
-      themeId: settings.backgroundTheme,
-      backgroundColor: settings.backgroundColor,
-      width: canvas.width,
-      height: canvas.height,
-      videoElement: media,
-      isVideoMedia,
-      customImage: customImageRef.current,
-      customVideoElement: customVideoRef.current,
-      overlayOpacity: settings.backgroundOverlayOpacity,
-      fitMode: settings.fitMode,
-    });
+    const activeBgSeg = bgSegments.find(s => currentTime >= s.start && currentTime <= (s.end || effectiveDuration));
+    if (activeBgSeg) {
+      drawBackgroundToCanvas(ctx, {
+        themeId: activeBgSeg.themeId || settings.backgroundTheme || "midnight",
+        backgroundColor: activeBgSeg.color || settings.backgroundColor || "#000000",
+        width: canvas.width,
+        height: canvas.height,
+        videoElement: media,
+        isVideoMedia,
+        customImage: customImageRef.current,
+        customVideoElement: customVideoRef.current,
+        overlayOpacity: settings.backgroundOverlayOpacity,
+        fitMode: settings.fitMode,
+      });
+    } else {
+      ctx.fillStyle = "#000000";
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+    }
 
     if (settings.safeZones?.show) {
       const zone = getPlatformSafeZone(settings.safeZones.platform, settings.aspectRatio);
@@ -634,6 +638,7 @@ const [selectedSegmentId, setSelectedSegmentId] = useState<string | null>(null);
       setSongVolume: updateSongVolume,
       splitActiveLayer: handleSplitActiveLayer,
       deleteActiveLayer: handleDeleteActiveLayer,
+      copyActiveLayer: handleCopyActiveLayer,
     });
   }, [isPlaying, currentTime, effectiveDuration, volume, songVolume, localSongUrl, selectedLayer, selectedSegmentId, onPlaybackStateChange, seekToTime, drawFrame]);
 
@@ -1187,12 +1192,13 @@ const [selectedSegmentId, setSelectedSegmentId] = useState<string | null>(null);
   const handleSplitActiveLayer = () => {
     if (selectedLayer === "background") {
       setBgSegments(prev => {
-        const seg = (prev.find(s => s.id === selectedSegmentId) || prev.find(s => currentTime > s.start && currentTime < (s.end || effectiveDuration)));
+        const seg = prev.find(s => currentTime > s.start && currentTime < (s.end || effectiveDuration));
         if (!seg) return prev;
         const actualEnd = seg.end || effectiveDuration;
         if (currentTime <= seg.start + 0.05 || currentTime >= actualEnd - 0.05) return prev;
-        const newSeg1 = { id: seg.id, start: seg.start, end: currentTime };
-        const newSeg2 = { id: "bg-" + Date.now(), start: currentTime, end: actualEnd };
+        const newSeg1 = { ...seg, end: currentTime };
+        const newSeg2 = { ...seg, id: "bg-" + Date.now(), start: currentTime, end: actualEnd };
+        setSelectedSegmentId(newSeg2.id);
         return prev.map(s => s.id === seg.id ? newSeg1 : s).concat(newSeg2).sort((a,b) => a.start - b.start);
       });
     } else if (selectedLayer === "music") {
@@ -1209,12 +1215,40 @@ const [selectedSegmentId, setSelectedSegmentId] = useState<string | null>(null);
     }
   };
 
+  const handleCopyActiveLayer = () => {
+    if (selectedLayer === "background") {
+      const seg = bgSegments.find(s => s.id === selectedSegmentId) || bgSegments[0];
+      if (seg) {
+        const segDuration = Math.max(1, (seg.end || effectiveDuration) - seg.start);
+        const newSeg = {
+          ...seg,
+          id: "bg-" + Date.now(),
+          start: currentTime,
+          end: Math.min(currentTime + segDuration, effectiveDuration)
+        };
+        setBgSegments(prev => [...prev, newSeg].sort((a,b) => a.start - b.start));
+        setSelectedSegmentId(newSeg.id);
+      }
+    } else if (selectedLayer === "music") {
+      const seg = songSegments.find(s => s.id === selectedSegmentId) || songSegments[0];
+      if (seg) {
+        const segDuration = Math.max(1, (seg.end || songDuration || effectiveDuration) - seg.start);
+        const newSeg = {
+          ...seg,
+          id: "song-" + Date.now(),
+          start: currentTime,
+          end: Math.min(currentTime + segDuration, songDuration || effectiveDuration)
+        };
+        setSongSegments(prev => [...prev, newSeg].sort((a,b) => a.start - b.start));
+        setSelectedSegmentId(newSeg.id);
+      }
+    }
+  };
+
   const handleDeleteActiveLayer = () => {
     if (selectedLayer === "background") {
-      if (bgSegments.length > 1 && selectedSegmentId) {
-        setBgSegments(prev => prev.filter(s => s.id !== selectedSegmentId));
-        setSelectedSegmentId(null);
-      }
+      setBgSegments(prev => prev.filter(s => s.id !== selectedSegmentId));
+      setSelectedSegmentId(null);
     } else if (selectedLayer === "music") {
       if (songSegments.length > 1 && selectedSegmentId) {
         setSongSegments(prev => prev.filter(s => s.id !== selectedSegmentId));
@@ -1294,6 +1328,89 @@ const [selectedSegmentId, setSelectedSegmentId] = useState<string | null>(null);
       nextEnd = Math.min(audioLimit, currentTime);
     }
     return { start, end: nextEnd };
+  };
+
+  const segmentDragRef = useRef<{
+    layer: "background" | "music";
+    id: string;
+    mode: "move" | "start" | "end";
+    pointerId: number;
+    startX: number;
+    originalStart: number;
+    originalEnd: number;
+    trackWidth: number;
+  } | null>(null);
+
+  const beginSegmentDrag = (
+    event: React.PointerEvent<HTMLElement>,
+    layer: "background" | "music",
+    id: string,
+    mode: "move" | "start" | "end",
+    start: number,
+    end: number
+  ) => {
+    event.stopPropagation();
+    if (event.pointerType === "mouse" && event.button !== 0) return;
+    const trackLane = event.currentTarget.closest(".track-lane");
+    const trackWidth = trackLane ? trackLane.getBoundingClientRect().width : 1;
+    segmentDragRef.current = {
+      layer,
+      id,
+      mode,
+      pointerId: event.pointerId,
+      startX: event.clientX,
+      originalStart: start,
+      originalEnd: end,
+      trackWidth,
+    };
+    event.currentTarget.setPointerCapture(event.pointerId);
+  };
+
+  const handleSegmentPointerMove = (event: React.PointerEvent<HTMLElement>) => {
+    const drag = segmentDragRef.current;
+    if (!drag || drag.pointerId !== event.pointerId) return;
+    const deltaPixels = event.clientX - drag.startX;
+    const deltaSeconds = (deltaPixels / drag.trackWidth) * totalTimelineDuration;
+    const limit = effectiveDuration || 10;
+    const minDur = 0.5;
+
+    if (drag.layer === "background") {
+      setBgSegments(prev => prev.map(s => {
+        if (s.id !== drag.id) return s;
+        const dur = drag.originalEnd - drag.originalStart;
+        if (drag.mode === "move") {
+          const newStart = Math.max(0, Math.min(limit - dur, drag.originalStart + deltaSeconds));
+          return { ...s, start: newStart, end: newStart + dur };
+        } else if (drag.mode === "start") {
+          const newStart = Math.max(0, Math.min(s.end - minDur, drag.originalStart + deltaSeconds));
+          return { ...s, start: newStart };
+        } else {
+          const newEnd = Math.max(s.start + minDur, Math.min(limit, drag.originalEnd + deltaSeconds));
+          return { ...s, end: newEnd };
+        }
+      }));
+    } else if (drag.layer === "music") {
+      setSongSegments(prev => prev.map(s => {
+        if (s.id !== drag.id) return s;
+        const dur = drag.originalEnd - drag.originalStart;
+        if (drag.mode === "move") {
+          const newStart = Math.max(0, Math.min(limit - dur, drag.originalStart + deltaSeconds));
+          return { ...s, start: newStart, end: newStart + dur };
+        } else if (drag.mode === "start") {
+          const newStart = Math.max(0, Math.min(s.end - minDur, drag.originalStart + deltaSeconds));
+          return { ...s, start: newStart };
+        } else {
+          const newEnd = Math.max(s.start + minDur, Math.min(limit, drag.originalEnd + deltaSeconds));
+          return { ...s, end: newEnd };
+        }
+      }));
+    }
+  };
+
+  const endSegmentDrag = (event: React.PointerEvent<HTMLElement>) => {
+    const drag = segmentDragRef.current;
+    if (!drag || drag.pointerId !== event.pointerId) return;
+    segmentDragRef.current = null;
   };
 
   const beginTimelineDrag = (event: React.PointerEvent<HTMLElement>, subtitle: Subtitle, mode: TimelineDragMode) => {
@@ -1385,7 +1502,7 @@ const [selectedSegmentId, setSelectedSegmentId] = useState<string | null>(null);
 
   
   
-  const handleSelectBackgroundWithConfirm = (applyAction: () => void) => {
+  const handleSelectBackgroundWithConfirm = (applyAction: () => void, newThemeId?: string, newColor?: string) => {
     if (settings.customImageDataUrl || settings.customVideoUrl) {
       const confirmed = window.confirm("Switching background preset will remove your uploaded media backdrop. Do you want to continue?");
       if (!confirmed) return;
@@ -1398,7 +1515,32 @@ const [selectedSegmentId, setSelectedSegmentId] = useState<string | null>(null);
         customVideoUrl: undefined
       }));
     }
+
     applyAction();
+    const targetTheme = newThemeId || settings.backgroundTheme;
+    const targetColor = newColor || settings.backgroundColor;
+
+    if (bgSegments.length === 0) {
+      const initialDuration = Math.min(10, effectiveDuration || 10);
+      const newSeg = {
+        id: "bg-" + Date.now(),
+        start: 0,
+        end: initialDuration,
+        themeId: targetTheme,
+        color: targetColor,
+      };
+      setBgSegments([newSeg]);
+      setSelectedLayer("background");
+      setSelectedSegmentId(newSeg.id);
+      onPlaybackStateChange?.({ selectedLayer: "background" });
+    } else if (selectedSegmentId) {
+      setBgSegments(prev => prev.map(s => s.id === selectedSegmentId ? { ...s, themeId: targetTheme, color: targetColor } : s));
+    } else {
+      const activeSeg = bgSegments.find(s => currentTime >= s.start && currentTime <= (s.end || effectiveDuration)) || bgSegments[0];
+      if (activeSeg) {
+        setBgSegments(prev => prev.map(s => s.id === activeSeg.id ? { ...s, themeId: targetTheme, color: targetColor } : s));
+      }
+    }
   };
 
   const handleMediaUpload = (file: File) => {
@@ -1894,62 +2036,155 @@ const [selectedSegmentId, setSelectedSegmentId] = useState<string | null>(null);
                     {/* TRACK 2: BACKGROUND */}
                     <div
                       className={`timeline-unified-row row-bg ${selectedLayer === "background" ? "is-selected" : selectedLayer ? "is-dimmed" : "is-active"}`}
-                      style={{ height: "34px", display: "block", background: "#181b24", border: "1px solid rgba(255, 255, 255, 0.05)", borderRadius: "4px" }}
+                      style={{ height: "34px", display: "block", background: "#181b24", border: "1px solid rgba(255, 255, 255, 0.05)", borderRadius: "4px", position: "relative" }}
                       onClick={e => {
                         e.stopPropagation();
                         setSelectedLayer("background");
                         selectSubtitle(null);
+                        const match = bgSegments.find(s => currentTime >= s.start && currentTime <= (s.end || effectiveDuration)) || bgSegments[0];
+                        if (match) setSelectedSegmentId(match.id);
+                        onPlaybackStateChange?.({ selectedLayer: "background" });
                       }}
                     >
                       <div className="track-lane" onClick={handleTimelineClick} style={{ height: "100%", width: "100%", position: "relative" }}>
-                        {bgSegments.map((seg, idx) => {
-                          const start = seg.start;
-                          const audioEnd = (duration || mediaDuration || 0);
-   const end = seg.end ? Math.min(seg.end, audioEnd) : audioEnd;
-                          const leftPct = (start / totalTimelineDuration) * 100;
-                          const widthPct = Math.max(0.5, ((end - start) / totalTimelineDuration) * 100);
-                          const isSegSelected = selectedSegmentId === seg.id;
-                          return (
-                            <div
-                              key={seg.id}
-                              className={`track-lane-clip clip-bg-fill ${isSegSelected ? "is-segment-active" : ""}`} style={{ background: "#1e222d", border: "1px solid #373e52",
-                                left: `${leftPct}%`,
-                                width: `${widthPct}%`,
-                                height: "100%"
-                              }}
-                              onClick={ev => {
-                                ev.stopPropagation();
-                                setSelectedLayer("background");
-                                setSelectedSegmentId(seg.id);
-                              }}
-                            >
-                              <span className="clip-label-text">
-                                {settings.backgroundTheme === "custom-image"
-                                  ? "Custom photo backdrop"
-                                  : settings.backgroundTheme === "custom-video"
-                                    ? "Custom video backdrop"
-                                    : `Theme: ${settings.backgroundTheme ? settings.backgroundTheme.toUpperCase() : "MIDNIGHT"}`}
-                                {bgSegments.length > 1 ? ` (${idx + 1})` : ""}
-                              </span>
-                              {bgSegments.length > 1 && (
-                                <button
-                                  type="button"
-                                  className="track-song-remove-btn"
+                        {bgSegments.length === 0 ? (
+                          <div
+                            style={{
+                              position: "absolute",
+                              left: 0,
+                              top: 0,
+                              bottom: 0,
+                              display: "flex",
+                              alignItems: "center",
+                              paddingLeft: "14px",
+                              cursor: "pointer",
+                              zIndex: 10,
+                              fontSize: "11px",
+                              color: "var(--accent-primary, #60a5fa)",
+                              fontWeight: 600,
+                            }}
+                            onClick={e => {
+                              e.stopPropagation();
+                              setSelectedLayer("background");
+                              setActiveCatalogTab("backgrounds");
+                              onPlaybackStateChange?.({ selectedLayer: "background" });
+                            }}
+                          >
+                            + Select background for timeline
+                          </div>
+                        ) : (
+                          <>
+                            {bgSegments.map((seg, idx) => {
+                              const start = seg.start;
+                              const end = seg.end || effectiveDuration;
+                              const leftPct = (start / totalTimelineDuration) * 100;
+                              const widthPct = Math.max(0.5, ((end - start) / totalTimelineDuration) * 100);
+                              const isSegSelected = selectedSegmentId === seg.id && selectedLayer === "background";
+                              return (
+                                <div
+                                  key={seg.id}
+                                  className={`track-lane-clip clip-bg-fill ${isSegSelected ? "is-segment-active" : ""}`}
+                                  style={{
+                                    background: isSegSelected ? "#2d3748" : "#1e222d",
+                                    border: isSegSelected ? "1.5px solid var(--accent-primary, #60a5fa)" : "1px solid #373e52",
+                                    left: `${leftPct}%`,
+                                    width: `${widthPct}%`,
+                                    height: "100%",
+                                    position: "absolute",
+                                    display: "flex",
+                                    alignItems: "center",
+                                    cursor: "grab",
+                                    userSelect: "none",
+                                  }}
+                                  onPointerDown={e => beginSegmentDrag(e, "background", seg.id, "move", start, end)}
+                                  onPointerMove={handleSegmentPointerMove}
+                                  onPointerUp={endSegmentDrag}
                                   onClick={ev => {
                                     ev.stopPropagation();
-                                    setBgSegments(prev => prev.filter(s => s.id !== seg.id));
+                                    setSelectedLayer("background");
+                                    setSelectedSegmentId(seg.id);
+                                    selectSubtitle(null);
+                                    onPlaybackStateChange?.({ selectedLayer: "background" });
                                   }}
-                                  title="Delete background segment"
                                 >
-                                  <X size={11} />
+                                  <button
+                                    type="button"
+                                    className="caption-trim-handle start"
+                                    style={{ width: "8px", height: "100%", position: "absolute", left: 0, cursor: "col-resize", background: "rgba(255,255,255,0.2)", border: "none", zIndex: 5 }}
+                                    onPointerDown={e => { e.stopPropagation(); beginSegmentDrag(e, "background", seg.id, "start", start, end); }}
+                                    onPointerMove={handleSegmentPointerMove}
+                                    onPointerUp={endSegmentDrag}
+                                  ></button>
+                                  <span className="clip-label-text" style={{ padding: "0 12px", fontSize: "11px", color: "#fff", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                                    {seg.themeId ? `Theme: ${seg.themeId.toUpperCase()}` : "MIDNIGHT"}
+                                    {bgSegments.length > 1 ? ` (${idx + 1})` : ""}
+                                  </span>
+                                  <button
+                                    type="button"
+                                    className="caption-trim-handle end"
+                                    style={{ width: "8px", height: "100%", position: "absolute", right: 0, cursor: "col-resize", background: "rgba(255,255,255,0.2)", border: "none", zIndex: 5 }}
+                                    onPointerDown={e => { e.stopPropagation(); beginSegmentDrag(e, "background", seg.id, "end", start, end); }}
+                                    onPointerMove={handleSegmentPointerMove}
+                                    onPointerUp={endSegmentDrag}
+                                  ></button>
+                                </div>
+                              );
+                            })}
+                            {(() => {
+                              const lastSeg = bgSegments[bgSegments.length - 1];
+                              const lastEnd = lastSeg ? (lastSeg.end || effectiveDuration) : 0;
+                              const addLeftPct = (lastEnd / totalTimelineDuration) * 100;
+                              if (lastEnd >= effectiveDuration) return null;
+                              return (
+                                <button
+                                  type="button"
+                                  title="Add another 10s background segment"
+                                  onClick={e => {
+                                    e.stopPropagation();
+                                    const newStart = lastEnd;
+                                    const segDuration = Math.min(10, Math.max(1, effectiveDuration - newStart));
+                                    const newEnd = newStart + segDuration;
+                                    const newSeg = {
+                                      id: "bg-" + Date.now(),
+                                      start: newStart,
+                                      end: newEnd,
+                                      themeId: settings.backgroundTheme || "midnight",
+                                      color: settings.backgroundColor || "#000000"
+                                    };
+                                    setBgSegments(prev => [...prev, newSeg].sort((a,b) => a.start - b.start));
+                                    setSelectedLayer("background");
+                                    setSelectedSegmentId(newSeg.id);
+                                    setActiveCatalogTab("backgrounds");
+                                    onPlaybackStateChange?.({ selectedLayer: "background" });
+                                  }}
+                                  style={{
+                                    position: "absolute",
+                                    left: `${addLeftPct}%`,
+                                    top: "4px",
+                                    height: "26px",
+                                    padding: "0 8px",
+                                    borderRadius: "4px",
+                                    background: "#232734",
+                                    border: "1px dashed rgba(255, 255, 255, 0.4)",
+                                    color: "#ffffff",
+                                    fontSize: "11px",
+                                    fontWeight: 700,
+                                    cursor: "pointer",
+                                    display: "flex",
+                                    alignItems: "center",
+                                    gap: "4px",
+                                    zIndex: 20
+                                  }}
+                                >
+                                  +
                                 </button>
-                              )}
-                            </div>
-                          );
-                        })}
+                              );
+                            })()}
+                          </>
+                        )}
                       </div>
                     </div>
-
+                    
                     {/* TRACK 3: CAPTION */}
                     <div
                       className={`timeline-unified-row row-caption track-row-captions ${selectedLayer === "caption" ? "is-selected" : selectedLayer ? "is-dimmed" : "is-active"}`}
@@ -2012,7 +2247,7 @@ const [selectedSegmentId, setSelectedSegmentId] = useState<string | null>(null);
                                 }}
                                 onKeyDown={event => nudgeCaptionEdge(event, subtitle, "start")}
                                 onClick={e => e.stopPropagation()}
-                              />
+                              ></button>
                               
                               <span className="caption-text-preview">
                                 {getCaptionText(subtitle.text, language, subtitle.tenglishText)}
@@ -2028,7 +2263,7 @@ const [selectedSegmentId, setSelectedSegmentId] = useState<string | null>(null);
                                 }}
                                 onKeyDown={event => nudgeCaptionEdge(event, subtitle, "end")}
                                 onClick={e => e.stopPropagation()}
-                              />
+                              ></button>
                             </div>
                           );
                         })}
@@ -2999,12 +3234,12 @@ const [selectedSegmentId, setSelectedSegmentId] = useState<string | null>(null);
                 <p style={{ fontSize: "0.75rem", margin: 0, fontWeight: 600, color: "#ffffff" }}>Coming Soon</p>
                 <p style={{ fontSize: "0.68rem", marginTop: "4px", color: "#64748b", lineHeight: 1.4 }}>
                   Audio ducking curve, vocal equalizer sync, and custom export profiles.
-                </p>
+                  </p>
+                </div>
               </div>
-            </div>
-          )}
-        </div>
-      </aside>
-    </div>
-  );
+            )}
+          </div>
+        </aside>
+      </div>
+    );
 };

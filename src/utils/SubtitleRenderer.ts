@@ -458,7 +458,28 @@ export function renderSubtitlesToCanvas(
       ctx.save();
       ctx.font = `${baseWeight} ${layout.fontSize}px ${baseFamily}`;
       ctx.fillStyle = settings.textColor;
+      if (settings.selectedTemplateId === "classic-two-tone") {
+      const words = line.trim().split(/s+/);
+      const totalTextWidth = ctx.measureText(line).width;
+      let startX = x;
+      if (settings.alignment === "center") {
+        startX = x - totalTextWidth / 2;
+      } else if (settings.alignment === "right") {
+        startX = x - totalTextWidth;
+      }
+      const splitAt = Math.max(1, Math.ceil(words.length / 2));
+      const firstPart = words.slice(0, splitAt).join(" ") + " ";
+      const secondPart = words.slice(splitAt).join(" ");
+      ctx.save();
+      ctx.fillStyle = "#ffffff";
+      ctx.fillText(firstPart, startX, lineY);
+      const firstPartWidth = ctx.measureText(firstPart).width;
+      ctx.fillStyle = "#fde68a";
+      ctx.fillText(secondPart, startX + firstPartWidth, lineY);
+      ctx.restore();
+    } else {
       ctx.fillText(line, x, lineY);
+    }
       ctx.restore();
     }
     ctx.restore();
