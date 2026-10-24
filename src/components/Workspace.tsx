@@ -1610,6 +1610,7 @@ const [selectedSegmentId, setSelectedSegmentId] = useState<string | null>(null);
     setBgSegments(prev => {
       const targetTheme = themeId;
 
+      // Case 1: Timeline "+" button was clicked
       if (pendingNewBgSlot) {
         const newSeg = {
           id: "bg-" + Date.now(),
@@ -1624,6 +1625,7 @@ const [selectedSegmentId, setSelectedSegmentId] = useState<string | null>(null);
         return [...prev, newSeg].sort((a, b) => a.start - b.start);
       }
 
+      // Case 2: Fresh project with 0 segments
       if (prev.length === 0) {
         const initialDuration = Math.min(4, effectiveDuration || 4);
         const newSeg = {
@@ -1638,8 +1640,22 @@ const [selectedSegmentId, setSelectedSegmentId] = useState<string | null>(null);
         return [newSeg];
       }
 
+      // Case 3: A segment is already selected
       if (selectedSegmentId) {
         return prev.map(s => s.id === selectedSegmentId ? {
+          ...s,
+          themeId: targetTheme,
+          customImageUrl: themeId === "custom-image" ? mediaUrl : undefined,
+          customVideoUrl: themeId === "custom-video" ? mediaUrl : undefined,
+        } : s);
+      }
+
+      // Case 4: No segment selected and "+" was not clicked -> apply to the segment under the playhead (or the first segment)
+      const cur = currentTimeRef.current;
+      const targetSeg = prev.find(s => cur >= s.start && cur < s.end) || prev[0];
+      if (targetSeg) {
+        setSelectedSegmentId(targetSeg.id);
+        return prev.map(s => s.id === targetSeg.id ? {
           ...s,
           themeId: targetTheme,
           customImageUrl: themeId === "custom-image" ? mediaUrl : undefined,
@@ -2874,8 +2890,9 @@ const [selectedSegmentId, setSelectedSegmentId] = useState<string | null>(null);
                 </label>
 
                 {(() => {
-                  const activeSeg = bgSegments.find(s => s.id === selectedSegmentId) || bgSegments.find(s => currentTime >= s.start && currentTime < s.end);
-                  return Boolean(activeSeg?.customImageUrl || activeSeg?.customVideoUrl || (selectedSegmentId === null && (settings.customImageDataUrl || settings.customVideoUrl)));
+                  const cur = currentTimeRef.current;
+                  const activeSeg = bgSegments.find(s => s.id === selectedSegmentId) || bgSegments.find(s => cur >= s.start && cur < s.end);
+                  return Boolean(activeSeg?.themeId === "custom-image" || activeSeg?.themeId === "custom-video" || activeSeg?.customImageUrl || activeSeg?.customVideoUrl);
                 })() && (
                   <div style={{ display: "flex", flexDirection: "column", gap: "10px", marginTop: "12px" }}>
                     <div
