@@ -168,7 +168,13 @@ export const Workspace: React.FC<WorkspaceProps> = ({
     return qWords.some(qw => textWords.some(tw => tw.includes(qw) || qw.includes(tw)));
   };
 const [selectedSegmentId, setSelectedSegmentId] = useState<string | null>(null);
+  const bgClipboardRef = useRef<any>(null);
+  const [hasCopiedBg, setHasCopiedBg] = useState(false);
   const [pendingNewBgSlot, setPendingNewBgSlot] = useState<{ start: number; duration: number } | null>(null);
+  const [showBgSelectModal, setShowBgSelectModal] = useState(false);
+  const [dontShowBgSelectModalAgain, setDontShowBgSelectModalAgain] = useState(() => {
+    try { return localStorage.getItem("dont_show_bg_select_modal") === "true"; } catch { return false; }
+  });
   /* read captionSearchQuery */
   const activeSearchTerm = captionSearchQuery ? captionSearchQuery.trim().toLowerCase() : "";
   useEffect(() => {
@@ -639,6 +645,9 @@ const [selectedSegmentId, setSelectedSegmentId] = useState<string | null>(null);
       volume,
       songVolume,
       hasSong: Boolean(localSongUrl),
+      selectedLayer,
+      selectedSegmentId,
+      hasCopiedBg,
       togglePlay,
       seek: (t: number) => {
         seekToTime(t);
@@ -655,8 +664,9 @@ const [selectedSegmentId, setSelectedSegmentId] = useState<string | null>(null);
       splitActiveLayer: handleSplitActiveLayer,
       deleteActiveLayer: handleDeleteActiveLayer,
       copyActiveLayer: handleCopyActiveLayer,
+      pasteActiveLayer: handlePasteActiveLayer,
     });
-  }, [isPlaying, currentTime, effectiveDuration, volume, songVolume, localSongUrl, selectedLayer, selectedSegmentId, onPlaybackStateChange, seekToTime, drawFrame]);
+  }, [isPlaying, currentTime, effectiveDuration, volume, songVolume, localSongUrl, selectedLayer, selectedSegmentId, hasCopiedBg, onPlaybackStateChange, seekToTime, drawFrame]);
 
 
 
@@ -1233,31 +1243,57 @@ const [selectedSegmentId, setSelectedSegmentId] = useState<string | null>(null);
 
   const handleCopyActiveLayer = () => {
     if (selectedLayer === "background") {
-      const seg = bgSegments.find(s => s.id === selectedSegmentId) || bgSegments[0];
+      const seg = bgSegments.find(s => s.id === selectedSegmentId);
       if (seg) {
-        const segDuration = Math.max(1, (seg.end || effectiveDuration) - seg.start);
-        const newSeg = {
-          ...seg,
-          id: "bg-" + Date.now(),
-          start: currentTime,
-          end: Math.min(currentTime + segDuration, effectiveDuration)
-        };
-        setBgSegments(prev => [...prev, newSeg].sort((a,b) => a.start - b.start));
-        setSelectedSegmentId(newSeg.id);
+        bgClipboardRef.current = { ...seg };
+        setHasCopiedBg(true);
       }
     } else if (selectedLayer === "music") {
-      const seg = songSegments.find(s => s.id === selectedSegmentId) || songSegments[0];
+      const seg = songSegments.find(s => s.id === selectedSegmentId);
       if (seg) {
-        const segDuration = Math.max(1, (seg.end || songDuration || effectiveDuration) - seg.start);
-        const newSeg = {
-          ...seg,
-          id: "song-" + Date.now(),
-          start: currentTime,
-          end: Math.min(currentTime + segDuration, songDuration || effectiveDuration)
-        };
-        setSongSegments(prev => [...prev, newSeg].sort((a,b) => a.start - b.start));
-        setSelectedSegmentId(newSeg.id);
+        bgClipboardRef.current = { ...seg, isMusic: true };
+        setHasCopiedBg(true);
       }
+    }
+  };
+
+  const handlePasteActiveLayer = () => {
+    if (selectedLayer === "background" && bgClipboardRef.current && !bgClipboardRef.current.isMusic) {
+      const source = bgClipboardRef.current;
+      const cur = currentTimeRef.current;
+      const segDuration = Math.max(0.5, (source.end || effectiveDuration) - source.start);
+      const newEnd = Math.min(cur + segDuration, effectiveDuration);
+
+      const newSeg = {
+        ...source,
+        id: "bg-" + Date.now(),
+        start: cur,
+        end: newEnd,
+      };
+
+      setBgSegments(prev => [...prev, newSeg].sort((a, b) => a.start - b.start));
+      setSelectedSegmentId(newSeg.id);
+      bgClipboardRef.current = null;
+      setHasCopiedBg(false);
+      requestAnimationFrame(() => drawFrameRef.current());
+    } else if (selectedLayer === "music" && bgClipboardRef.current?.isMusic) {
+      const source = bgClipboardRef.current;
+      const cur = currentTimeRef.current;
+      const maxEnd = songDuration || effectiveDuration;
+      const segDuration = Math.max(0.5, (source.end || maxEnd) - source.start);
+      const newEnd = Math.min(cur + segDuration, maxEnd);
+
+      const newSeg = {
+        ...source,
+        id: "song-" + Date.now(),
+        start: cur,
+        end: newEnd,
+      };
+
+      setSongSegments(prev => [...prev, newSeg].sort((a, b) => a.start - b.start));
+      setSelectedSegmentId(newSeg.id);
+      bgClipboardRef.current = null;
+      setHasCopiedBg(false);
     }
   };
 
@@ -1367,7 +1403,7 @@ const [selectedSegmentId, setSelectedSegmentId] = useState<string | null>(null);
   ) => {
     event.stopPropagation();
     if (event.pointerType === "mouse" && event.button !== 0) return;
-    const trackLane = event.currentTarget.closest(".track-lane");
+    const trackLane = (event.currentTarget as HTMLElement).closest(".track-lane");
     const trackWidth = trackLane ? trackLane.getBoundingClientRect().width : 1;
     segmentDragRef.current = {
       layer,
@@ -1379,7 +1415,9 @@ const [selectedSegmentId, setSelectedSegmentId] = useState<string | null>(null);
       originalEnd: end,
       trackWidth,
     };
-    event.currentTarget.setPointerCapture(event.pointerId);
+    try {
+      (event.currentTarget as HTMLElement).setPointerCapture(event.pointerId);
+    } catch (_) {}
   };
 
   const handleSegmentPointerMove = (event: React.PointerEvent<HTMLElement>) => {
@@ -1542,13 +1580,37 @@ const [selectedSegmentId, setSelectedSegmentId] = useState<string | null>(null);
     setSettings(previous => ({ ...previous, [key]: value }));
   };
 
+  const ensureSegmentSelected = (): boolean => {
+    // Only allow modification if "+" was clicked or a segment is actively, explicitly selected
+    if (pendingNewBgSlot) {
+      return true;
+    }
+    if (selectedSegmentId && bgSegments.some(s => s.id === selectedSegmentId)) {
+      return true;
+    }
+    // Brand new empty project with 0 segments
+    if (bgSegments.length === 0) {
+      return true;
+    }
+
+    if (!dontShowBgSelectModalAgain) {
+      setShowBgSelectModal(true);
+    }
+    return false;
+  };
+
   const handleSelectBackgroundWithConfirm = (applyAction: () => void, newThemeId?: string, newColor?: string) => {
+    if (!ensureSegmentSelected()) {
+      return;
+    }
+
     applyAction();
 
     const targetTheme = newThemeId || "midnight";
     const targetColor = newColor || "#000000";
 
     setBgSegments(prev => {
+      // Rule 1: "+" was explicitly clicked
       if (pendingNewBgSlot) {
         const newSeg = {
           id: "bg-" + Date.now(),
@@ -1562,6 +1624,7 @@ const [selectedSegmentId, setSelectedSegmentId] = useState<string | null>(null);
         return [...prev, newSeg].sort((a, b) => a.start - b.start);
       }
 
+      // Rule 2: Fresh project with 0 segments
       if (prev.length === 0) {
         const initialDuration = Math.min(4, effectiveDuration || 4);
         const newSeg = {
@@ -1575,21 +1638,9 @@ const [selectedSegmentId, setSelectedSegmentId] = useState<string | null>(null);
         return [newSeg];
       }
 
+      // Rule 3: Only update the explicitly selected segment
       if (selectedSegmentId) {
         return prev.map(s => s.id === selectedSegmentId ? {
-          ...s,
-          themeId: targetTheme,
-          color: targetColor,
-          customImageUrl: undefined,
-          customVideoUrl: undefined
-        } : s);
-      }
-
-      const cur = currentTimeRef.current;
-      const underPlayhead = prev.find(s => cur >= s.start && cur < s.end) || prev[0];
-      if (underPlayhead) {
-        setSelectedSegmentId(underPlayhead.id);
-        return prev.map(s => s.id === underPlayhead.id ? {
           ...s,
           themeId: targetTheme,
           color: targetColor,
@@ -1607,10 +1658,13 @@ const [selectedSegmentId, setSelectedSegmentId] = useState<string | null>(null);
   };
 
   const applyCustomMediaToSegments = (themeId: "custom-image" | "custom-video", mediaUrl: string) => {
+    if (!ensureSegmentSelected()) {
+      return;
+    }
+
     setBgSegments(prev => {
       const targetTheme = themeId;
 
-      // Case 1: Timeline "+" button was clicked
       if (pendingNewBgSlot) {
         const newSeg = {
           id: "bg-" + Date.now(),
@@ -1625,7 +1679,6 @@ const [selectedSegmentId, setSelectedSegmentId] = useState<string | null>(null);
         return [...prev, newSeg].sort((a, b) => a.start - b.start);
       }
 
-      // Case 2: Fresh project with 0 segments
       if (prev.length === 0) {
         const initialDuration = Math.min(4, effectiveDuration || 4);
         const newSeg = {
@@ -1640,22 +1693,8 @@ const [selectedSegmentId, setSelectedSegmentId] = useState<string | null>(null);
         return [newSeg];
       }
 
-      // Case 3: A segment is already selected
       if (selectedSegmentId) {
         return prev.map(s => s.id === selectedSegmentId ? {
-          ...s,
-          themeId: targetTheme,
-          customImageUrl: themeId === "custom-image" ? mediaUrl : undefined,
-          customVideoUrl: themeId === "custom-video" ? mediaUrl : undefined,
-        } : s);
-      }
-
-      // Case 4: No segment selected and "+" was not clicked -> apply to the segment under the playhead (or the first segment)
-      const cur = currentTimeRef.current;
-      const targetSeg = prev.find(s => cur >= s.start && cur < s.end) || prev[0];
-      if (targetSeg) {
-        setSelectedSegmentId(targetSeg.id);
-        return prev.map(s => s.id === targetSeg.id ? {
           ...s,
           themeId: targetTheme,
           customImageUrl: themeId === "custom-image" ? mediaUrl : undefined,
@@ -1672,6 +1711,9 @@ const [selectedSegmentId, setSelectedSegmentId] = useState<string | null>(null);
   };
 
   const handleMediaUpload = (file: File) => {
+    if (!ensureSegmentSelected()) {
+      return;
+    }
     if (file.type.startsWith("video/")) {
       if (settings.customVideoUrl && settings.customVideoUrl.startsWith("blob:")) {
         URL.revokeObjectURL(settings.customVideoUrl);
@@ -1991,9 +2033,8 @@ const [selectedSegmentId, setSelectedSegmentId] = useState<string | null>(null);
                     e.stopPropagation();
                     setSelectedLayer("background");
                     selectSubtitle(null);
-                    const cur = currentTimeRef.current;
-                    const match = bgSegments.find(s => cur >= s.start && cur < s.end) || bgSegments[0];
-                    if (match) setSelectedSegmentId(match.id);
+                    // Do NOT auto-select any segment here! Wait for user click on a specific clip
+                    setSelectedSegmentId(null);
                     onPlaybackStateChange?.({ selectedLayer: "background" });
                   }}
                 >
@@ -2168,14 +2209,13 @@ const [selectedSegmentId, setSelectedSegmentId] = useState<string | null>(null);
                       className={"timeline-unified-row row-bg " + (selectedLayer === "background" ? "is-selected" : selectedLayer ? "is-dimmed" : "is-active")}
                       style={{ height: "34px", display: "block", background: "#181b24", border: "1px solid rgba(255, 255, 255, 0.05)", borderRadius: "4px", position: "relative" }}
                       onClick={e => {
-                        e.stopPropagation();
-                        setSelectedLayer("background");
-                        selectSubtitle(null);
-                        const cur = currentTimeRef.current;
-                        const match = bgSegments.find(s => cur >= s.start && cur < s.end) || bgSegments[0];
-                        if (match) setSelectedSegmentId(match.id);
-                        onPlaybackStateChange?.({ selectedLayer: "background" });
-                      }}
+                    e.stopPropagation();
+                    setSelectedLayer("background");
+                    selectSubtitle(null);
+                    // Do NOT auto-select any segment here! Wait for user click on a specific clip
+                    setSelectedSegmentId(null);
+                    onPlaybackStateChange?.({ selectedLayer: "background" });
+                  }}
                     >
                       <div className="track-lane" onClick={handleTimelineClick} style={{ height: "100%", width: "100%", position: "relative" }}>
                         {bgSegments.length === 0 ? (
@@ -2219,8 +2259,8 @@ const [selectedSegmentId, setSelectedSegmentId] = useState<string | null>(null);
                                     background: isSegSelected ? "var(--accent-soft, #312e81)" : "#1e222d",
                                     border: isSegSelected ? "2px solid var(--accent-primary, #60a5fa)" : "1px solid rgba(255, 255, 255, 0.12)",
                                     boxShadow: isSegSelected ? "0 0 10px rgba(96, 165, 250, 0.45)" : "none",
-                                    filter: (selectedLayer === "background" && selectedSegmentId && !isSegSelected) ? "grayscale(85%) opacity(0.35)" : undefined,
-                                    transition: "all 0.18s cubic-bezier(0.4, 0, 0.2, 1)",
+                                    filter: (selectedSegmentId && !isSegSelected) ? "grayscale(85%) opacity(0.35)" : "none",
+                                    transition: segmentDragRef.current ? "none" : "border 0.15s ease, box-shadow 0.15s ease",
                                     left: leftPct + "%",
                                     width: widthPct + "%",
                                     height: "100%",
@@ -2243,25 +2283,73 @@ const [selectedSegmentId, setSelectedSegmentId] = useState<string | null>(null);
                                   }}
                                 >
                                   <button
-                                    type="button"
-                                    className="caption-trim-handle start"
-                                    style={{ width: "8px", height: "100%", position: "absolute", left: 0, cursor: "col-resize", background: "rgba(255,255,255,0.2)", border: "none", zIndex: 5 }}
-                                    onPointerDown={e => { e.stopPropagation(); beginSegmentDrag(e, "background", seg.id, "start", start, end); }}
-                                    onPointerMove={handleSegmentPointerMove}
-                                    onPointerUp={endSegmentDrag}
-                                  ></button>
+                                      type="button"
+                                      className="caption-trim-handle start"
+                                      title="Drag to trim segment start"
+                                      style={{
+                                        width: "12px",
+                                        height: "100%",
+                                        position: "absolute",
+                                        left: 0,
+                                        top: 0,
+                                        bottom: 0,
+                                        cursor: "col-resize",
+                                        background: isSegSelected ? "#3b82f6" : "rgba(255, 255, 255, 0.35)",
+                                        border: "none",
+                                        borderTopLeftRadius: "4px",
+                                        borderBottomLeftRadius: "4px",
+                                        zIndex: 30,
+                                        display: "flex",
+                                        alignItems: "center",
+                                        justifyContent: "center",
+                                        opacity: isSegSelected ? 1 : 0.6,
+                                        pointerEvents: "auto",
+                                        padding: 0,
+                                      }}
+                                      onPointerDown={e => {
+                                        e.preventDefault();
+                                        e.stopPropagation();
+                                        beginSegmentDrag(e, "background", seg.id, "start", start, end);
+                                      }}
+                                    >
+                                      <div style={{ width: "2px", height: "14px", background: "#ffffff", borderRadius: "1px", pointerEvents: "none" }} />
+                                    </button>
                                   <span className="clip-label-text" style={{ padding: "0 12px", fontSize: "11px", color: "#fff", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
                                     {seg.themeId === "custom-image" ? "Photo backdrop" : seg.themeId === "custom-video" ? "Video backdrop" : (seg.themeId ? "Theme: " + seg.themeId.toUpperCase() : "MIDNIGHT")}
                                     {bgSegments.length > 1 ? " (" + (idx + 1) + ")" : ""}
                                   </span>
                                   <button
-                                    type="button"
-                                    className="caption-trim-handle end"
-                                    style={{ width: "8px", height: "100%", position: "absolute", right: 0, cursor: "col-resize", background: "rgba(255,255,255,0.2)", border: "none", zIndex: 5 }}
-                                    onPointerDown={e => { e.stopPropagation(); beginSegmentDrag(e, "background", seg.id, "end", start, end); }}
-                                    onPointerMove={handleSegmentPointerMove}
-                                    onPointerUp={endSegmentDrag}
-                                  ></button>
+                                      type="button"
+                                      className="caption-trim-handle end"
+                                      title="Drag to trim segment end"
+                                      style={{
+                                        width: "12px",
+                                        height: "100%",
+                                        position: "absolute",
+                                        right: 0,
+                                        top: 0,
+                                        bottom: 0,
+                                        cursor: "col-resize",
+                                        background: isSegSelected ? "#3b82f6" : "rgba(255, 255, 255, 0.35)",
+                                        border: "none",
+                                        borderTopRightRadius: "4px",
+                                        borderBottomRightRadius: "4px",
+                                        zIndex: 30,
+                                        display: "flex",
+                                        alignItems: "center",
+                                        justifyContent: "center",
+                                        opacity: isSegSelected ? 1 : 0.6,
+                                        pointerEvents: "auto",
+                                        padding: 0,
+                                      }}
+                                      onPointerDown={e => {
+                                        e.preventDefault();
+                                        e.stopPropagation();
+                                        beginSegmentDrag(e, "background", seg.id, "end", start, end);
+                                      }}
+                                    >
+                                      <div style={{ width: "2px", height: "14px", background: "#ffffff", borderRadius: "1px", pointerEvents: "none" }} />
+                                    </button>
                                 </div>
                               );
                             })}
@@ -2344,7 +2432,7 @@ const [selectedSegmentId, setSelectedSegmentId] = useState<string | null>(null);
                                       : "grayscale(100%) opacity(0.2)")
                                   : undefined,
                                 transform: captionSearchQuery && captionSearchQuery.trim() && isSearchHit ? "scale(1.02)" : undefined,
-                                transition: "all 0.18s cubic-bezier(0.4, 0, 0.2, 1)",
+                                transition: segmentDragRef.current ? "none" : "border 0.15s ease, box-shadow 0.15s ease",
                               }}
                               onPointerDown={event => {
                                 event.stopPropagation();
@@ -2615,7 +2703,91 @@ const [selectedSegmentId, setSelectedSegmentId] = useState<string | null>(null);
           onExportSrt={handleExportSrt}
           onExportVtt={handleExportVtt}
         />
-      </main>
+
+        {/* NOTIFICATION MODAL: SELECT BACKGROUND SEGMENT */}
+        {showBgSelectModal && (
+          <div
+            style={{
+              position: "fixed",
+              inset: 0,
+              zIndex: 99999,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              backgroundColor: "rgba(0, 0, 0, 0.65)",
+              backdropFilter: "blur(4px)",
+            }}
+            onClick={() => setShowBgSelectModal(false)}
+          >
+            <div
+              style={{
+                width: "360px",
+                background: "#181b24",
+                border: "1px solid rgba(255, 255, 255, 0.12)",
+                borderRadius: "12px",
+                padding: "20px",
+                boxShadow: "0 20px 40px rgba(0, 0, 0, 0.5)",
+                display: "flex",
+                flexDirection: "column",
+                gap: "14px",
+                color: "#ffffff",
+              }}
+              onClick={e => e.stopPropagation()}
+            >
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                <span style={{ fontSize: "0.85rem", fontWeight: 700, color: "#f8fafc" }}>
+                  Select Background Segment
+                </span>
+                <button
+                  type="button"
+                  style={{ background: "transparent", border: "none", color: "#64748b", cursor: "pointer", padding: "4px", display: "flex" }}
+                  onClick={() => setShowBgSelectModal(false)}
+                >
+                  <X size={16} />
+                </button>
+              </div>
+
+              <p style={{ fontSize: "0.78rem", color: "#94a3b8", lineHeight: 1.5, margin: 0 }}>
+                Please select any background segment on the timeline to modify its style, or click <strong>"+"</strong> on the timeline to add a new segment.
+              </p>
+
+              <label style={{ display: "flex", alignItems: "center", gap: "8px", cursor: "pointer", userSelect: "none" }}>
+                <input
+                  type="checkbox"
+                  checked={dontShowBgSelectModalAgain}
+                  onChange={e => {
+                    const checked = e.target.checked;
+                    setDontShowBgSelectModalAgain(checked);
+                    try { localStorage.setItem("dont_show_bg_select_modal", checked ? "true" : "false"); } catch {}
+                  }}
+                  style={{ width: "14px", height: "14px", accentColor: "var(--accent-primary, #60a5fa)", cursor: "pointer" }}
+                />
+                <span style={{ fontSize: "0.72rem", color: "#cbd5e1" }}>Don't show me again</span>
+</label>
+
+<div style={{ display: "flex", justifyContent: "flex-end", marginTop: "4px" }}>
+<button
+type="button"
+onClick={() => setShowBgSelectModal(false)}
+style={{
+padding: "7px 20px",
+borderRadius: "6px",
+background: "var(--accent-primary, #60a5fa)",
+color: "#ffffff",
+border: "none",
+fontWeight: 700,
+fontSize: "0.75rem",
+cursor: "pointer",
+boxShadow: "0 2px 8px rgba(0, 0, 0, 0.3)"
+}}
+>
+OK
+</button>
+</div>
+</div>
+</div>
+)}
+</main>
 
       {/* RIGHT PANEL: STUDIO CATALOG & INSPECTOR */}
       <aside className="style-sidebar" style={{ background: "#12141a", borderLeft: "1px solid rgba(255, 255, 255, 0.08)", color: "#ffffff" }}>
@@ -2750,7 +2922,7 @@ const [selectedSegmentId, setSelectedSegmentId] = useState<string | null>(null);
                 >
                   {[{"id":"sunset-mesh","name":"Sunset","css":"linear-gradient(135deg, #ff512f, #dd2476)"},{"id":"deep-blue","name":"Deep Blue","css":"linear-gradient(135deg, #0f2027, #203a43, #2c5364)"},{"id":"purple-haze","name":"Purple Haze","css":"linear-gradient(135deg, #7f00ff, #e100ff)"},{"id":"emerald","name":"Emerald","css":"linear-gradient(135deg, #0ba360, #3cba92)"},{"id":"crimson-tide","name":"Crimson","css":"linear-gradient(135deg, #642b73, #c6426e)"},{"id":"cyber-punk","name":"Cyberpunk","css":"linear-gradient(135deg, #ff0844, #ffb199)"},{"id":"aurora","name":"Aurora","css":"linear-gradient(135deg, #00c6ff, #0072ff)"},{"id":"golden-hour","name":"Gold","css":"linear-gradient(135deg, #f7971e, #ffd200)"},{"id":"midnight-neon","name":"Midnight","css":"linear-gradient(135deg, #182848, #4b6cb7)"},{"id":"dark-matter","name":"Obsidian","css":"linear-gradient(135deg, #232526, #414345)"}].map(g => {
                     const activeSeg = bgSegments.find(s => s.id === selectedSegmentId);
-                    const isSelected = activeSeg ? activeSeg.themeId === g.id : settings.backgroundTheme === g.id;
+                    const isSelected = selectedSegmentId ? (activeSeg?.themeId === g.id) : false;
                     return (
                       <button
                         key={g.id}
@@ -2809,7 +2981,7 @@ const [selectedSegmentId, setSelectedSegmentId] = useState<string | null>(null);
                 >
                   {[{"id":"pattern-grid","name":"Grid","css":"radial-gradient(rgba(255,255,255,0.2) 1px, transparent 1px), #0f172a","bgSize":"16px 16px"},{"id":"pattern-dots","name":"Dots","css":"radial-gradient(rgba(255,255,255,0.15) 1.5px, transparent 1.5px), #1e1b4b","bgSize":"14px 14px"},{"id":"pattern-lines","name":"Lines","css":"repeating-linear-gradient(45deg, rgba(255,255,255,0.05) 0, rgba(255,255,255,0.05) 1px, transparent 0, transparent 10px), #0c1017"},{"id":"pattern-carbon","name":"Carbon","css":"linear-gradient(27deg, #151515 5px, transparent 5px) 0 5px, linear-gradient(207deg, #151515 5px, transparent 5px) 10px 0px, #111"},{"id":"pattern-cubes","name":"Blueprint","css":"linear-gradient(rgba(56, 189, 248, 0.1) 1px, transparent 1px), linear-gradient(90deg, rgba(56, 189, 248, 0.1) 1px, transparent 1px), #030712","bgSize":"20px 20px"},{"id":"pattern-hex","name":"Hexagon","css":"radial-gradient(circle at 50% 50%, rgba(168, 85, 247, 0.15) 20%, transparent 20%), #090b10","bgSize":"18px 18px"},{"id":"pattern-paper","name":"Paper","css":"radial-gradient(#ffffff 0.5px, transparent 0.5px), #1e293b","bgSize":"12px 12px"},{"id":"pattern-noise","name":"Studio","css":"radial-gradient(circle at center, #1e293b 0%, #090d16 100%)"},{"id":"pattern-scanlines","name":"Scanlines","css":"repeating-linear-gradient(0deg, rgba(0,0,0,0.3) 0px, rgba(0,0,0,0.3) 1px, transparent 1px, transparent 2px), #1e1b4b"},{"id":"pattern-glow","name":"Glow Orb","css":"radial-gradient(circle at 50% 30%, var(--accent-glow, rgba(59, 130, 246, 0.4) 0%, transparent 70%), #020617"}].map(p => {
                     const activeSeg = bgSegments.find(s => s.id === selectedSegmentId);
-                    const isSelected = activeSeg ? activeSeg.themeId === p.id : settings.backgroundTheme === p.id;
+                    const isSelected = selectedSegmentId ? (activeSeg?.themeId === p.id) : false;
                     return (
                       <button
                         key={p.id}
@@ -2859,6 +3031,12 @@ const [selectedSegmentId, setSelectedSegmentId] = useState<string | null>(null);
                 </span>
                 <label
                   className="upload-dropzone"
+                  onClick={e => {
+                    if (!ensureSegmentSelected()) {
+                      e.preventDefault();
+                      e.stopPropagation();
+                    }
+                  }}
                   style={{
                     display: "flex",
                     flexDirection: "column",

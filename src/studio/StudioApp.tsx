@@ -78,6 +78,8 @@ function App({ initialTemplateId: _initialTemplateId, initialFile, projectId, on
     localSongUrl?: string | null;
     hasSong?: boolean;
     splitActiveLayer?: () => void;
+  pasteActiveLayer?: () => void;
+  hasCopiedBg?: boolean;
     deleteActiveLayer?: () => void;
     copyActiveLayer?: () => void;
     togglePlay: () => void;
@@ -585,7 +587,11 @@ const applyProgress = (progress: LocalTranscriptionProgress) => {
   const handleCopyOrPaste = () => {
     const currentLayer = playbackState.selectedLayer || "caption";
     if (currentLayer === "background" || currentLayer === "music") {
-      playbackState.copyActiveLayer?.();
+      if (playbackState.hasCopiedBg) {
+        playbackState.pasteActiveLayer?.();
+      } else {
+        playbackState.copyActiveLayer?.();
+      }
       return;
     }
     const audioLimit = mediaDuration || playbackState.duration || 0;
@@ -776,10 +782,11 @@ const applyProgress = (progress: LocalTranscriptionProgress) => {
               onSplitSubtitle={handleUnifiedSplit}
               onDeleteSubtitle={handleUnifiedDelete}
               selectedLayer={playbackState.selectedLayer || "caption"}
-              copiedCaption={copiedCaption}
+              copiedCaption={playbackState.selectedLayer === "background" || playbackState.selectedLayer === "music" ? (playbackState.hasCopiedBg ? ({ id: "bg-copied" } as any) : null) : copiedCaption}
               onCopyOrPaste={handleCopyOrPaste}
               onAddSubtitle={addTimelineCaption}
               hasSelectedSubtitle={Boolean(selectedSubtitleId)}
+                hasSelectedSegment={Boolean(playbackState.selectedSegmentId)}
               isPlaying={playbackState.isPlaying}
               onTogglePlay={playbackState.togglePlay}
               currentTime={playbackState.currentTime}

@@ -65,6 +65,7 @@ interface SidebarProps {
   onDeleteSubtitle?: () => void;
   onAddSubtitle?: () => void;
   hasSelectedSubtitle?: boolean;
+  hasSelectedSegment?: boolean;
   selectedLayer?: "audio" | "background" | "caption" | "music" | null;
   copiedCaption?: Subtitle | null;
   onCopyOrPaste?: () => void;
@@ -131,6 +132,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   onDeleteSubtitle,
   onAddSubtitle,
   hasSelectedSubtitle = false,
+  hasSelectedSegment = false,
   selectedLayer = "caption",
   copiedCaption = null,
   onCopyOrPaste,
@@ -234,6 +236,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
       🖥 On-Device
     </button>
   );
+
+  const hasSelectionOrClipboard = Boolean(hasSelectedSubtitle || hasSelectedSegment || copiedCaption);
 
   return (
     <aside className="control-sidebar" style={{ display: "flex", flexDirection: "column", gap: "10px", padding: "12px 14px", overflowY: "auto", height: "100%", background: "#12141a", borderRight: "1px solid rgba(255, 255, 255, 0.08)" }}>
@@ -427,11 +431,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
             <button
               className={`sidebar-tool-btn ${copiedCaption ? "active-toggle" : ""}`}
               onClick={onCopyOrPaste}
-              disabled={
-                !selectedLayer ||
-                selectedLayer === "audio" ||
-                (selectedLayer === "caption" && !copiedCaption && !hasSelectedSubtitle)
-              }
+              disabled={!hasSelectionOrClipboard || selectedLayer === "audio"}
               title={copiedCaption ? "Click to paste caption at needle position" : "Copy selected caption"}
               style={{
                 background: copiedCaption ? "var(--accent-glow, rgba(59, 130, 246, 0.28)" : undefined,
@@ -447,11 +447,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
             <button
               className="sidebar-tool-btn" style={{ background: "#1c202a", color: "#ffffff", border: "1px solid rgba(255, 255, 255, 0.12)", fontWeight: 600 }}
               onClick={onSplitSubtitle}
-              disabled={
-                !selectedLayer ||
-                selectedLayer === "audio" ||
-                (selectedLayer === "caption" && !hasSelectedSubtitle)
-              }
+              disabled={(!hasSelectedSubtitle && !hasSelectedSegment) || selectedLayer === "audio"}
               title="Split at needle"
             >
               <Scissors size={14} />
@@ -462,11 +458,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
             <button
               className="sidebar-tool-btn danger" style={{ background: "rgba(239, 68, 68, 0.15)", color: "#ef4444", border: "1px solid rgba(239, 68, 68, 0.3)", fontWeight: 600 }}
               onClick={onDeleteSubtitle}
-              disabled={
-                !selectedLayer ||
-                selectedLayer === "audio" ||
-                (selectedLayer === "caption" && !hasSelectedSubtitle)
-              }
+              disabled={(!hasSelectedSubtitle && !hasSelectedSegment) || selectedLayer === "audio"}
               title="Delete selected item"
             >
               <Trash2 size={14} />

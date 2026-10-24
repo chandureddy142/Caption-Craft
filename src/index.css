@@ -1427,7 +1427,9 @@ button:disabled { cursor: not-allowed; opacity: 0.5; }
   z-index: 5 !important;
 }
 .caption-segment-pill:hover .caption-trim-handle,
-.caption-segment-pill.is-selected .caption-trim-handle {
+.caption-segment-pill.is-selected .caption-trim-handle,
+.track-lane-clip:hover .caption-trim-handle,
+.track-lane-clip.is-segment-active .caption-trim-handle {
   opacity: 1 !important;
 }
 .caption-trim-handle.start { left: 0 !important; border-radius: 3px 0 0 3px !important; }
