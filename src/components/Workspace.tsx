@@ -148,7 +148,9 @@ export const Workspace: React.FC<WorkspaceProps> = ({
     }
   }, []);
 
-  const [bgSegments, setBgSegments] = useState<Array<{ id: string; start: number; end: number; themeId?: string; color?: string }>>([]);
+  const [bgSegments, setBgSegments] = useState<Array<{ id: string; start: number; end: number; themeId?: string; color?: string; customImageUrl?: string; customVideoUrl?: string }>>([]);
+  const bgSegmentsRef = useRef(bgSegments);
+  bgSegmentsRef.current = bgSegments;
   const [songSegments, setSongSegments] = useState<Array<{ id: string; start: number; end: number }>>([
     { id: "song-default", start: 0, end: 0 }
   ]);
@@ -166,6 +168,7 @@ export const Workspace: React.FC<WorkspaceProps> = ({
     return qWords.some(qw => textWords.some(tw => tw.includes(qw) || qw.includes(tw)));
   };
 const [selectedSegmentId, setSelectedSegmentId] = useState<string | null>(null);
+  const [pendingNewBgSlot, setPendingNewBgSlot] = useState<{ start: number; duration: number } | null>(null);
   /* read captionSearchQuery */
   const activeSearchTerm = captionSearchQuery ? captionSearchQuery.trim().toLowerCase() : "";
   useEffect(() => {
@@ -193,6 +196,8 @@ const [selectedSegmentId, setSelectedSegmentId] = useState<string | null>(null);
   const [exportComplete, setExportComplete] = useState(false);
   const [isExportPanelOpen, setIsExportPanelOpen] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
+  const currentTimeRef = useRef(currentTime);
+  currentTimeRef.current = currentTime;
   const [duration, setDuration] = useState(0);
   const totalPlaybackDuration = Math.max(duration || 0, songDuration || 0, mediaDuration || 0);
   const effectiveDuration = totalPlaybackDuration > 0 ? totalPlaybackDuration : 1;
@@ -216,6 +221,8 @@ const [selectedSegmentId, setSelectedSegmentId] = useState<string | null>(null);
   const seekToTime = useCallback((targetTime: number) => {
     const clamped = Math.max(0, Math.min(effectiveDuration, targetTime));
     setCurrentTime(clamped);
+    currentTimeRef.current = clamped;
+    requestAnimationFrame(() => drawFrameRef.current());
 
     const media = mediaRef.current;
     if (media) {
@@ -440,16 +447,25 @@ const [selectedSegmentId, setSelectedSegmentId] = useState<string | null>(null);
       }
     }
 
-    const activeBgSeg = bgSegments.find(s => currentTime >= s.start && currentTime <= (s.end || effectiveDuration));
+    const evalTime = currentTimeRef.current;
+    const currentSegments = bgSegmentsRef.current;
+    const activeBgSeg = currentSegments.find(s => evalTime >= s.start && evalTime < s.end);
+
     if (activeBgSeg) {
       drawBackgroundToCanvas(ctx, {
-        themeId: activeBgSeg.themeId || settings.backgroundTheme || "midnight",
-        backgroundColor: activeBgSeg.color || settings.backgroundColor || "#000000",
+        themeId: activeBgSeg.themeId || "midnight",
+        backgroundColor: activeBgSeg.color || "#000000",
         width: canvas.width,
         height: canvas.height,
         videoElement: media,
         isVideoMedia,
-        customImage: customImageRef.current,
+        customImage: (activeBgSeg.themeId === "custom-image" && activeBgSeg.customImageUrl) ? (() => {
+          if (customImageRef.current && customImageRef.current.src === activeBgSeg.customImageUrl) return customImageRef.current;
+          const img = new Image();
+          img.src = activeBgSeg.customImageUrl;
+          customImageRef.current = img;
+          return img;
+        })() : customImageRef.current,
         customVideoElement: customVideoRef.current,
         overlayOpacity: settings.backgroundOverlayOpacity,
         fitMode: settings.fitMode,
@@ -500,7 +516,7 @@ const [selectedSegmentId, setSelectedSegmentId] = useState<string | null>(null);
     }
 
     // requestAnimationFrame handled by masterClockLoop
-  }, [duration, isExporting, isVideoMedia, language, selectedSubtitleId, settings, subtitles]);
+  }, [duration, isExporting, isVideoMedia, language, selectedSubtitleId, settings, subtitles, bgSegments, currentTime]);
 
   useEffect(() => {
     if (!isPlaying) return;
@@ -1375,35 +1391,61 @@ const [selectedSegmentId, setSelectedSegmentId] = useState<string | null>(null);
     const minDur = 0.5;
 
     if (drag.layer === "background") {
-      setBgSegments(prev => prev.map(s => {
-        if (s.id !== drag.id) return s;
+      setBgSegments(prev => {
+        const sorted = [...prev].sort((a, b) => a.start - b.start);
+        const idx = sorted.findIndex(s => s.id === drag.id);
+        if (idx === -1) return prev;
+
+        const seg = sorted[idx];
+        const prevNeighbor = sorted[idx - 1];
+        const nextNeighbor = sorted[idx + 1];
+
+        const minBound = prevNeighbor ? prevNeighbor.end : 0;
+        const maxBound = nextNeighbor ? nextNeighbor.start : limit;
         const dur = drag.originalEnd - drag.originalStart;
+
         if (drag.mode === "move") {
-          const newStart = Math.max(0, Math.min(limit - dur, drag.originalStart + deltaSeconds));
-          return { ...s, start: newStart, end: newStart + dur };
+          const clampedStart = Math.max(minBound, Math.min(maxBound - dur, drag.originalStart + deltaSeconds));
+          const updated = { ...seg, start: clampedStart, end: clampedStart + dur };
+          return sorted.map(s => s.id === drag.id ? updated : s);
         } else if (drag.mode === "start") {
-          const newStart = Math.max(0, Math.min(s.end - minDur, drag.originalStart + deltaSeconds));
-          return { ...s, start: newStart };
+          const clampedStart = Math.max(minBound, Math.min(seg.end - minDur, drag.originalStart + deltaSeconds));
+          const updated = { ...seg, start: clampedStart };
+          return sorted.map(s => s.id === drag.id ? updated : s);
         } else {
-          const newEnd = Math.max(s.start + minDur, Math.min(limit, drag.originalEnd + deltaSeconds));
-          return { ...s, end: newEnd };
+          const clampedEnd = Math.max(seg.start + minDur, Math.min(maxBound, drag.originalEnd + deltaSeconds));
+          const updated = { ...seg, end: clampedEnd };
+          return sorted.map(s => s.id === drag.id ? updated : s);
         }
-      }));
+      });
     } else if (drag.layer === "music") {
-      setSongSegments(prev => prev.map(s => {
-        if (s.id !== drag.id) return s;
+      setSongSegments(prev => {
+        const sorted = [...prev].sort((a, b) => a.start - b.start);
+        const idx = sorted.findIndex(s => s.id === drag.id);
+        if (idx === -1) return prev;
+
+        const seg = sorted[idx];
+        const prevNeighbor = sorted[idx - 1];
+        const nextNeighbor = sorted[idx + 1];
+
+        const minBound = prevNeighbor ? prevNeighbor.end : 0;
+        const maxBound = nextNeighbor ? nextNeighbor.start : limit;
         const dur = drag.originalEnd - drag.originalStart;
+
         if (drag.mode === "move") {
-          const newStart = Math.max(0, Math.min(limit - dur, drag.originalStart + deltaSeconds));
-          return { ...s, start: newStart, end: newStart + dur };
+          const clampedStart = Math.max(minBound, Math.min(maxBound - dur, drag.originalStart + deltaSeconds));
+          const updated = { ...seg, start: clampedStart, end: clampedStart + dur };
+          return sorted.map(s => s.id === drag.id ? updated : s);
         } else if (drag.mode === "start") {
-          const newStart = Math.max(0, Math.min(s.end - minDur, drag.originalStart + deltaSeconds));
-          return { ...s, start: newStart };
+          const clampedStart = Math.max(minBound, Math.min(seg.end - minDur, drag.originalStart + deltaSeconds));
+          const updated = { ...seg, start: clampedStart };
+          return sorted.map(s => s.id === drag.id ? updated : s);
         } else {
-          const newEnd = Math.max(s.start + minDur, Math.min(limit, drag.originalEnd + deltaSeconds));
-          return { ...s, end: newEnd };
+          const clampedEnd = Math.max(seg.start + minDur, Math.min(maxBound, drag.originalEnd + deltaSeconds));
+          const updated = { ...seg, end: clampedEnd };
+          return sorted.map(s => s.id === drag.id ? updated : s);
         }
-      }));
+      });
     }
   };
 
@@ -1500,47 +1542,117 @@ const [selectedSegmentId, setSelectedSegmentId] = useState<string | null>(null);
     setSettings(previous => ({ ...previous, [key]: value }));
   };
 
-  
-  
   const handleSelectBackgroundWithConfirm = (applyAction: () => void, newThemeId?: string, newColor?: string) => {
-    if (settings.customImageDataUrl || settings.customVideoUrl) {
-      const confirmed = window.confirm("Switching background preset will remove your uploaded media backdrop. Do you want to continue?");
-      if (!confirmed) return;
-      if (settings.customVideoUrl && settings.customVideoUrl.startsWith("blob:")) {
-        URL.revokeObjectURL(settings.customVideoUrl);
-      }
-      setSettings(prev => ({
-        ...prev,
-        customImageDataUrl: undefined,
-        customVideoUrl: undefined
-      }));
-    }
-
     applyAction();
-    const targetTheme = newThemeId || settings.backgroundTheme;
-    const targetColor = newColor || settings.backgroundColor;
 
-    if (bgSegments.length === 0) {
-      const initialDuration = Math.min(10, effectiveDuration || 10);
-      const newSeg = {
-        id: "bg-" + Date.now(),
-        start: 0,
-        end: initialDuration,
-        themeId: targetTheme,
-        color: targetColor,
-      };
-      setBgSegments([newSeg]);
-      setSelectedLayer("background");
-      setSelectedSegmentId(newSeg.id);
-      onPlaybackStateChange?.({ selectedLayer: "background" });
-    } else if (selectedSegmentId) {
-      setBgSegments(prev => prev.map(s => s.id === selectedSegmentId ? { ...s, themeId: targetTheme, color: targetColor } : s));
-    } else {
-      const activeSeg = bgSegments.find(s => currentTime >= s.start && currentTime <= (s.end || effectiveDuration)) || bgSegments[0];
-      if (activeSeg) {
-        setBgSegments(prev => prev.map(s => s.id === activeSeg.id ? { ...s, themeId: targetTheme, color: targetColor } : s));
+    const targetTheme = newThemeId || "midnight";
+    const targetColor = newColor || "#000000";
+
+    setBgSegments(prev => {
+      if (pendingNewBgSlot) {
+        const newSeg = {
+          id: "bg-" + Date.now(),
+          start: pendingNewBgSlot.start,
+          end: pendingNewBgSlot.start + pendingNewBgSlot.duration,
+          themeId: targetTheme,
+          color: targetColor,
+        };
+        setSelectedSegmentId(newSeg.id);
+        setPendingNewBgSlot(null);
+        return [...prev, newSeg].sort((a, b) => a.start - b.start);
       }
-    }
+
+      if (prev.length === 0) {
+        const initialDuration = Math.min(4, effectiveDuration || 4);
+        const newSeg = {
+          id: "bg-" + Date.now(),
+          start: 0,
+          end: initialDuration,
+          themeId: targetTheme,
+          color: targetColor,
+        };
+        setSelectedSegmentId(newSeg.id);
+        return [newSeg];
+      }
+
+      if (selectedSegmentId) {
+        return prev.map(s => s.id === selectedSegmentId ? {
+          ...s,
+          themeId: targetTheme,
+          color: targetColor,
+          customImageUrl: undefined,
+          customVideoUrl: undefined
+        } : s);
+      }
+
+      const cur = currentTimeRef.current;
+      const underPlayhead = prev.find(s => cur >= s.start && cur < s.end) || prev[0];
+      if (underPlayhead) {
+        setSelectedSegmentId(underPlayhead.id);
+        return prev.map(s => s.id === underPlayhead.id ? {
+          ...s,
+          themeId: targetTheme,
+          color: targetColor,
+          customImageUrl: undefined,
+          customVideoUrl: undefined
+        } : s);
+      }
+
+      return prev;
+    });
+
+    setSelectedLayer("background");
+    onPlaybackStateChange?.({ selectedLayer: "background" });
+    requestAnimationFrame(() => drawFrameRef.current());
+  };
+
+  const applyCustomMediaToSegments = (themeId: "custom-image" | "custom-video", mediaUrl: string) => {
+    setBgSegments(prev => {
+      const targetTheme = themeId;
+
+      if (pendingNewBgSlot) {
+        const newSeg = {
+          id: "bg-" + Date.now(),
+          start: pendingNewBgSlot.start,
+          end: pendingNewBgSlot.start + pendingNewBgSlot.duration,
+          themeId: targetTheme,
+          customImageUrl: themeId === "custom-image" ? mediaUrl : undefined,
+          customVideoUrl: themeId === "custom-video" ? mediaUrl : undefined,
+        };
+        setSelectedSegmentId(newSeg.id);
+        setPendingNewBgSlot(null);
+        return [...prev, newSeg].sort((a, b) => a.start - b.start);
+      }
+
+      if (prev.length === 0) {
+        const initialDuration = Math.min(4, effectiveDuration || 4);
+        const newSeg = {
+          id: "bg-" + Date.now(),
+          start: 0,
+          end: initialDuration,
+          themeId: targetTheme,
+          customImageUrl: themeId === "custom-image" ? mediaUrl : undefined,
+          customVideoUrl: themeId === "custom-video" ? mediaUrl : undefined,
+        };
+        setSelectedSegmentId(newSeg.id);
+        return [newSeg];
+      }
+
+      if (selectedSegmentId) {
+        return prev.map(s => s.id === selectedSegmentId ? {
+          ...s,
+          themeId: targetTheme,
+          customImageUrl: themeId === "custom-image" ? mediaUrl : undefined,
+          customVideoUrl: themeId === "custom-video" ? mediaUrl : undefined,
+        } : s);
+      }
+
+      return prev;
+    });
+
+    setSelectedLayer("background");
+    onPlaybackStateChange?.({ selectedLayer: "background" });
+    requestAnimationFrame(() => drawFrameRef.current());
   };
 
   const handleMediaUpload = (file: File) => {
@@ -1555,23 +1667,25 @@ const [selectedSegmentId, setSelectedSegmentId] = useState<string | null>(null);
         customVideoUrl: url,
         customImageDataUrl: undefined,
       }));
+      applyCustomMediaToSegments("custom-video", url);
     } else if (file.type.startsWith("image/")) {
       const reader = new FileReader();
       reader.onload = () => {
         if (typeof reader.result === "string") {
+          const url = reader.result as string;
           setSettings(prev => ({
             ...prev,
             backgroundTheme: "custom-image",
-            customImageDataUrl: reader.result as string,
+            customImageDataUrl: url,
             customVideoUrl: undefined,
           }));
+          applyCustomMediaToSegments("custom-image", url);
         }
       };
       reader.readAsDataURL(file);
     }
   };
 
-  
   return (
     <div className="preview-layout">
       {/* CENTER PANEL */}
@@ -1596,7 +1710,7 @@ const [selectedSegmentId, setSelectedSegmentId] = useState<string | null>(null);
             flexWrap: "nowrap"
           }}
         >
-          {/* 1. LEFT ZONE: Duration Pill + Editable File Name */}
+          {/* 1. LEFT ZONE */}
           <div style={{ display: "flex", alignItems: "center", gap: "8px", minWidth: 0, overflow: "hidden" }}>
             {duration > 0 && (
               <span
@@ -1676,7 +1790,7 @@ const [selectedSegmentId, setSelectedSegmentId] = useState<string | null>(null);
             </div>
           </div>
 
-          {/* 2. CENTER ZONE: Canvas Scale & Fit Mode */}
+          {/* 2. CENTER ZONE */}
           <div style={{ display: "flex", alignItems: "center", flexShrink: 0 }}>
             <button
               type="button"
@@ -1691,7 +1805,7 @@ const [selectedSegmentId, setSelectedSegmentId] = useState<string | null>(null);
                 padding: "4px 9px",
                 borderRadius: "6px",
                 border: "1px solid rgba(255, 255, 255, 0.12)",
-                background: isZoom100 ? "var(--accent-glow, var(--accent-soft)" : "rgba(255, 255, 255, 0.04)",
+                background: isZoom100 ? "var(--accent-glow, var(--accent-soft))" : "rgba(255, 255, 255, 0.04)",
                 color: isZoom100 ? "#93c5fd" : "#d1d5db",
                 fontSize: "11px",
                 fontWeight: 600,
@@ -1704,7 +1818,7 @@ const [selectedSegmentId, setSelectedSegmentId] = useState<string | null>(null);
             </button>
           </div>
 
-          {/* 3. RIGHT ZONE: Aspect Ratio & Export Action */}
+          {/* 3. RIGHT ZONE */}
           <div style={{ display: "flex", alignItems: "center", gap: "10px", flexShrink: 0 }}>
             <div
               style={{
@@ -1777,7 +1891,7 @@ const [selectedSegmentId, setSelectedSegmentId] = useState<string | null>(null);
         </header>
 
         <div className="preview-stage" style={{ background: "#000000", display: "flex", alignItems: "center", justifyContent: "center", position: "relative" }} ref={canvasAreaRef} tabIndex={0} onKeyDown={handleCanvasKeyDown}>
-          <div className={`canvas-frame ratio-${settings.aspectRatio.replace(":", "-")} ${isZoom100 ? "canvas-actual-size" : ""}`}>
+          <div className={"canvas-frame ratio-" + settings.aspectRatio.replace(":", "-") + (isZoom100 ? " canvas-actual-size" : "")}>
             <canvas
               ref={canvasRef}
               width={dims.width}
@@ -1787,7 +1901,6 @@ const [selectedSegmentId, setSelectedSegmentId] = useState<string | null>(null);
               aria-label="Caption preview. Click a visible caption to edit it."
               className={editingSubtitleId ? "editing" : ""}
             />
-            {/* Canvas textarea replaced by popup modal */}
           </div>
           {!videoFile && <div className="preview-empty">Upload media to start previewing</div>}
           <video
@@ -1813,7 +1926,7 @@ const [selectedSegmentId, setSelectedSegmentId] = useState<string | null>(null);
           )}
         </div>
 
-        {/* BOTTOM STUDIO TIMELINE PANEL */}
+        {/* BOTTOM TIMELINE PANEL */}
         <section
           className="player-panel" style={{ background: "#12141a", borderTop: "1px solid rgba(255, 255, 255, 0.08)" }}
           onClick={e => {
@@ -1825,9 +1938,8 @@ const [selectedSegmentId, setSelectedSegmentId] = useState<string | null>(null);
             }
           }}
         >
-          {/* TIMELINE EDITOR */}
           <div className="timeline-editor" aria-label="Timeline" ref={timelineContainerRef} style={{ display: "flex", width: "100%", overflow: "hidden", position: "relative" }}>
-            {/* 100% FIXED LEFT LABELS COLUMN */}
+            {/* FIXED LEFT LABELS */}
             <div
               className="timeline-fixed-headers"
               style={{
@@ -1845,7 +1957,7 @@ const [selectedSegmentId, setSelectedSegmentId] = useState<string | null>(null);
               <div style={{ height: "26px", borderBottom: "1px solid rgba(255, 255, 255, 0.08)", background: "#0d0f14" }} />
               <div style={{ display: "flex", flexDirection: "column", gap: "6px", paddingTop: "6px", paddingBottom: "14px" }}>
                 <div
-                  className={`track-name-tag ${selectedLayer === "audio" ? "is-selected" : ""}`}
+                  className={"track-name-tag " + (selectedLayer === "audio" ? "is-selected" : "")}
                   style={{ height: "34px", display: "flex", alignItems: "center", padding: "0 12px", fontSize: "0.65rem", fontWeight: 800, letterSpacing: "0.05em", color: "#ffffff", cursor: "pointer" }}
                   onClick={e => {
                     e.stopPropagation();
@@ -1857,19 +1969,23 @@ const [selectedSegmentId, setSelectedSegmentId] = useState<string | null>(null);
                 </div>
 
                 <div
-                  className={`track-name-tag ${selectedLayer === "background" ? "is-selected" : ""}`}
+                  className={"track-name-tag " + (selectedLayer === "background" ? "is-selected" : "")}
                   style={{ height: "34px", display: "flex", alignItems: "center", padding: "0 12px", fontSize: "0.65rem", fontWeight: 800, letterSpacing: "0.05em", color: "#cbd5e1", cursor: "pointer" }}
                   onClick={e => {
                     e.stopPropagation();
                     setSelectedLayer("background");
                     selectSubtitle(null);
+                    const cur = currentTimeRef.current;
+                    const match = bgSegments.find(s => cur >= s.start && cur < s.end) || bgSegments[0];
+                    if (match) setSelectedSegmentId(match.id);
+                    onPlaybackStateChange?.({ selectedLayer: "background" });
                   }}
                 >
                   BACKGROUND
                 </div>
 
                 <div
-                  className={`track-name-tag ${selectedLayer === "caption" ? "is-selected" : ""}`}
+                  className={"track-name-tag " + (selectedLayer === "caption" ? "is-selected" : "")}
                   style={{ height: "40px", display: "flex", alignItems: "center", padding: "0 12px", fontSize: "0.65rem", fontWeight: 800, letterSpacing: "0.05em", color: "#ffffff", cursor: "pointer" }}
                   onClick={e => {
                     e.stopPropagation();
@@ -1880,7 +1996,7 @@ const [selectedSegmentId, setSelectedSegmentId] = useState<string | null>(null);
                 </div>
 
                 <div
-                  className={`track-name-tag ${selectedLayer === "music" ? "is-selected" : ""}`}
+                  className={"track-name-tag " + (selectedLayer === "music" ? "is-selected" : "")}
                   style={{ height: "34px", display: "flex", alignItems: "center", justifyContent: "space-between", padding: "0 12px", fontSize: "0.65rem", fontWeight: 800, letterSpacing: "0.05em", color: "#cbd5e1", cursor: "pointer" }}
                   onClick={e => {
                     e.stopPropagation();
@@ -1912,7 +2028,6 @@ const [selectedSegmentId, setSelectedSegmentId] = useState<string | null>(null);
 
             {/* HORIZONTALLY SCROLLABLE TRACK LANES */}
             <div style={{ flex: 1, minWidth: 0, position: "relative", overflow: "hidden", display: "flex" }}>
-              {/* FIXED CENTER-LEFT PLAYHEAD NEEDLE (LOCKED AT 25%) */}
               <div
                 style={{
                   position: "absolute",
@@ -1963,6 +2078,7 @@ const [selectedSegmentId, setSelectedSegmentId] = useState<string | null>(null);
                   if (scrollableWidth > 0) {
                     const newTime = Math.max(0, Math.min(effectiveDuration, (scroller.scrollLeft / scrollableWidth) * totalTimelineDuration));
                     setCurrentTime(newTime);
+                    currentTimeRef.current = newTime;
                     const media = mediaRef.current;
                     if (media && newTime <= (media.duration || 0)) {
                       media.currentTime = newTime;
@@ -1978,7 +2094,7 @@ const [selectedSegmentId, setSelectedSegmentId] = useState<string | null>(null);
                 <div
                   className="timeline-virtual-canvas"
                   style={{
-                    width: `${Math.max(100, (totalTimelineDuration / 20) * 100 * timelineZoom)}%`,
+                    width: Math.max(100, (totalTimelineDuration / 20) * 100 * timelineZoom) + "%",
                     position: "relative",
                     minWidth: "100%",
                     paddingLeft: "25%",
@@ -1986,7 +2102,6 @@ const [selectedSegmentId, setSelectedSegmentId] = useState<string | null>(null);
                     boxSizing: "content-box"
                   }}
                 >
-                  {/* TIME RULER EXTENDING +30s BEYOND THE LONGEST TRACK */}
                   <div className="timeline-ruler" aria-hidden="true" onClick={handleTimelineClick} style={{ height: "26px", position: "relative" }}>
                     {(() => {
                       const step = timelineZoom > 2 ? 0.25 : timelineZoom > 1 ? 0.5 : 1.0;
@@ -1996,8 +2111,8 @@ const [selectedSegmentId, setSelectedSegmentId] = useState<string | null>(null);
                         ticks.push(
                           <div
                             key={t}
-                            className={`ruler-tick ${isMajor ? "major" : "minor"}`}
-                            style={{ left: `${(t / totalTimelineDuration) * 100}%` }}
+                            className={"ruler-tick " + (isMajor ? "major" : "minor")}
+                            style={{ left: ((t / totalTimelineDuration) * 100) + "%" }}
                           >
                             <span className="ruler-tick-label">
                               {formatPrecisionTime(t)}
@@ -2009,11 +2124,10 @@ const [selectedSegmentId, setSelectedSegmentId] = useState<string | null>(null);
                     })()}
                   </div>
 
-                  {/* TRACK LANES WITH FULL-WIDTH SHADOW BASE */}
-                  <div className={`timeline-tracks-stack ${selectedLayer ? "has-layer-selected" : "all-layers-active"}`} style={{ width: "100%", minWidth: "100%", display: "flex", flexDirection: "column", gap: "6px", paddingTop: "6px", paddingBottom: "14px" }}>
+                  <div className={"timeline-tracks-stack " + (selectedLayer ? "has-layer-selected" : "all-layers-active")} style={{ width: "100%", minWidth: "100%", display: "flex", flexDirection: "column", gap: "6px", paddingTop: "6px", paddingBottom: "14px" }}>
                     {/* TRACK 1: AUDIO */}
                     <div
-                      className={`timeline-unified-row row-audio ${selectedLayer === "audio" ? "is-selected" : selectedLayer ? "is-dimmed" : "is-active"}`}
+                      className={"timeline-unified-row row-audio " + (selectedLayer === "audio" ? "is-selected" : selectedLayer ? "is-dimmed" : "is-active")}
                       style={{ height: "34px", display: "block", background: "#181b24", border: "1px solid rgba(255, 255, 255, 0.05)", borderRadius: "4px", overflow: "hidden" }}
                       onClick={e => {
                         e.stopPropagation();
@@ -2024,7 +2138,7 @@ const [selectedSegmentId, setSelectedSegmentId] = useState<string | null>(null);
                       <div className="track-lane" onClick={handleTimelineClick} style={{ height: "100%", width: "100%", position: "relative" }}>
                         <div
                           className="track-lane-clip clip-audio-fill" style={{ background: "#232734", border: "1px solid #373e52",
-                            width: `${Math.min(100, ((duration || mediaDuration || 0) / totalTimelineDuration) * 100)}%`,
+                            width: Math.min(100, ((duration || mediaDuration || 0) / totalTimelineDuration) * 100) + "%",
                             height: "100%"
                           }}
                         >
@@ -2035,13 +2149,14 @@ const [selectedSegmentId, setSelectedSegmentId] = useState<string | null>(null);
 
                     {/* TRACK 2: BACKGROUND */}
                     <div
-                      className={`timeline-unified-row row-bg ${selectedLayer === "background" ? "is-selected" : selectedLayer ? "is-dimmed" : "is-active"}`}
+                      className={"timeline-unified-row row-bg " + (selectedLayer === "background" ? "is-selected" : selectedLayer ? "is-dimmed" : "is-active")}
                       style={{ height: "34px", display: "block", background: "#181b24", border: "1px solid rgba(255, 255, 255, 0.05)", borderRadius: "4px", position: "relative" }}
                       onClick={e => {
                         e.stopPropagation();
                         setSelectedLayer("background");
                         selectSubtitle(null);
-                        const match = bgSegments.find(s => currentTime >= s.start && currentTime <= (s.end || effectiveDuration)) || bgSegments[0];
+                        const cur = currentTimeRef.current;
+                        const match = bgSegments.find(s => cur >= s.start && cur < s.end) || bgSegments[0];
                         if (match) setSelectedSegmentId(match.id);
                         onPlaybackStateChange?.({ selectedLayer: "background" });
                       }}
@@ -2083,12 +2198,15 @@ const [selectedSegmentId, setSelectedSegmentId] = useState<string | null>(null);
                               return (
                                 <div
                                   key={seg.id}
-                                  className={`track-lane-clip clip-bg-fill ${isSegSelected ? "is-segment-active" : ""}`}
+                                  className={"track-lane-clip clip-bg-fill " + (isSegSelected ? "is-segment-active" : "is-segment-dimmed")}
                                   style={{
-                                    background: isSegSelected ? "#2d3748" : "#1e222d",
-                                    border: isSegSelected ? "1.5px solid var(--accent-primary, #60a5fa)" : "1px solid #373e52",
-                                    left: `${leftPct}%`,
-                                    width: `${widthPct}%`,
+                                    background: isSegSelected ? "var(--accent-soft, #312e81)" : "#1e222d",
+                                    border: isSegSelected ? "2px solid var(--accent-primary, #60a5fa)" : "1px solid rgba(255, 255, 255, 0.12)",
+                                    boxShadow: isSegSelected ? "0 0 10px rgba(96, 165, 250, 0.45)" : "none",
+                                    filter: (selectedLayer === "background" && selectedSegmentId && !isSegSelected) ? "grayscale(85%) opacity(0.35)" : undefined,
+                                    transition: "all 0.18s cubic-bezier(0.4, 0, 0.2, 1)",
+                                    left: leftPct + "%",
+                                    width: widthPct + "%",
                                     height: "100%",
                                     position: "absolute",
                                     display: "flex",
@@ -2105,6 +2223,7 @@ const [selectedSegmentId, setSelectedSegmentId] = useState<string | null>(null);
                                     setSelectedSegmentId(seg.id);
                                     selectSubtitle(null);
                                     onPlaybackStateChange?.({ selectedLayer: "background" });
+                                    seekToTime(seg.start + 0.05);
                                   }}
                                 >
                                   <button
@@ -2116,8 +2235,8 @@ const [selectedSegmentId, setSelectedSegmentId] = useState<string | null>(null);
                                     onPointerUp={endSegmentDrag}
                                   ></button>
                                   <span className="clip-label-text" style={{ padding: "0 12px", fontSize: "11px", color: "#fff", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
-                                    {seg.themeId ? `Theme: ${seg.themeId.toUpperCase()}` : "MIDNIGHT"}
-                                    {bgSegments.length > 1 ? ` (${idx + 1})` : ""}
+                                    {seg.themeId === "custom-image" ? "Photo backdrop" : seg.themeId === "custom-video" ? "Video backdrop" : (seg.themeId ? "Theme: " + seg.themeId.toUpperCase() : "MIDNIGHT")}
+                                    {bgSegments.length > 1 ? " (" + (idx + 1) + ")" : ""}
                                   </span>
                                   <button
                                     type="button"
@@ -2138,28 +2257,20 @@ const [selectedSegmentId, setSelectedSegmentId] = useState<string | null>(null);
                               return (
                                 <button
                                   type="button"
-                                  title="Add another 10s background segment"
+                                  title="Add another 4s background segment"
                                   onClick={e => {
                                     e.stopPropagation();
                                     const newStart = lastEnd;
-                                    const segDuration = Math.min(10, Math.max(1, effectiveDuration - newStart));
-                                    const newEnd = newStart + segDuration;
-                                    const newSeg = {
-                                      id: "bg-" + Date.now(),
-                                      start: newStart,
-                                      end: newEnd,
-                                      themeId: settings.backgroundTheme || "midnight",
-                                      color: settings.backgroundColor || "#000000"
-                                    };
-                                    setBgSegments(prev => [...prev, newSeg].sort((a,b) => a.start - b.start));
+                                    const segDuration = Math.min(4, Math.max(1, effectiveDuration - newStart));
+                                    setPendingNewBgSlot({ start: newStart, duration: segDuration });
                                     setSelectedLayer("background");
-                                    setSelectedSegmentId(newSeg.id);
+                                    setSelectedSegmentId(null);
                                     setActiveCatalogTab("backgrounds");
                                     onPlaybackStateChange?.({ selectedLayer: "background" });
                                   }}
                                   style={{
                                     position: "absolute",
-                                    left: `${addLeftPct}%`,
+                                    left: addLeftPct + "%",
                                     top: "4px",
                                     height: "26px",
                                     padding: "0 8px",
@@ -2187,7 +2298,7 @@ const [selectedSegmentId, setSelectedSegmentId] = useState<string | null>(null);
                     
                     {/* TRACK 3: CAPTION */}
                     <div
-                      className={`timeline-unified-row row-caption track-row-captions ${selectedLayer === "caption" ? "is-selected" : selectedLayer ? "is-dimmed" : "is-active"}`}
+                      className={"timeline-unified-row row-caption track-row-captions " + (selectedLayer === "caption" ? "is-selected" : selectedLayer ? "is-dimmed" : "is-active")}
                       style={{ height: "40px", display: "block", background: "#181b24", border: "1px solid rgba(255, 255, 255, 0.05)", borderRadius: "4px" }}
                       onClick={e => {
                         e.stopPropagation();
@@ -2207,10 +2318,10 @@ const [selectedSegmentId, setSelectedSegmentId] = useState<string | null>(null);
                           return (
                             <div
                               key={subtitle.id}
-                              className={`caption-segment-pill ${isSelected ? "is-selected" : selectedSubtitleId ? "is-caption-dimmed" : ""}`}
+                              className={"caption-segment-pill " + (isSelected ? "is-selected" : selectedSubtitleId ? "is-caption-dimmed" : "")}
                               style={{
-                                left: `${startPercent}%`,
-                                width: `${widthPercent}%`,
+                                left: startPercent + "%",
+                                width: widthPercent + "%",
                                 filter: captionSearchQuery && captionSearchQuery.trim()
                                   ? (isSearchHit
                                       ? "brightness(1.3) contrast(1.1) drop-shadow(0 0 8px rgba(168, 85, 247, 0.95))"
@@ -2272,7 +2383,7 @@ const [selectedSegmentId, setSelectedSegmentId] = useState<string | null>(null);
 
                     {/* TRACK 4: MUSIC */}
                     <div
-                      className={`timeline-unified-row row-music ${selectedLayer === "music" ? "is-selected" : selectedLayer ? "is-dimmed" : "is-active"}`}
+                      className={"timeline-unified-row row-music " + (selectedLayer === "music" ? "is-selected" : selectedLayer ? "is-dimmed" : "is-active")}
                       style={{ height: "34px", display: "block", background: "#181b24", border: "1px solid rgba(255, 255, 255, 0.05)", borderRadius: "4px" }}
                       onClick={e => {
                         e.stopPropagation();
@@ -2291,10 +2402,10 @@ const [selectedSegmentId, setSelectedSegmentId] = useState<string | null>(null);
                             return (
                               <div
                                 key={seg.id}
-                                className={`track-lane-clip clip-music-fill ${isSegSelected ? "is-segment-active" : ""}`}
+                                className={"track-lane-clip clip-music-fill " + (isSegSelected ? "is-segment-active" : "")}
                                 style={{
-                                  left: `${leftPct}%`,
-                                  width: `${widthPct}%`,
+                                  left: leftPct + "%",
+                                  width: widthPct + "%",
                                   height: "100%"
                                 }}
                                 onClick={ev => {
@@ -2305,7 +2416,7 @@ const [selectedSegmentId, setSelectedSegmentId] = useState<string | null>(null);
                               >
                                 <span className="clip-label-text">
                                   {localSongName || "Custom song track"}
-                                  {songSegments.length > 1 ? ` (${idx + 1})` : ""}
+                                  {songSegments.length > 1 ? " (" + (idx + 1) + ")" : ""}
                                 </span>
                                 {songSegments.length > 1 && (
                                   <button
@@ -2496,7 +2607,7 @@ const [selectedSegmentId, setSelectedSegmentId] = useState<string | null>(null);
 
           {/* MAIN HEADING & 4 TOP TABS */}
           <div className="catalog-header">
-            <span className="catalog-title" style={{ color: "#ffffff", fontWeight: 700 }}>Style &amp; Appearance</span>
+            <span className="catalog-title" style={{ color: "#ffffff", fontWeight: 700 }}>Style & Appearance</span>
             <div className="catalog-tabs" role="tablist" aria-label="Style panels" style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: "4px" }}>
               <button
                 type="button"
@@ -2558,7 +2669,7 @@ const [selectedSegmentId, setSelectedSegmentId] = useState<string | null>(null);
                     <button
                       key={item.color}
                       type="button"
-                      className={"solid-color-btn " + (settings.backgroundColor === item.color && settings.backgroundTheme === "midnight" ? "is-active" : "")}
+                      className={"solid-color-btn " + (((bgSegments.find(s => s.id === selectedSegmentId)?.color || settings.backgroundColor) === item.color && (bgSegments.find(s => s.id === selectedSegmentId)?.themeId || settings.backgroundTheme || "midnight") === "midnight") ? "is-active" : "")}
                       style={{
                         backgroundColor: item.color,
                         width: "30px",
@@ -2571,10 +2682,10 @@ const [selectedSegmentId, setSelectedSegmentId] = useState<string | null>(null);
                         justifyContent: "center",
                         boxShadow: "0 2px 6px rgba(0,0,0,0.3)"
                       }}
-                      onClick={() => handleSelectBackgroundWithConfirm(() => setSettings(prev => ({ ...prev, backgroundTheme: "midnight", backgroundColor: item.color, customImageDataUrl: undefined, customVideoUrl: undefined })))}
+                      onClick={() => handleSelectBackgroundWithConfirm(() => setSettings(prev => ({ ...prev, backgroundTheme: "midnight", backgroundColor: item.color, customImageDataUrl: undefined, customVideoUrl: undefined })), "midnight", item.color)}
                       title={item.label}
                     >
-                      {settings.backgroundColor === item.color && settings.backgroundTheme === "midnight" && (
+                      {((bgSegments.find(s => s.id === selectedSegmentId)?.color || settings.backgroundColor) === item.color && (bgSegments.find(s => s.id === selectedSegmentId)?.themeId || settings.backgroundTheme || "midnight") === "midnight") && (
                         <Check size={12} color={item.color === "#ffffff" ? "#000000" : "#ffffff"} strokeWidth={3} />
                       )}
                     </button>
@@ -2600,7 +2711,7 @@ const [selectedSegmentId, setSelectedSegmentId] = useState<string | null>(null);
                       type="color"
                       style={{ display: "none" }}
                       value={settings.backgroundColor || "#000000"}
-                      onChange={e => { const val = e.target.value; handleSelectBackgroundWithConfirm(() => setSettings(prev => ({ ...prev, backgroundTheme: "midnight", backgroundColor: val, customImageDataUrl: undefined, customVideoUrl: undefined }))); }}
+                      onChange={e => { const val = e.target.value; handleSelectBackgroundWithConfirm(() => setSettings(prev => ({ ...prev, backgroundTheme: "midnight", backgroundColor: val, customImageDataUrl: undefined, customVideoUrl: undefined })), "midnight", val); }}
                     />
                   </label>
                 </div>
@@ -2622,12 +2733,13 @@ const [selectedSegmentId, setSelectedSegmentId] = useState<string | null>(null);
                   }}
                 >
                   {[{"id":"sunset-mesh","name":"Sunset","css":"linear-gradient(135deg, #ff512f, #dd2476)"},{"id":"deep-blue","name":"Deep Blue","css":"linear-gradient(135deg, #0f2027, #203a43, #2c5364)"},{"id":"purple-haze","name":"Purple Haze","css":"linear-gradient(135deg, #7f00ff, #e100ff)"},{"id":"emerald","name":"Emerald","css":"linear-gradient(135deg, #0ba360, #3cba92)"},{"id":"crimson-tide","name":"Crimson","css":"linear-gradient(135deg, #642b73, #c6426e)"},{"id":"cyber-punk","name":"Cyberpunk","css":"linear-gradient(135deg, #ff0844, #ffb199)"},{"id":"aurora","name":"Aurora","css":"linear-gradient(135deg, #00c6ff, #0072ff)"},{"id":"golden-hour","name":"Gold","css":"linear-gradient(135deg, #f7971e, #ffd200)"},{"id":"midnight-neon","name":"Midnight","css":"linear-gradient(135deg, #182848, #4b6cb7)"},{"id":"dark-matter","name":"Obsidian","css":"linear-gradient(135deg, #232526, #414345)"}].map(g => {
-                    const isSelected = settings.backgroundTheme === g.id;
+                    const activeSeg = bgSegments.find(s => s.id === selectedSegmentId);
+                    const isSelected = activeSeg ? activeSeg.themeId === g.id : settings.backgroundTheme === g.id;
                     return (
                       <button
                         key={g.id}
                         type="button"
-                        onClick={() => handleSelectBackgroundWithConfirm(() => setSettings(prev => ({ ...prev, backgroundTheme: g.id as any, customImageDataUrl: undefined, customVideoUrl: undefined })))}
+                        onClick={() => handleSelectBackgroundWithConfirm(() => setSettings(prev => ({ ...prev, backgroundTheme: g.id as any, customImageDataUrl: undefined, customVideoUrl: undefined })), g.id, undefined)}
                         title={g.name}
                         style={{
                           flex: "0 0 90px",
@@ -2680,12 +2792,13 @@ const [selectedSegmentId, setSelectedSegmentId] = useState<string | null>(null);
                   }}
                 >
                   {[{"id":"pattern-grid","name":"Grid","css":"radial-gradient(rgba(255,255,255,0.2) 1px, transparent 1px), #0f172a","bgSize":"16px 16px"},{"id":"pattern-dots","name":"Dots","css":"radial-gradient(rgba(255,255,255,0.15) 1.5px, transparent 1.5px), #1e1b4b","bgSize":"14px 14px"},{"id":"pattern-lines","name":"Lines","css":"repeating-linear-gradient(45deg, rgba(255,255,255,0.05) 0, rgba(255,255,255,0.05) 1px, transparent 0, transparent 10px), #0c1017"},{"id":"pattern-carbon","name":"Carbon","css":"linear-gradient(27deg, #151515 5px, transparent 5px) 0 5px, linear-gradient(207deg, #151515 5px, transparent 5px) 10px 0px, #111"},{"id":"pattern-cubes","name":"Blueprint","css":"linear-gradient(rgba(56, 189, 248, 0.1) 1px, transparent 1px), linear-gradient(90deg, rgba(56, 189, 248, 0.1) 1px, transparent 1px), #030712","bgSize":"20px 20px"},{"id":"pattern-hex","name":"Hexagon","css":"radial-gradient(circle at 50% 50%, rgba(168, 85, 247, 0.15) 20%, transparent 20%), #090b10","bgSize":"18px 18px"},{"id":"pattern-paper","name":"Paper","css":"radial-gradient(#ffffff 0.5px, transparent 0.5px), #1e293b","bgSize":"12px 12px"},{"id":"pattern-noise","name":"Studio","css":"radial-gradient(circle at center, #1e293b 0%, #090d16 100%)"},{"id":"pattern-scanlines","name":"Scanlines","css":"repeating-linear-gradient(0deg, rgba(0,0,0,0.3) 0px, rgba(0,0,0,0.3) 1px, transparent 1px, transparent 2px), #1e1b4b"},{"id":"pattern-glow","name":"Glow Orb","css":"radial-gradient(circle at 50% 30%, var(--accent-glow, rgba(59, 130, 246, 0.4) 0%, transparent 70%), #020617"}].map(p => {
-                    const isSelected = settings.backgroundTheme === p.id;
+                    const activeSeg = bgSegments.find(s => s.id === selectedSegmentId);
+                    const isSelected = activeSeg ? activeSeg.themeId === p.id : settings.backgroundTheme === p.id;
                     return (
                       <button
                         key={p.id}
                         type="button"
-                        onClick={() => handleSelectBackgroundWithConfirm(() => setSettings(prev => ({ ...prev, backgroundTheme: p.id as any, customImageDataUrl: undefined, customVideoUrl: undefined })))}
+                        onClick={() => handleSelectBackgroundWithConfirm(() => setSettings(prev => ({ ...prev, backgroundTheme: p.id as any, customImageDataUrl: undefined, customVideoUrl: undefined })), p.id, undefined)}
                         title={p.name}
                         style={{
                           flex: "0 0 90px",
@@ -2730,20 +2843,20 @@ const [selectedSegmentId, setSelectedSegmentId] = useState<string | null>(null);
                 </span>
                 <label
                   className="upload-dropzone"
-    style={{
-      display: "flex",
-      flexDirection: "column",
-      alignItems: "center",
-      justifyContent: "center",
-      gap: "6px",
-      padding: "18px 12px",
-      border: "1.5px dashed rgba(255, 255, 255, 0.15)",
-      borderRadius: "8px",
-      background: "#181b24",
-      color: "#ffffff",
-      cursor: "pointer",
-      textAlign: "center"
-    }}
+                  style={{
+                    display: "flex",
+                    flexDirection: "column",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    gap: "6px",
+                    padding: "18px 12px",
+                    border: "1.5px dashed rgba(255, 255, 255, 0.15)",
+                    borderRadius: "8px",
+                    background: "#181b24",
+                    color: "#ffffff",
+                    cursor: "pointer",
+                    textAlign: "center"
+                  }}
                 >
                   <FolderUp size={18} color="var(--accent-primary)" />
                   <span style={{ fontSize: "0.74rem", fontWeight: 600, color: "#ffffff" }}>Choose Photo or Video</span>
@@ -2760,7 +2873,10 @@ const [selectedSegmentId, setSelectedSegmentId] = useState<string | null>(null);
                   />
                 </label>
 
-                {(settings.customImageDataUrl || settings.customVideoUrl) && (
+                {(() => {
+                  const activeSeg = bgSegments.find(s => s.id === selectedSegmentId) || bgSegments.find(s => currentTime >= s.start && currentTime < s.end);
+                  return Boolean(activeSeg?.customImageUrl || activeSeg?.customVideoUrl || (selectedSegmentId === null && (settings.customImageDataUrl || settings.customVideoUrl)));
+                })() && (
                   <div style={{ display: "flex", flexDirection: "column", gap: "10px", marginTop: "12px" }}>
                     <div
                       style={{
@@ -2777,12 +2893,12 @@ const [selectedSegmentId, setSelectedSegmentId] = useState<string | null>(null);
                       <button
                         type="button"
                         style={{ background: "transparent", border: "none", color: "#ffffff", cursor: "pointer", padding: "2px", display: "flex", alignItems: "center" }}
-                        onClick={() => setSettings(prev => ({
-                          ...prev,
-                          customImageDataUrl: undefined,
-                          customVideoUrl: undefined,
-                          backgroundTheme: isVideoMedia ? "original-video" : "midnight",
-                        }))}
+                        onClick={() => {
+                          setSettings(prev => ({ ...prev, customImageDataUrl: undefined, customVideoUrl: undefined }));
+                          if (selectedSegmentId) {
+                            setBgSegments(prev => prev.map(s => s.id === selectedSegmentId ? { ...s, themeId: "midnight", color: "#000000", customImageUrl: undefined, customVideoUrl: undefined } : s));
+                          }
+                        }}
                         title="Remove custom backdrop"
                       >
                         <X size={13} />
@@ -2857,7 +2973,7 @@ const [selectedSegmentId, setSelectedSegmentId] = useState<string | null>(null);
                             onBlur={() => setHoveredTemplateId(null)}
                             onClick={() => setSettings(applyTemplateToSettings(settings, template.id))}
                             style={{
-                              background: isSelected ? "var(--accent-glow, rgba(59, 130, 246, 0.16)" : "#14171c",
+                              background: isSelected ? "var(--accent-glow, rgba(59, 130, 246, 0.16))" : "#14171c",
                               border: isSelected ? "1.5px solid var(--accent-primary)" : "1px solid #232730",
                               borderRadius: "12px",
                               padding: "8px",
@@ -2930,6 +3046,7 @@ const [selectedSegmentId, setSelectedSegmentId] = useState<string | null>(null);
               })}
             </div>
           )}
+
           {activeCatalogTab === "typography" && (
             <div className="catalog-pane" style={{ display: "flex", flexDirection: "column", gap: "16px", padding: "4px 0" }}>
               <div className="sub-catalog-group">
@@ -2940,54 +3057,54 @@ const [selectedSegmentId, setSelectedSegmentId] = useState<string | null>(null);
                   <div className="custom-select-wrap">
                     <select className="studio-select" value={settings.fontFamily} onChange={e => setAppearance("fontFamily", e.target.value)} style={{ background: "#1c202a", color: "#ffffff", border: "1px solid rgba(255, 255, 255, 0.12)", borderRadius: "6px", fontFamily: settings.fontFamily }}>
                       <optgroup label="serif">
-                        <option key="Times New Roman" value={"\"Times New Roman\", Times, serif"} style={{ fontFamily: "\"Times New Roman\", Times, serif" }}>Times New Roman</option>
+                        <option key="Times New Roman" value={"Times New Roman, Times, serif"} style={{ fontFamily: "Times New Roman, Times, serif" }}>Times New Roman</option>
                         <option key="Georgia" value={"Georgia, serif"} style={{ fontFamily: "Georgia, serif" }}>Georgia</option>
-                        <option key="Garamond" value={"Garamond, \"Hoefler Text\", serif"} style={{ fontFamily: "Garamond, \"Hoefler Text\", serif" }}>Garamond</option>
-                        <option key="Palatino" value={"\"Palatino Linotype\", Palatino, serif"} style={{ fontFamily: "\"Palatino Linotype\", Palatino, serif" }}>Palatino</option>
+                        <option key="Garamond" value={"Garamond, serif"} style={{ fontFamily: "Garamond, serif" }}>Garamond</option>
+                        <option key="Palatino" value={"Palatino, serif"} style={{ fontFamily: "Palatino, serif" }}>Palatino</option>
                         <option key="Baskerville" value={"Baskerville, serif"} style={{ fontFamily: "Baskerville, serif" }}>Baskerville</option>
                         <option key="Cambria" value={"Cambria, Georgia, serif"} style={{ fontFamily: "Cambria, Georgia, serif" }}>Cambria</option>
                       </optgroup>
                       <optgroup label="sans-serif">
                         <option key="Arial" value={"Arial, Helvetica, sans-serif"} style={{ fontFamily: "Arial, Helvetica, sans-serif" }}>Arial</option>
-                        <option key="Helvetica" value={"\"Helvetica Neue\", Helvetica, Arial, sans-serif"} style={{ fontFamily: "\"Helvetica Neue\", Helvetica, Arial, sans-serif" }}>Helvetica</option>
+                        <option key="Helvetica" value={"Helvetica, Arial, sans-serif"} style={{ fontFamily: "Helvetica, Arial, sans-serif" }}>Helvetica</option>
                         <option key="Verdana" value={"Verdana, Geneva, sans-serif"} style={{ fontFamily: "Verdana, Geneva, sans-serif" }}>Verdana</option>
-                        <option key="Trebuchet MS" value={"\"Trebuchet MS\", sans-serif"} style={{ fontFamily: "\"Trebuchet MS\", sans-serif" }}>Trebuchet MS</option>
-                        <option key="Segoe UI" value={"\"Segoe UI\", Roboto, sans-serif"} style={{ fontFamily: "\"Segoe UI\", Roboto, sans-serif" }}>Segoe UI</option>
+                        <option key="Trebuchet MS" value={"Trebuchet MS, sans-serif"} style={{ fontFamily: "Trebuchet MS, sans-serif" }}>Trebuchet MS</option>
+                        <option key="Segoe UI" value={"Segoe UI, Roboto, sans-serif"} style={{ fontFamily: "Segoe UI, Roboto, sans-serif" }}>Segoe UI</option>
                         <option key="Tahoma" value={"Tahoma, Verdana, sans-serif"} style={{ fontFamily: "Tahoma, Verdana, sans-serif" }}>Tahoma</option>
                       </optgroup>
                       <optgroup label="monospace">
-                        <option key="Courier New" value={"\"Courier New\", Courier, monospace"} style={{ fontFamily: "\"Courier New\", Courier, monospace" }}>Courier New</option>
+                        <option key="Courier New" value={"Courier New, Courier, monospace"} style={{ fontFamily: "Courier New, Courier, monospace" }}>Courier New</option>
                         <option key="Consolas" value={"Consolas, monospace"} style={{ fontFamily: "Consolas, monospace" }}>Consolas</option>
                         <option key="Monaco" value={"Monaco, monospace"} style={{ fontFamily: "Monaco, monospace" }}>Monaco</option>
-                        <option key="Lucida Console" value={"\"Lucida Console\", monospace"} style={{ fontFamily: "\"Lucida Console\", monospace" }}>Lucida Console</option>
-                        <option key="Source Code Pro" value={"\"Source Code Pro\", monospace"} style={{ fontFamily: "\"Source Code Pro\", monospace" }}>Source Code Pro</option>
+                        <option key="Lucida Console" value={"Lucida Console, monospace"} style={{ fontFamily: "Lucida Console, monospace" }}>Lucida Console</option>
+                        <option key="Source Code Pro" value={"Source Code Pro, monospace"} style={{ fontFamily: "Source Code Pro, monospace" }}>Source Code Pro</option>
                         <option key="Generic Monospace" value={"monospace"} style={{ fontFamily: "monospace" }}>Generic Monospace</option>
                       </optgroup>
                       <optgroup label="cursive">
-                        <option key="Comic Sans MS" value={"\"Comic Sans MS\", cursive, sans-serif"} style={{ fontFamily: "\"Comic Sans MS\", cursive, sans-serif" }}>Comic Sans MS</option>
-                        <option key="Brush Script MT" value={"\"Brush Script MT\", cursive"} style={{ fontFamily: "\"Brush Script MT\", cursive" }}>Brush Script MT</option>
-                        <option key="Lucida Handwriting" value={"\"Lucida Handwriting\", cursive"} style={{ fontFamily: "\"Lucida Handwriting\", cursive" }}>Lucida Handwriting</option>
-                        <option key="Apple Chancery" value={"\"Apple Chancery\", cursive"} style={{ fontFamily: "\"Apple Chancery\", cursive" }}>Apple Chancery</option>
-                        <option key="Bradley Hand" value={"\"Bradley Hand\", cursive"} style={{ fontFamily: "\"Bradley Hand\", cursive" }}>Bradley Hand</option>
+                        <option key="Comic Sans MS" value={"Comic Sans MS, cursive, sans-serif"} style={{ fontFamily: "Comic Sans MS, cursive, sans-serif" }}>Comic Sans MS</option>
+                        <option key="Brush Script MT" value={"Brush Script MT, cursive"} style={{ fontFamily: "Brush Script MT, cursive" }}>Brush Script MT</option>
+                        <option key="Lucida Handwriting" value={"Lucida Handwriting, cursive"} style={{ fontFamily: "Lucida Handwriting, cursive" }}>Lucida Handwriting</option>
+                        <option key="Apple Chancery" value={"Apple Chancery, cursive"} style={{ fontFamily: "Apple Chancery, cursive" }}>Apple Chancery</option>
+                        <option key="Bradley Hand" value={"Bradley Hand, cursive"} style={{ fontFamily: "Bradley Hand, cursive" }}>Bradley Hand</option>
                         <option key="Generic Cursive" value={"cursive"} style={{ fontFamily: "cursive" }}>Generic Cursive</option>
                       </optgroup>
                       <optgroup label="fantasy">
                         <option key="Impact" value={"Impact, fantasy"} style={{ fontFamily: "Impact, fantasy" }}>Impact</option>
                         <option key="Papyrus" value={"Papyrus, fantasy"} style={{ fontFamily: "Papyrus, fantasy" }}>Papyrus</option>
-                        <option key="Copperplate" value={"\"Copperplate Gothic\", Copperplate, fantasy"} style={{ fontFamily: "\"Copperplate Gothic\", Copperplate, fantasy" }}>Copperplate</option>
+                        <option key="Copperplate" value={"Copperplate, fantasy"} style={{ fontFamily: "Copperplate, fantasy" }}>Copperplate</option>
                         <option key="Harrington" value={"Harrington, fantasy"} style={{ fontFamily: "Harrington, fantasy" }}>Harrington</option>
                         <option key="Luminari" value={"Luminari, fantasy"} style={{ fontFamily: "Luminari, fantasy" }}>Luminari</option>
                         <option key="Generic Fantasy" value={"fantasy"} style={{ fontFamily: "fantasy" }}>Generic Fantasy</option>
                       </optgroup>
                       <optgroup label="system-ui">
                         <option key="System Default" value={"system-ui, -apple-system, sans-serif"} style={{ fontFamily: "system-ui, -apple-system, sans-serif" }}>System Default</option>
-                        <option key="Segoe UI" value={"\"Segoe UI\", sans-serif"} style={{ fontFamily: "\"Segoe UI\", sans-serif" }}>Segoe UI</option>
+                        <option key="Segoe UI System" value={"Segoe UI, sans-serif"} style={{ fontFamily: "Segoe UI, sans-serif" }}>Segoe UI</option>
                         <option key="Roboto" value={"Roboto, sans-serif"} style={{ fontFamily: "Roboto, sans-serif" }}>Roboto</option>
                         <option key="Cantarell" value={"Cantarell, sans-serif"} style={{ fontFamily: "Cantarell, sans-serif" }}>Cantarell</option>
                         <option key="San Francisco" value={"-apple-system, BlinkMacSystemFont, sans-serif"} style={{ fontFamily: "-apple-system, BlinkMacSystemFont, sans-serif" }}>San Francisco</option>
                         <option key="Ubuntu" value={"Ubuntu, sans-serif"} style={{ fontFamily: "Ubuntu, sans-serif" }}>Ubuntu</option>
                       </optgroup>
-                      </select>
+                    </select>
                   </div>
 
                   <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: "4px", background: "#181b24", border: "1px solid rgba(255, 255, 255, 0.08)", padding: "2px", borderRadius: "6px" }}>
@@ -3234,12 +3351,12 @@ const [selectedSegmentId, setSelectedSegmentId] = useState<string | null>(null);
                 <p style={{ fontSize: "0.75rem", margin: 0, fontWeight: 600, color: "#ffffff" }}>Coming Soon</p>
                 <p style={{ fontSize: "0.68rem", marginTop: "4px", color: "#64748b", lineHeight: 1.4 }}>
                   Audio ducking curve, vocal equalizer sync, and custom export profiles.
-                  </p>
-                </div>
+                </p>
               </div>
-            )}
-          </div>
-        </aside>
-      </div>
-    );
+            </div>
+          )}
+        </div>
+      </aside>
+    </div>
+  );
 };
