@@ -13,7 +13,8 @@ Sliders,
 } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { AspectRatio, CaptionLanguage, ExportResolutionPreset, Subtitle } from "../types";
-import { EXPORT_RESOLUTION_PRESETS, getExportDimensions } from "../utils/exportCapabilities";
+import { getPlanConfig } from "../utils/planLimits";
+import { getExportDimensions } from "../utils/exportCapabilities";
 import {
   downloadBlob,
   downloadSubtitleFile,
@@ -28,6 +29,7 @@ import {
 export type ExportPageStatus = "idle" | "rendering" | "success" | "error";
 
 export interface ExportPageProps {
+  userPlan?: string;
   aspectRatio: AspectRatio;
   subtitles: Subtitle[];
   language: CaptionLanguage;
@@ -48,6 +50,7 @@ const aspectRatios: Array<{ value: AspectRatio; label: string; iconLabel: string
 ];
 
 export function ExportPage({
+  userPlan = "starter",
   aspectRatio,
   subtitles,
   language,
@@ -57,7 +60,11 @@ export function ExportPage({
   initialFilename = "caption-export",
   onBack,
 }: ExportPageProps) {
-  const [resolution, setResolution] = useState<ExportResolutionPreset>("1080p");
+  const planConfig = getPlanConfig(userPlan);
+  const [resolution, setResolution] = useState<ExportResolutionPreset>(
+    planConfig.allowedResolutions.includes("1080p") ? "1080p" : "720p"
+  );
+  const [planNotice, setPlanNotice] = useState<string | null>(null);
   const [selectedAspectRatio, setSelectedAspectRatio] = useState<AspectRatio>(aspectRatio);
   const [frameRate, setFrameRate] = useState(30);
   const [format, setFormat] = useState<ExportFormat>("webm");
@@ -90,6 +97,12 @@ export function ExportPage({
   };
 
   const handleRender = async () => {
+    const maxSeconds = planConfig.maxDurationMinutes * 60;
+    if (duration > maxSeconds) {
+      setError(`Project duration (${Math.round(duration)}s) exceeds ${planConfig.name} limit of ${planConfig.maxDurationMinutes} minutes. Upgrade to export longer videos.`);
+      setStatus("error");
+      return;
+    }
     if (!renderExport) {
       setError("No video renderer is connected. Open the editor export action to render this project.");
       setStatus("error");
@@ -149,13 +162,56 @@ export function ExportPage({
   const previewDims = getPreviewAspectStyles();
 
   return (
-    <div style={{ minHeight: "100vh",
+    <div style={{ minHeight: "100vh", position: "relative",
       background: "#12141a",
       color: "#f3f4f6",
       fontFamily: "Inter, -apple-system, BlinkMacSystemFont, sans-serif",
       padding: "20px 36px 40px",
       boxSizing: "border-box"
     }}>
+      {planNotice && (
+        <div
+          style={{
+            position: "fixed",
+            top: "16px",
+            left: "50%",
+            transform: "translateX(-50%)",
+            zIndex: 999999,
+            display: "flex",
+            alignItems: "center",
+            gap: "10px",
+            padding: "9px 18px",
+            background: "#1e1b4b",
+            border: "1px solid #6366f1",
+            borderRadius: "8px",
+            fontSize: "12px",
+            color: "#e0e7ff",
+            fontWeight: 600,
+            boxShadow: "0 10px 30px rgba(0, 0, 0, 0.6)",
+            animation: "fadeIn 0.2s ease",
+            whiteSpace: "nowrap"
+          }}
+        >
+          <span>🔒 {planNotice}</span>
+          <button
+            type="button"
+            onClick={() => setPlanNotice(null)}
+            style={{
+              background: "transparent",
+              border: "none",
+              color: "#94a3b8",
+              cursor: "pointer",
+              fontSize: "13px",
+              padding: "0 2px",
+              marginLeft: "4px",
+              display: "flex",
+              alignItems: "center"
+            }}
+          >
+            ✕
+          </button>
+        </div>
+      )}
       {/* 1. TOP HEADER - ONLY BACK TO EDITOR BUTTON */}
       <header style={{
         display: "flex",
@@ -258,28 +314,61 @@ export function ExportPage({
             <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: "8px" }}>
               {resolutions.map(val => {
                 const isSelected = resolution === val;
+                const isAllowed = planConfig.allowedResolutions.includes(val);
+                const isLocked = !isAllowed;
+                const badgeLabel = (val === "720p" && userPlan === "starter")
+                  ? "FREE"
+                  : isLocked
+                    ? (val === "1080p" ? "LITE" : (val === "2K" || val === "4K") ? "MAX" : null)
+                    : null;
+
                 return (
                   <button
                     key={val}
                     type="button"
                     disabled={busy}
-                    onClick={() => setResolution(val)}
+                    onClick={() => {
+                      if (isLocked) {
+                        setPlanNotice(`${val} export is locked on ${planConfig.name}. Upgrade to unlock.`);
+                        setTimeout(() => setPlanNotice(null), 3500);
+                        return;
+                      }
+                      setResolution(val);
+                    }}
                     style={{
-                      padding: "10px 0",
-                      background: isSelected ? "var(--accent-glow, rgba(255, 255, 255, 0.08)" : "#1c202a",
-                      border: isSelected ? "1.5px solid var(--accent-primary)" : "1px solid #232836",
-                      color: isSelected ? "#fbf8ef" : "#94a3b8",
+                      position: "relative",
+                      display: "flex",
+                      flexDirection: "column",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      padding: "8px 12px",
                       borderRadius: "8px",
-                      fontSize: "12px",
-                      fontWeight: 700,
+                      border: isSelected ? "1px solid var(--accent-primary)" : "1px solid #232836",
+                      background: isSelected ? "rgba(238, 99, 70, 0.12)" : "#1c202a",
+                      color: isSelected ? "#ffffff" : "#f3f4f6",
                       cursor: busy ? "not-allowed" : "pointer",
-                      textAlign: "center"
+                      transition: "all 0.15s ease",
+                      gap: "2px"
                     }}
                   >
-                    <div>{val}</div>
-                    <div style={{ fontSize: "10px", fontWeight: 500, color: isSelected ? "#ffffff" : "#64748b", marginTop: "2px" }}>
-                      {EXPORT_RESOLUTION_PRESETS[val].label}
+                    <div style={{ display: "flex", alignItems: "center", gap: "5px" }}>
+                      <span style={{ fontSize: "12px", fontWeight: 700, color: isSelected ? "#ffffff" : "#f3f4f6" }}>{val}</span>
+                      {badgeLabel && (
+                        <span style={{
+                          fontSize: "9px",
+                          fontWeight: 700,
+                          padding: "1px 5px",
+                          borderRadius: "4px",
+                          background: badgeLabel === "FREE" ? "rgba(16, 185, 129, 0.2)" : badgeLabel === "MAX" ? "rgba(168, 85, 247, 0.2)" : "rgba(239, 68, 68, 0.2)",
+                          color: badgeLabel === "FREE" ? "#34d399" : badgeLabel === "MAX" ? "#c084fc" : "#ef4444"
+                        }}>
+                          {badgeLabel}
+                        </span>
+                      )}
                     </div>
+                    <span style={{ fontSize: "10px", color: "#64748b" }}>
+                      {val === "720p" ? "720p HD" : val === "1080p" ? "1080p Full HD" : val === "2K" ? "2K QHD" : "4K UHD"}
+                    </span>
                   </button>
                 );
               })}
@@ -357,35 +446,71 @@ export function ExportPage({
                 })}
               </div>
             </div>
+            </div>
 
             <div>
               <div style={{ fontSize: "12px", fontWeight: 600, color: "#9ca3af", marginBottom: "8px" }}>
                 Format & Codec
               </div>
-              <select
-                value={format}
-                disabled={busy}
-                onChange={e => setFormat(e.target.value as ExportFormat)}
-                style={{
-                  width: "100%",
-                  padding: "9px 12px",
-                  borderRadius: "7px",
-                  background: "#1c202a",
-                  border: "1px solid #232836",
-                  color: "#f3f4f6",
-                  fontSize: "12px",
-                  fontWeight: 600,
-                  outline: "none",
-                  cursor: busy ? "not-allowed" : "pointer"
-                }}
-              >
-                <option value="webm">WebM · browser capture</option>
-                <option value="mp4">MP4 · H.264 x264</option>
-                <option value="mkv">MKV · H.264 x264</option>
-                <option value="mov">MOV · H.264 x264</option>
-              </select>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: "6px" }}>
+                {(["webm", "mp4", "mov", "mkv"] as ExportFormat[]).map(fmt => {
+                  const isSelected = format === fmt;
+                  const isAllowed = planConfig.allowedFormats.includes(fmt);
+                  const isLocked = !isAllowed;
+                  const badge = (fmt === "webm" && userPlan === "starter")
+                  ? "FREE"
+                  : isLocked
+                    ? (fmt === "mp4" ? "LITE" : fmt === "mov" ? "PRO" : fmt === "mkv" ? "MAX" : null)
+                    : null;
+
+                  return (
+                    <button
+                      key={fmt}
+                      type="button"
+                      disabled={busy}
+                      onClick={() => {
+                        if (isLocked) {
+                          setPlanNotice(`${fmt.toUpperCase()} format is locked on ${planConfig.name}. Upgrade to unlock.`);
+                          setTimeout(() => setPlanNotice(null), 3500);
+                          return;
+                        }
+                        setFormat(fmt);
+                      }}
+                      style={{
+                        position: "relative",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        padding: "8px 6px",
+                        borderRadius: "7px",
+                        border: isSelected ? "1px solid var(--accent-primary)" : "1px solid #232836",
+                        background: isSelected ? "rgba(238, 99, 70, 0.12)" : "#1c202a",
+                        color: isSelected ? "#ffffff" : "#f3f4f6",
+                        fontSize: "12px",
+                        fontWeight: 700,
+                        cursor: busy ? "not-allowed" : "pointer",
+                        textTransform: "uppercase",
+                        transition: "all 0.15s ease",
+                        gap: "4px"
+                      }}
+                    >
+                      <span>{fmt}</span>
+                      {badge && (
+                        <span style={{
+                          fontSize: "8px",
+                          fontWeight: 700,
+                          padding: "1px 4px",
+                          borderRadius: "4px",
+                          background: badge === "FREE" ? "rgba(16, 185, 129, 0.2)" : badge === "MAX" ? "rgba(168, 85, 247, 0.2)" : badge === "PRO" ? "rgba(249, 115, 22, 0.2)" : "rgba(59, 130, 246, 0.2)",
+                             color: badge === "FREE" ? "#34d399" : badge === "MAX" ? "#c084fc" : badge === "PRO" ? "#fb923c" : "#60a5fa"}}>
+                          {badge}
+                        </span>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
             </div>
-          </div>
 
           {/* Filename & Audio Track Options */}
           <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
@@ -589,6 +714,8 @@ export function ExportPage({
               </div>
             )}
 
+            
+
             {status === "error" && (
               <div style={{ width: "100%", display: "flex", alignItems: "center", gap: "8px", padding: "10px 12px", background: "var(--bg-app, #fbf8ef)", border: "1px solid rgba(239, 68, 68, 0.25)", borderRadius: "8px", fontSize: "12px", color: "#f87171" }}>
                 <XCircle size={16} />
@@ -651,7 +778,14 @@ export function ExportPage({
               <button
                 type="button"
                 disabled={busy || subtitles.length === 0}
-                onClick={() => downloadSubtitleFile(subtitles, language, "srt")}
+                onClick={() => {
+                  if (!planConfig.canDownloadSubtitles) {
+                    setPlanNotice(`SRT subtitle download is locked on ${planConfig.name}. Upgrade to unlock.`);
+                    setTimeout(() => setPlanNotice(null), 3500);
+                    return;
+                  }
+                  downloadSubtitleFile(subtitles, language, "srt");
+                }}
                 style={{
                   display: "flex",
                   alignItems: "center",
@@ -660,14 +794,22 @@ export function ExportPage({
                   borderRadius: "8px",
                   background: "#1c202a",
                   border: "1px solid #232836",
-                  color: "#e5e7eb",
-                  cursor: busy || subtitles.length === 0 ? "not-allowed" : "pointer",
-                  textAlign: "left"
+                  color: "#f3f4f6",
+                  cursor: (busy || subtitles.length === 0) ? "not-allowed" : "pointer",
+                  textAlign: "left",
+                  transition: "all 0.15s ease"
                 }}
               >
                 <FileText size={16} color="#ffffff" />
                 <div>
-                  <div style={{ fontSize: "12px", fontWeight: 700 }}>Download SRT</div>
+                  <div style={{ fontSize: "12px", fontWeight: 700, display: "flex", alignItems: "center", gap: "6px" }}>
+                    <span>Download SRT</span>
+                    {!planConfig.canDownloadSubtitles && (
+                        <span style={{ fontSize: "9px", background: "rgba(239, 68, 68, 0.2)", color: "#ef4444", padding: "1px 5px", borderRadius: "4px", fontWeight: 700 }}>
+                          PRO
+                        </span>
+                      )}
+                  </div>
                   <div style={{ fontSize: "10px", color: "#64748b" }}>SubRip interchange</div>
                 </div>
               </button>
@@ -675,7 +817,14 @@ export function ExportPage({
               <button
                 type="button"
                 disabled={busy || subtitles.length === 0}
-                onClick={() => downloadSubtitleFile(subtitles, language, "vtt")}
+                onClick={() => {
+                  if (!planConfig.canDownloadSubtitles) {
+                    setPlanNotice(`VTT subtitle download is locked on ${planConfig.name}. Upgrade to unlock.`);
+                    setTimeout(() => setPlanNotice(null), 3500);
+                    return;
+                  }
+                  downloadSubtitleFile(subtitles, language, "vtt");
+                }}
                 style={{
                   display: "flex",
                   alignItems: "center",
@@ -684,14 +833,22 @@ export function ExportPage({
                   borderRadius: "8px",
                   background: "#1c202a",
                   border: "1px solid #232836",
-                  color: "#e5e7eb",
-                  cursor: busy || subtitles.length === 0 ? "not-allowed" : "pointer",
-                  textAlign: "left"
+                  color: "#f3f4f6",
+                  cursor: (busy || subtitles.length === 0) ? "not-allowed" : "pointer",
+                  textAlign: "left",
+                  transition: "all 0.15s ease"
                 }}
               >
                 <FileText size={16} color="var(--accent-primary)" />
                 <div>
-                  <div style={{ fontSize: "12px", fontWeight: 700 }}>Download VTT</div>
+                  <div style={{ fontSize: "12px", fontWeight: 700, display: "flex", alignItems: "center", gap: "6px" }}>
+                    <span>Download VTT</span>
+                    {!planConfig.canDownloadSubtitles && (
+                        <span style={{ fontSize: "9px", background: "rgba(239, 68, 68, 0.2)", color: "#ef4444", padding: "1px 5px", borderRadius: "4px", fontWeight: 700 }}>
+                          PRO
+                        </span>
+                      )}
+                  </div>
                   <div style={{ fontSize: "10px", color: "#64748b" }}>Web & HTML5 standard</div>
                 </div>
               </button>

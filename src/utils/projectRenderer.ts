@@ -61,6 +61,7 @@ export async function renderProjectToBlob(
   language: CaptionLanguage,
   options: ExportOptions & {
     bgSegments?: TimelineBgSegment[];
+    watermark?: boolean;
     musicUrl?: string;
     musicVolume?: number;
     audioVolume?: number;
@@ -346,6 +347,34 @@ export async function renderProjectToBlob(
             { ...settings, aspectRatio: options.aspectRatio, fontSize: settings.fontSize * (height / 600) },
             language,
           );
+
+          
+          // Watermark pass for Starter tier
+          if (options.watermark) {
+            context.save();
+            const badgeHeight = Math.round(height * 0.035);
+            const badgeWidth = Math.round(width * 0.38);
+            const badgeX = width - badgeWidth - 20;
+            const badgeY = height - badgeHeight - 24;
+
+            // Semi-transparent pill background
+            context.fillStyle = "rgba(0, 0, 0, 0.55)";
+            if (typeof context.roundRect === "function") {
+              context.beginPath();
+              context.roundRect(badgeX, badgeY, badgeWidth, badgeHeight, 6);
+              context.fill();
+            } else {
+              context.fillRect(badgeX, badgeY, badgeWidth, badgeHeight);
+            }
+
+            // Watermark typography
+            context.font = "700 " + Math.round(badgeHeight * 0.5) + "px 'Inter', sans-serif";
+            context.fillStyle = "rgba(255, 255, 255, 0.85)";
+            context.textAlign = "center";
+            context.textBaseline = "middle";
+            context.fillText("Made with CaptionCraft", badgeX + badgeWidth / 2, badgeY + badgeHeight / 2);
+            context.restore();
+          }
 
           if (!finalFrame) {
             onProgress(media.duration > 0 ? Math.min(99, (media.currentTime / media.duration) * 100) : 0);

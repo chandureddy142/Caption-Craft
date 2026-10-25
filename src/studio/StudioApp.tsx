@@ -45,6 +45,17 @@ function formatSeconds(seconds: number): string {
 
 function App({ initialTemplateId: _initialTemplateId, initialFile, projectId, onBackToDashboard }: StudioAppProps = {}) {
   const [showLanding, setShowLanding] = useState<boolean>(false);
+  const [userPlan, setUserPlan] = useState<string>("starter");
+  // Sync dev plan selector with localStorage for seamless refreshes
+  useEffect(() => {
+    const saved = localStorage.getItem("dev_user_plan");
+    if (saved) setUserPlan(saved);
+  }, []);
+
+  const handleDevPlanChange = (newPlan: string) => {
+    setUserPlan(newPlan);
+    localStorage.setItem("dev_user_plan", newPlan);
+  };
   const [showExitConfirmModal, setShowExitConfirmModal] = useState<boolean>(false);
   const [draftSongUrl, setDraftSongUrl] = useState<string | null>(null);
   const [draftSongName, setDraftSongName] = useState<string | null>(null);
@@ -71,6 +82,23 @@ function App({ initialTemplateId: _initialTemplateId, initialFile, projectId, on
   const [showExportPage, setShowExportPage] = useState(false);
   const [projectTitle, setProjectTitle] = useState('Untitled Caption Project');
   const [copiedCaption, setCopiedCaption] = useState<Subtitle | null>(null);
+
+    useEffect(() => {
+    supabase.auth.getUser().then(async ({ data: { user } }) => {
+      if (user) {
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("plan")
+          .eq("id", user.id)
+          .single();
+        if (profile?.plan) {
+          setUserPlan(profile.plan);
+        } else if (user.user_metadata?.plan) {
+          setUserPlan(user.user_metadata.plan);
+        }
+      }
+    });
+  }, []);
 
   const [playbackState, setPlaybackState] = useState<{
     isPlaying: boolean;
@@ -761,7 +789,37 @@ const applyProgress = (progress: LocalTranscriptionProgress) => {
   if (showExportPage && videoFile && audioReady) {
     return (
       <div className="app-frame">
-        <ExportPage
+
+      {/* DEV PLAN TEST SWITCHER */}
+      <div style={{ position: "fixed", bottom: "20px", left: "20px", zIndex: 9999999, display: "inline-flex", alignItems: "center", gap: "8px", background: "#1c202a", border: "2px solid #3b82f6", borderRadius: "10px", padding: "8px 14px", boxShadow: "0 10px 30px rgba(0,0,0,0.8)" }}>
+        <span style={{ fontSize: "11px", fontWeight: 800, color: "#60a5fa", letterSpacing: "0.05em" }}>TEST PLAN:</span>
+        <select
+          id="dev-plan-switcher"
+          value={userPlan}
+          onChange={(e) => handleDevPlanChange(e.target.value)}
+          style={{
+            background: "#12141a",
+            color: "#ffffff",
+            border: "1px solid #475569",
+            borderRadius: "6px",
+            padding: "4px 8px",
+            fontSize: "12px",
+            fontWeight: 700,
+            cursor: "pointer",
+            outline: "none"
+          }}
+        >
+          <option value="starter">Starter (Free)</option>
+          <option value="creator_lite">Creator Lite (₹49)</option>
+          <option value="creator_pro">Creator Pro (₹99)</option>
+          <option value="weekly_pro">7-Day Pass (₹29)</option>
+          <option value="studio_max">Studio Max (₹199)</option>
+        </select>
+      </div>
+
+
+      <ExportPage
+          userPlan={userPlan}
           aspectRatio={settings.aspectRatio}
           subtitles={subtitles}
           language={language}
@@ -812,6 +870,34 @@ const applyProgress = (progress: LocalTranscriptionProgress) => {
 
   return (
     <div className="app-frame">
+
+      {/* DEV PLAN TEST SWITCHER */}
+      <div style={{ position: "fixed", bottom: "20px", left: "20px", zIndex: 9999999, display: "inline-flex", alignItems: "center", gap: "8px", background: "#1c202a", border: "2px solid #3b82f6", borderRadius: "10px", padding: "8px 14px", boxShadow: "0 10px 30px rgba(0,0,0,0.8)" }}>
+        <span style={{ fontSize: "11px", fontWeight: 800, color: "#60a5fa", letterSpacing: "0.05em" }}>TEST PLAN:</span>
+        <select
+          id="dev-plan-switcher"
+          value={userPlan}
+          onChange={(e) => handleDevPlanChange(e.target.value)}
+          style={{
+            background: "#12141a",
+            color: "#ffffff",
+            border: "1px solid #475569",
+            borderRadius: "6px",
+            padding: "4px 8px",
+            fontSize: "12px",
+            fontWeight: 700,
+            cursor: "pointer",
+            outline: "none"
+          }}
+        >
+          <option value="starter">Starter (Free)</option>
+          <option value="creator_lite">Creator Lite (₹49)</option>
+          <option value="creator_pro">Creator Pro (₹99)</option>
+          <option value="weekly_pro">7-Day Pass (₹29)</option>
+          <option value="studio_max">Studio Max (₹199)</option>
+        </select>
+      </div>
+
       {showLanding && !videoFile ? (
         <LandingPage onStart={() => setShowLanding(false)} />
       ) : !videoFile || !audioReady ? (
@@ -922,6 +1008,7 @@ const applyProgress = (progress: LocalTranscriptionProgress) => {
               }}
             />
             <Workspace
+                userPlan={userPlan}
                 initialSongUrl={draftSongUrl}
                 initialSongName={draftSongName}
                 onSongChange={({ songUrl, songName, songBlob }) => {

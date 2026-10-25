@@ -1,3 +1,4 @@
+import { getPlanConfig } from "../utils/planLimits";
 import { extractWaveformPeaks } from "../utils/waveformExtractor";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import type { CanvasSettings, Subtitle, CaptionLanguage, ExportResolutionPreset, TimelineBgSegment, TimelineSongSegment } from "../types";
@@ -94,6 +95,7 @@ function stopStreamTracks(stream: MediaStream | null): void {
 }
 
 export interface WorkspaceProps {
+  userPlan?: string;
   initialSongUrl?: string | null;
   initialSongName?: string | null;
   onSongChange?: (data: { songUrl: string | null; songName: string | null; songBlob?: Blob | null }) => void;
@@ -128,6 +130,7 @@ export interface WorkspaceProps {
 
 
 export const Workspace: React.FC<WorkspaceProps> = ({
+  userPlan = "starter",
   bgSegments: externalBgSegments,
   setBgSegments: externalSetBgSegments,
   songSegments: externalSongSegments,
@@ -154,6 +157,7 @@ export const Workspace: React.FC<WorkspaceProps> = ({
   onSongChange,
   onPlaybackStateChange,
 }) => {
+  const planConfig = getPlanConfig(userPlan);
   const [hoveredTemplateId, setHoveredTemplateId] = useState<string | null>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const mediaRef = useRef<HTMLVideoElement>(null);
@@ -252,7 +256,8 @@ const [areCaptionsHidden, setAreCaptionsHidden] = useState(false);
   const handleFitBgLeft = () => {
     if (!selectedSegmentId) return;
     setBgSegments(prev => {
-      const sorted = [...prev].sort((a, b) => a.start - b.start);
+        
+        const sorted = [...prev].sort((a, b) => a.start - b.start);
       const idx = sorted.findIndex(s => s.id === selectedSegmentId);
       if (idx === -1) return prev;
       const prevNeighbor = sorted[idx - 1];
@@ -267,7 +272,8 @@ const [areCaptionsHidden, setAreCaptionsHidden] = useState(false);
     const maxEnd = duration || mediaDuration || effectiveDuration;
     if (!maxEnd) return;
     setBgSegments(prev => {
-      const sorted = [...prev].sort((a, b) => a.start - b.start);
+        
+        const sorted = [...prev].sort((a, b) => a.start - b.start);
       const idx = sorted.findIndex(s => s.id === selectedSegmentId);
       if (idx === -1) return prev;
       const prevNeighbor = sorted[idx - 1];
@@ -284,7 +290,8 @@ const [areCaptionsHidden, setAreCaptionsHidden] = useState(false);
     const maxEnd = duration || mediaDuration || effectiveDuration;
     if (!maxEnd) return;
     setBgSegments(prev => {
-      const sorted = [...prev].sort((a, b) => a.start - b.start);
+        
+        const sorted = [...prev].sort((a, b) => a.start - b.start);
       const idx = sorted.findIndex(s => s.id === selectedSegmentId);
       if (idx === -1) return prev;
       const nextNeighbor = sorted[idx + 1];
@@ -297,6 +304,17 @@ const [areCaptionsHidden, setAreCaptionsHidden] = useState(false);
   const [hasCopiedBg, setHasCopiedBg] = useState(false);
   const [pendingNewBgSlot, setPendingNewBgSlot] = useState<{ start: number; duration: number } | null>(null);
   const [showBgSelectModal, setShowBgSelectModal] = useState(false);
+  const [upgradeNotice, setUpgradeNotice] = useState<string | null>(null);
+  const upgradeTimerRef = useRef<NodeJS.Timeout | number | null>(null);
+
+  const triggerUpgradeNotice = (msg: string) => {
+    if (upgradeTimerRef.current) clearTimeout(upgradeTimerRef.current as any);
+    setUpgradeNotice(msg);
+    upgradeTimerRef.current = setTimeout(() => {
+      setUpgradeNotice(null);
+      upgradeTimerRef.current = null;
+    }, 3800);
+  };
   const [dontShowBgSelectModalAgain, setDontShowBgSelectModalAgain] = useState(() => {
     try { return localStorage.getItem("dont_show_bg_select_modal") === "true"; } catch { return false; }
   });
@@ -1121,10 +1139,18 @@ const [areCaptionsHidden, setAreCaptionsHidden] = useState(false);
   };
 
   const handleExportSrt = () => {
+    if (!planConfig.canDownloadSubtitles) {
+      triggerUpgradeNotice("SRT subtitle export is locked on " + planConfig.name + ". Upgrade to unlock.");
+      return;
+    }
     downloadStringAsFile(exportToSRT(subtitles, language), "captions.srt");
   };
 
   const handleExportVtt = () => {
+    if (!planConfig.canDownloadSubtitles) {
+      triggerUpgradeNotice("VTT subtitle export is locked on " + planConfig.name + ". Upgrade to unlock.");
+      return;
+    }
     downloadStringAsFile(exportToVTT(subtitles, language), "captions.vtt");
   };
 
@@ -1180,23 +1206,9 @@ const [areCaptionsHidden, setAreCaptionsHidden] = useState(false);
     exportCancelledRef.current = false;
     chunksRef.current = [];
 
-    // Preload and cache all segment images so none fail during render
-    const imageCache = new Map<string, HTMLImageElement>();
-    const currentSegments = bgSegmentsRef.current || [];
-    for (const seg of currentSegments) {
-      if (seg.themeId === "custom-image" && seg.customImageUrl) {
-        if (!imageCache.has(seg.customImageUrl)) {
-          const img = new Image();
-          img.src = seg.customImageUrl;
-          try {
-            await img.decode();
-          } catch (_) {}
-          imageCache.set(seg.customImageUrl, img);
-        }
-      }
-    }
-
     const canvasStream = offscreen.captureStream(30);
+    const mediaStream = getMediaCaptureStream(media);
+    const audioTracks = mediaStream?.getAudioTracks() ?? [];
     const videoTracks = canvasStream.getVideoTracks();
 
     if (videoTracks.length === 0) {
@@ -1206,64 +1218,28 @@ const [areCaptionsHidden, setAreCaptionsHidden] = useState(false);
       return;
     }
 
-    // Set up Web Audio Master Mixer for Voiceover + Background Music
-    let audioContext: AudioContext | null = null;
-    let audioDestination: MediaStreamAudioDestinationNode | null = null;
-    let mixedAudioStream: MediaStream | null = null;
-
-    try {
-      const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
-      if (AudioCtx) {
-        audioContext = new AudioCtx();
-        audioDestination = audioContext.createMediaStreamDestination();
-
-        // 1. Voiceover track
-        if (media && !isAudioMuted && volume > 0) {
-          const mediaSource = audioContext.createMediaElementSource(media);
-          const mediaGain = audioContext.createGain();
-          mediaGain.gain.value = volume;
-          mediaSource.connect(mediaGain);
-          mediaGain.connect(audioDestination);
-          mediaGain.connect(audioContext.destination);
-        }
-
-        // 2. Background music track
-        const songMedia = songMediaRef.current;
-        if (songMedia && localSongUrl && !isMusicMuted && songVolume > 0) {
-          const songSource = audioContext.createMediaElementSource(songMedia);
-          const songGain = audioContext.createGain();
-          songGain.gain.value = songVolume;
-          songSource.connect(songGain);
-          songGain.connect(audioDestination);
-          songGain.connect(audioContext.destination);
-        }
-
-        mixedAudioStream = audioDestination.stream;
-      }
-    } catch (audioErr) {
-      console.warn("Could not setup audio context mix, falling back to direct capture:", audioErr);
-      mixedAudioStream = getMediaCaptureStream(media);
-    }
-
-    const audioTracks = mixedAudioStream?.getAudioTracks() ?? [];
-
-    const preferredMimes = [
-      "video/mp4;codecs=avc1",
-      "video/mp4",
-      "video/webm;codecs=h264",
-      "video/webm;codecs=vp9",
-      "video/webm",
-    ];
-    const mimeType = preferredMimes.find(type => MediaRecorder.isTypeSupported(type))
-      || (getPreferredMimeType(audioTracks.length > 0) ?? getSupportedWebmMimeType(audioTracks.length > 0));
-
+    const mimeType = getPreferredMimeType(audioTracks.length > 0)
+      ?? getSupportedWebmMimeType(audioTracks.length > 0);
     if (!mimeType) {
       stopStreamTracks(canvasStream);
-      stopStreamTracks(mixedAudioStream);
-      if (audioContext && audioContext.state !== "closed") audioContext.close();
+      stopStreamTracks(mediaStream);
       setIsExporting(false);
       setExportError("No supported export codec is available in this browser.");
       return;
+    }
+
+    // Ensure custom image is completely decoded before starting recorder
+    if (settings.backgroundTheme === "custom-image" && settings.customImageDataUrl) {
+      if (!customImageRef.current || !customImageRef.current.complete || customImageRef.current.naturalWidth === 0) {
+        try {
+          const img = new Image();
+          img.src = settings.customImageDataUrl;
+          await img.decode();
+          customImageRef.current = img;
+        } catch (e) {
+          console.warn("Could not pre-decode custom image backdrop:", e);
+        }
+      }
     }
 
     const combinedStream = new MediaStream([
@@ -1281,8 +1257,7 @@ const [areCaptionsHidden, setAreCaptionsHidden] = useState(false);
       setIsExporting(false);
       setExportError(error instanceof Error ? error.message : "Unable to start video export.");
       stopStreamTracks(canvasStream);
-      stopStreamTracks(mixedAudioStream);
-      if (audioContext && audioContext.state !== "closed") audioContext.close();
+      stopStreamTracks(mediaStream);
       return;
     }
 
@@ -1290,12 +1265,11 @@ const [areCaptionsHidden, setAreCaptionsHidden] = useState(false);
       if (e.data.size > 0) chunksRef.current.push(e.data);
     };
 
-    const isMp4 = mimeType.includes("mp4");
-    const fileExt = isMp4 ? "mp4" : "webm";
-    const downloadMime = isMp4 ? "video/mp4" : "video/webm";
+    const fileExt = "webm";
+    const downloadMime = "video/webm";
 
     let exportEndedListener: (() => void) | null = null;
-    const cleanupExport = () => {
+    const cleanupExport = (canvasStream: MediaStream, mediaStream: MediaStream | null) => {
       if (exportAnimRef.current) cancelAnimationFrame(exportAnimRef.current);
       exportAnimRef.current = undefined;
       if (exportEndedListener) {
@@ -1304,10 +1278,7 @@ const [areCaptionsHidden, setAreCaptionsHidden] = useState(false);
       }
       offscreenCanvasRef.current = null;
       stopStreamTracks(canvasStream);
-      stopStreamTracks(mixedAudioStream);
-      if (audioContext && audioContext.state !== "closed") {
-        audioContext.close().catch(() => {});
-      }
+      stopStreamTracks(mediaStream);
       mediaRecorderRef.current = null;
       setIsExporting(false);
     };
@@ -1326,19 +1297,16 @@ const [areCaptionsHidden, setAreCaptionsHidden] = useState(false);
       } else {
         setExportError("Export cancelled.");
       }
-      cleanupExport();
+      cleanupExport(canvasStream, mediaStream);
     };
 
     recorder.onerror = () => {
       setExportError("The browser stopped the export unexpectedly.");
-      cleanupExport();
+      cleanupExport(canvasStream, mediaStream);
     };
 
     mediaRecorderRef.current = recorder;
     media.currentTime = 0;
-    if (songMediaRef.current && localSongUrl) {
-      songMediaRef.current.currentTime = 0;
-    }
 
     const scaledSettings: CanvasSettings = {
       ...settings,
@@ -1349,63 +1317,44 @@ const [areCaptionsHidden, setAreCaptionsHidden] = useState(false);
       const ctx = offscreen.getContext("2d");
       if (!ctx || exportCancelledRef.current) return;
 
-      const t = media.currentTime;
       ctx.clearRect(0, 0, offscreen.width, offscreen.height);
-      ctx.fillStyle = "#000000";
+      // Paint opaque black base so transparent pixels never become white
+      ctx.fillStyle = settings.backgroundColor || "#000000";
       ctx.fillRect(0, 0, offscreen.width, offscreen.height);
 
-      // DYNAMIC SEGMENT LOOKUP (Resolves all 6 timeline segments correctly)
-      const segments = bgSegmentsRef.current || [];
-      const activeSeg = segments.find(s => t >= s.start && t < (s.end || effectiveDuration));
-
-      if (activeSeg) {
-        let segImage: HTMLImageElement | null = null;
-        if (activeSeg.themeId === "custom-image" && activeSeg.customImageUrl) {
-          segImage = imageCache.get(activeSeg.customImageUrl) || null;
+      const customVideo = customVideoRef.current;
+      if (settings.backgroundTheme === "custom-video" && customVideo && customVideo.duration > 0) {
+        const loopTime = media.currentTime % customVideo.duration;
+        if (Math.abs(customVideo.currentTime - loopTime) > 0.25) {
+          customVideo.currentTime = loopTime;
         }
-
-        drawBackgroundToCanvas(ctx, {
-          themeId: activeSeg.themeId || "midnight",
-          backgroundColor: activeSeg.color || "#000000",
-          width: offscreen.width,
-          height: offscreen.height,
-          videoElement: media,
-          isVideoMedia,
-          customImage: segImage || customImageRef.current,
-          customVideoElement: customVideoRef.current,
-          overlayOpacity: settings.backgroundOverlayOpacity,
-          fitMode: settings.fitMode,
-        });
-      } else {
-        // Fallback default background
-        drawBackgroundToCanvas(ctx, {
-          themeId: settings.backgroundTheme || "midnight",
-          backgroundColor: settings.backgroundColor || "#000000",
-          width: offscreen.width,
-          height: offscreen.height,
-          videoElement: media,
-          isVideoMedia,
-          customImage: customImageRef.current,
-          customVideoElement: customVideoRef.current,
-          overlayOpacity: settings.backgroundOverlayOpacity,
-          fitMode: settings.fitMode,
-        });
       }
 
-      // RENDER SUBTITLES AT EXACT TIMESTAMP
-      if (!areCaptionsHidden) {
-        renderSubtitlesToCanvas(
-          ctx,
-          offscreen.width,
-          offscreen.height,
-          t,
-          subtitles,
-          scaledSettings,
-          language,
-          null,
-        );
-      }
+      drawBackgroundToCanvas(ctx, {
+      themeId: settings.backgroundTheme,
+      backgroundColor: settings.backgroundColor,
+        width: offscreen.width,
+        height: offscreen.height,
+        videoElement: media,
+        isVideoMedia,
+        customImage: customImageRef.current,
+        customVideoElement: customVideoRef.current,
+        overlayOpacity: settings.backgroundOverlayOpacity,
+        fitMode: settings.fitMode,
+      });
 
+      renderSubtitlesToCanvas(
+        ctx,
+        offscreen.width,
+        offscreen.height,
+        media.currentTime,
+        subtitles,
+        scaledSettings,
+        language,
+        null,
+      );
+
+      const t = media.currentTime;
       const d = Number.isFinite(media.duration) ? media.duration : duration;
       setExportCurrentTime(t);
       if (d > 0) setExportProgress(Math.min(100, (t / d) * 100));
@@ -1423,7 +1372,7 @@ const [areCaptionsHidden, setAreCaptionsHidden] = useState(false);
         recorder.stop();
       } catch {
         setExportError("The browser could not finish the export.");
-        cleanupExport();
+        cleanupExport(canvasStream, mediaStream);
       }
     };
     exportEndedListener = handleExportEnded;
@@ -1434,16 +1383,8 @@ const [areCaptionsHidden, setAreCaptionsHidden] = useState(false);
     } catch (error) {
       setIsExporting(false);
       setExportError(error instanceof Error ? error.message : "Unable to start recording.");
-      cleanupExport();
+      cleanupExport(canvasStream, mediaStream);
       return;
-    }
-
-    if (audioContext && audioContext.state === "suspended") {
-      await audioContext.resume();
-    }
-
-    if (songMediaRef.current && localSongUrl) {
-      void songMediaRef.current.play().catch(() => undefined);
     }
 
     void media.play().then(() => {
@@ -1462,15 +1403,18 @@ const [areCaptionsHidden, setAreCaptionsHidden] = useState(false);
   
   // @ts-ignore
   const handleSplitActiveLayer = () => {
-    const curTime = currentTimeRef.current ?? currentTime;
-    const maxBound = (duration || mediaDuration || effectiveDuration || 10);
-
     if (selectedLayer === "background") {
+      const maxCuts = planConfig?.maxBgCuts ?? 12;
+      if (bgSegments.length >= maxCuts) {
+        triggerUpgradeNotice("Reached " + planConfig.name + " limit of " + maxCuts + " background cuts. Upgrade to unlock more.");
+        return;
+      }
+      const curTime = currentTime;
+      const maxBound = effectiveDuration || 7;
       setBgSegments(prev => {
-        // Target selected segment first, otherwise find segment under needle
+        if (prev.length >= maxCuts) return prev;
         const seg = (selectedSegmentId ? prev.find(s => s.id === selectedSegmentId) : null)
           || prev.find(s => curTime > s.start && curTime < (s.end || maxBound));
-
         if (!seg) return prev;
         const actualEnd = seg.end || maxBound;
         if (curTime <= seg.start + 0.05 || curTime >= actualEnd - 0.05) return prev;
@@ -1513,6 +1457,13 @@ const [areCaptionsHidden, setAreCaptionsHidden] = useState(false);
   };
 
   const handlePasteActiveLayer = () => {
+    if (selectedLayer === "background") {
+      const maxCuts = planConfig?.maxBgCuts ?? 12;
+      if (bgSegments.length >= maxCuts) {
+        triggerUpgradeNotice("Reached " + planConfig.name + " limit of " + maxCuts + " background cuts. Upgrade to unlock more.");
+        return;
+      }
+    }
     if (selectedLayer === "background" && bgClipboardRef.current && !bgClipboardRef.current.isMusic) {
       const source = bgClipboardRef.current;
       const cur = currentTimeRef.current;
@@ -1686,6 +1637,7 @@ const [areCaptionsHidden, setAreCaptionsHidden] = useState(false);
 
     if (drag.layer === "background") {
       setBgSegments(prev => {
+        
         const sorted = [...prev].sort((a, b) => a.start - b.start);
         const idx = sorted.findIndex(s => s.id === drag.id);
         if (idx === -1) return prev;
@@ -1868,6 +1820,12 @@ const [areCaptionsHidden, setAreCaptionsHidden] = useState(false);
     setBgSegments(prev => {
       // Rule 1: "+" was explicitly clicked
       if (pendingNewBgSlot) {
+        const maxCuts = planConfig?.maxBgCuts ?? 12;
+        if (prev.length >= maxCuts) {
+          triggerUpgradeNotice("Reached " + planConfig.name + " limit of " + maxCuts + " background cuts. Upgrade to unlock more.");
+          setPendingNewBgSlot(null);
+          return prev;
+        }
         const newSeg = {
           id: "bg-" + Date.now(),
           start: pendingNewBgSlot.start,
@@ -1919,9 +1877,16 @@ const [areCaptionsHidden, setAreCaptionsHidden] = useState(false);
     }
 
     setBgSegments(prev => {
-      const targetTheme = themeId;
+        
+        const targetTheme = themeId;
 
       if (pendingNewBgSlot) {
+        const maxCuts = planConfig?.maxBgCuts ?? 12;
+        if (prev.length >= maxCuts) {
+          triggerUpgradeNotice("Reached " + planConfig.name + " limit of " + maxCuts + " background cuts. Upgrade to unlock more.");
+          setPendingNewBgSlot(null);
+          return prev;
+        }
         const newSeg = {
           id: "bg-" + Date.now(),
           start: pendingNewBgSlot.start,
@@ -2004,6 +1969,39 @@ const [areCaptionsHidden, setAreCaptionsHidden] = useState(false);
     <div className="preview-layout">
       {/* CENTER PANEL */}
       <main className="preview-workspace">
+        {upgradeNotice && (
+          <div
+            className="upgrade-notice-toast"
+            style={{
+              position: "absolute",
+              top: "56px",
+              left: "50%",
+              transform: "translateX(-50%)",
+              zIndex: 99999,
+              background: "#1e1b4b",
+              border: "1px solid #6366f1",
+              color: "#e0e7ff",
+              padding: "8px 18px",
+              borderRadius: "8px",
+              fontSize: "12px",
+              fontWeight: 600,
+              boxShadow: "0 10px 25px rgba(0,0,0,0.5)",
+              display: "flex",
+              alignItems: "center",
+              gap: "8px",
+              animation: "fadeIn 0.2s ease"
+            }}
+          >
+            <span>🔒 {upgradeNotice}</span>
+            <button
+              type="button"
+              onClick={() => setUpgradeNotice(null)}
+              style={{ background: "transparent", border: "none", color: "#94a3b8", cursor: "pointer", padding: "2px", marginLeft: "6px" }}
+            >
+              ✕
+            </button>
+          </div>
+        )}
         <header
           className="workspace-header"
           style={{
@@ -2237,7 +2235,7 @@ const [areCaptionsHidden, setAreCaptionsHidden] = useState(false);
               className={editingSubtitleId ? "editing" : ""}
               style={{ width: "100%", height: "100%", imageRendering: "-webkit-optimize-contrast", transform: "translateZ(0)", backfaceVisibility: "hidden", display: "block" }}
             />
-          {settings.safeZones?.show && (() => {
+          {settings.safeZones?.show && planConfig.canUseSafeZones && (() => {
             const isLandscape = settings.aspectRatio === "16:9";
             const platform = settings.safeZones.platform;
 
@@ -3184,11 +3182,16 @@ const [areCaptionsHidden, setAreCaptionsHidden] = useState(false);
                                 <button
                                   type="button"
                                   title="Add another 4s background segment"
-                                  onClick={e => {
-                                    e.stopPropagation();
-                                    const newStart = lastEnd;
-                                    const segDuration = Math.min(4, Math.max(1, effectiveDuration - newStart));
-                                    setPendingNewBgSlot({ start: newStart, duration: segDuration });
+                                    onClick={e => {
+                                      e.stopPropagation();
+                                      const maxCuts = planConfig?.maxBgCuts ?? 12;
+                                      if (bgSegments.length >= maxCuts) {
+                                        triggerUpgradeNotice("Reached " + planConfig.name + " limit of " + maxCuts + " background cuts. Upgrade to unlock more.");
+                                        return;
+                                      }
+                                      const newStart = lastEnd;
+                                      const segDuration = Math.min(4, Math.max(1, effectiveDuration - newStart));
+                                      setPendingNewBgSlot({ start: newStart, duration: segDuration });
                                     setSelectedLayer("background");
                                     setSelectedSegmentId(null);
                                     setActiveCatalogTab("backgrounds");
@@ -3441,7 +3444,13 @@ const [areCaptionsHidden, setAreCaptionsHidden] = useState(false);
                         ) : (
                           <label
                             className="track-add-song-slot"
-                            onClick={e => e.stopPropagation()}
+                            onClick={e => {
+                              e.stopPropagation();
+                              if (!planConfig.canUploadMusic) {
+                                e.preventDefault();
+                                triggerUpgradeNotice("Custom audio tracks are locked on " + planConfig.name + ". Upgrade to unlock.");
+                              }
+                            }}
                             style={{
                               position: "absolute",
                               left: 0,
@@ -3456,7 +3465,14 @@ const [areCaptionsHidden, setAreCaptionsHidden] = useState(false);
                               whiteSpace: "nowrap"
                             }}
                           >
-                            <span style={{ textAlign: "left" }}>+ Select song from local device</span>
+                            <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                              <span style={{ textAlign: "left" }}>+ Select song from local device</span>
+                              {userPlan === "starter" && (
+                                <span style={{ fontSize: "9px", background: "rgba(239, 68, 68, 0.2)", color: "#ef4444", padding: "1px 5px", borderRadius: "4px", fontWeight: 700 }}>
+                                  PRO
+                                </span>
+                              )}
+                            </div>
                             <input
                               type="file"
                               accept="audio/*,.mp3,.wav,.aac,.ogg,.m4a"
@@ -3933,6 +3949,12 @@ const [areCaptionsHidden, setAreCaptionsHidden] = useState(false);
                 <label
                   className="upload-dropzone"
                   onClick={e => {
+                    if (!planConfig.canUploadBgMedia) {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      triggerUpgradeNotice("Custom background media is locked on " + planConfig.name + ". Upgrade to unlock.");
+                      return;
+                    }
                     if (!ensureSegmentSelected()) {
                       e.preventDefault();
                       e.stopPropagation();
@@ -3954,7 +3976,14 @@ const [areCaptionsHidden, setAreCaptionsHidden] = useState(false);
                   }}
                 >
                   <FolderUp size={18} color="var(--accent-primary)" />
-                  <span style={{ fontSize: "0.74rem", fontWeight: 600, color: "#ffffff" }}>Choose Photo or Video</span>
+                  <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                    <span style={{ fontSize: "0.74rem", fontWeight: 600, color: "#ffffff" }}>Choose Photo or Video</span>
+                    {userPlan === "starter" && (
+                      <span style={{ fontSize: "9px", background: "rgba(239, 68, 68, 0.2)", color: "#ef4444", padding: "1px 5px", borderRadius: "4px", fontWeight: 700 }}>
+                        PRO
+                      </span>
+                    )}
+                  </div>
                   <small style={{ fontSize: "0.65rem", color: "#64748b" }}>All image and video formats supported</small>
                   <input
                     type="file"
@@ -4403,20 +4432,40 @@ const [areCaptionsHidden, setAreCaptionsHidden] = useState(false);
                 <span className="sub-group-title" style={{ fontSize: "0.68rem", fontWeight: 700, letterSpacing: "0.06em", color: "#64748b", textTransform: "uppercase", display: "block", marginBottom: "8px" }}>
                   Platform Safe Zones
                 </span>
-                <label className="studio-toggle-bar">
-                  <span>Safe Area Overlays</span>
+                <label
+                  className="studio-toggle-bar"
+                  onClick={e => {
+                    if (!planConfig.canUseSafeZones) {
+                      e.preventDefault();
+                      triggerUpgradeNotice("Safe Area Overlays are locked on " + planConfig.name + ". Upgrade to unlock.");
+                    }
+                  }}
+                  style={{ cursor: userPlan === "starter" ? "not-allowed" : "pointer" }}
+                >
+                  <span style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                    Safe Area Overlays
+                    {userPlan === "starter" && (
+                      <span style={{ fontSize: "10px", background: "rgba(239, 68, 68, 0.2)", color: "#ef4444", padding: "2px 6px", borderRadius: "4px", fontWeight: 700, marginLeft: "6px" }}>
+                        PRO
+                      </span>
+                    )}
+                  </span>
                   <input
                     type="checkbox"
                     className="studio-checkbox"
-                    checked={!!settings.safeZones?.show}
-                    onChange={event => setSettings(previous => ({
-                      ...previous,
-                      safeZones: { ...(previous.safeZones ?? { platform: "instagram" }), show: event.target.checked },
-                    }))}
+                    disabled={userPlan === "starter"}
+                    checked={userPlan === "starter" ? false : Boolean(settings.safeZones?.show)}
+                    onChange={event => {
+                      if (userPlan === "starter") return;
+                      setSettings(previous => ({
+                        ...previous,
+                        safeZones: { ...(previous.safeZones ?? { platform: "instagram" }), show: event.target.checked },
+                      }));
+                    }}
                   />
                 </label>
 
-                {settings.safeZones?.show && (
+                {settings.safeZones?.show && userPlan !== "starter" && (
                   <div
                     className="studio-segmented-pill"
                     style={{
