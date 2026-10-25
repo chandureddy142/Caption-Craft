@@ -769,9 +769,11 @@ const applyProgress = (progress: LocalTranscriptionProgress) => {
           initialFilename={videoFile.name.replace(/\.[^.]+$/, '')}
           onBack={() => setShowExportPage(false)}
           renderExport={async (options, onProgress, signal) => {
+            const activeSongUrl = draftSongUrl || playbackState.localSongUrl || undefined;
             const blob = await renderProjectToBlob(videoFile, subtitles, settings, language, {
               ...options,
-              musicUrl: playbackState.localSongUrl || undefined,
+              bgSegments,
+              musicUrl: activeSongUrl,
               musicVolume: playbackState.songVolume ?? 0.8,
               audioVolume: playbackState.volume ?? 1,
             }, onProgress, signal);

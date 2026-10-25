@@ -107,7 +107,10 @@ export function getSubtitleCanvasLayout(
   settings: CanvasSettings,
   language: CaptionLanguage,
 ): SubtitleCanvasLayout | null {
-  const subtitle = subtitles.find(item => currentTime >= item.start && currentTime <= item.end);
+  const subtitle = subtitles.find(item => {
+    const holdEnd = item.end + 0.08;
+    return currentTime >= item.start - 0.03 && currentTime <= holdEnd;
+  });
   if (!subtitle) return null;
   const rawText = resolveCaptionText(subtitle, settings, language);
   const fontFamily = baseFontFamily(settings, rawText, language);
@@ -234,7 +237,10 @@ export function renderSubtitlesToCanvas(
   language: CaptionLanguage,
   selectedSubtitleId?: string | null,
 ): void {
-  const activeSub = subtitles.find(item => currentTime >= item.start && currentTime <= item.end);
+  const activeSub = subtitles.find(item => {
+    const holdEnd = item.end + 0.08;
+    return currentTime >= item.start - 0.03 && currentTime <= holdEnd;
+  });
   if (!activeSub) return;
   const rawText = resolveCaptionText(activeSub, settings, language);
   const layout = getSubtitleCanvasLayout(ctx, width, height, currentTime, subtitles, settings, language);

@@ -33,23 +33,22 @@ function outputMimeType(container: FfmpegContainer): string {
   return 'video/mp4';
 }
 
-function outputArguments(container: FfmpegContainer, frameRate: number, includeAudio: boolean): string[] {
+function outputArguments(container: FfmpegContainer, _frameRate: number, includeAudio: boolean): string[] {
   const args = [
-    '-i', 'captioncraft-input.webm',
-    '-map', '0:v:0',
-    '-c:v', 'libx264',
-    '-preset', 'medium',
-    '-crf', '18',
-    '-pix_fmt', 'yuv420p',
-    '-r', String(frameRate),
-    '-max_muxing_queue_size', '1024',
+    "-i", "captioncraft-input.webm",
+    "-c:v", "copy",
   ];
+
   if (includeAudio) {
-    args.push('-map', '0:a:0?', '-c:a', 'aac', '-b:a', '192k', '-ar', '48000');
+    args.push("-c:a", "aac", "-b:a", "192k");
   } else {
-    args.push('-an');
+    args.push("-an");
   }
-  if (container === 'mp4') args.push('-movflags', '+faststart');
+
+  if (container === "mp4") {
+    args.push("-movflags", "+faststart");
+  }
+
   args.push(`captioncraft-output.${container}`);
   return args;
 }

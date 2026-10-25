@@ -1180,9 +1180,23 @@ const [areCaptionsHidden, setAreCaptionsHidden] = useState(false);
     exportCancelledRef.current = false;
     chunksRef.current = [];
 
+    // Preload and cache all segment images so none fail during render
+    const imageCache = new Map<string, HTMLImageElement>();
+    const currentSegments = bgSegmentsRef.current || [];
+    for (const seg of currentSegments) {
+      if (seg.themeId === "custom-image" && seg.customImageUrl) {
+        if (!imageCache.has(seg.customImageUrl)) {
+          const img = new Image();
+          img.src = seg.customImageUrl;
+          try {
+            await img.decode();
+          } catch (_) {}
+          imageCache.set(seg.customImageUrl, img);
+        }
+      }
+    }
+
     const canvasStream = offscreen.captureStream(30);
-    const mediaStream = getMediaCaptureStream(media);
-    const audioTracks = mediaStream?.getAudioTracks() ?? [];
     const videoTracks = canvasStream.getVideoTracks();
 
     if (videoTracks.length === 0) {
@@ -1192,28 +1206,64 @@ const [areCaptionsHidden, setAreCaptionsHidden] = useState(false);
       return;
     }
 
-    const mimeType = getPreferredMimeType(audioTracks.length > 0)
-      ?? getSupportedWebmMimeType(audioTracks.length > 0);
+    // Set up Web Audio Master Mixer for Voiceover + Background Music
+    let audioContext: AudioContext | null = null;
+    let audioDestination: MediaStreamAudioDestinationNode | null = null;
+    let mixedAudioStream: MediaStream | null = null;
+
+    try {
+      const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
+      if (AudioCtx) {
+        audioContext = new AudioCtx();
+        audioDestination = audioContext.createMediaStreamDestination();
+
+        // 1. Voiceover track
+        if (media && !isAudioMuted && volume > 0) {
+          const mediaSource = audioContext.createMediaElementSource(media);
+          const mediaGain = audioContext.createGain();
+          mediaGain.gain.value = volume;
+          mediaSource.connect(mediaGain);
+          mediaGain.connect(audioDestination);
+          mediaGain.connect(audioContext.destination);
+        }
+
+        // 2. Background music track
+        const songMedia = songMediaRef.current;
+        if (songMedia && localSongUrl && !isMusicMuted && songVolume > 0) {
+          const songSource = audioContext.createMediaElementSource(songMedia);
+          const songGain = audioContext.createGain();
+          songGain.gain.value = songVolume;
+          songSource.connect(songGain);
+          songGain.connect(audioDestination);
+          songGain.connect(audioContext.destination);
+        }
+
+        mixedAudioStream = audioDestination.stream;
+      }
+    } catch (audioErr) {
+      console.warn("Could not setup audio context mix, falling back to direct capture:", audioErr);
+      mixedAudioStream = getMediaCaptureStream(media);
+    }
+
+    const audioTracks = mixedAudioStream?.getAudioTracks() ?? [];
+
+    const preferredMimes = [
+      "video/mp4;codecs=avc1",
+      "video/mp4",
+      "video/webm;codecs=h264",
+      "video/webm;codecs=vp9",
+      "video/webm",
+    ];
+    const mimeType = preferredMimes.find(type => MediaRecorder.isTypeSupported(type))
+      || (getPreferredMimeType(audioTracks.length > 0) ?? getSupportedWebmMimeType(audioTracks.length > 0));
+
     if (!mimeType) {
       stopStreamTracks(canvasStream);
-      stopStreamTracks(mediaStream);
+      stopStreamTracks(mixedAudioStream);
+      if (audioContext && audioContext.state !== "closed") audioContext.close();
       setIsExporting(false);
       setExportError("No supported export codec is available in this browser.");
       return;
-    }
-
-    // Ensure custom image is completely decoded before starting recorder
-    if (settings.backgroundTheme === "custom-image" && settings.customImageDataUrl) {
-      if (!customImageRef.current || !customImageRef.current.complete || customImageRef.current.naturalWidth === 0) {
-        try {
-          const img = new Image();
-          img.src = settings.customImageDataUrl;
-          await img.decode();
-          customImageRef.current = img;
-        } catch (e) {
-          console.warn("Could not pre-decode custom image backdrop:", e);
-        }
-      }
     }
 
     const combinedStream = new MediaStream([
@@ -1231,7 +1281,8 @@ const [areCaptionsHidden, setAreCaptionsHidden] = useState(false);
       setIsExporting(false);
       setExportError(error instanceof Error ? error.message : "Unable to start video export.");
       stopStreamTracks(canvasStream);
-      stopStreamTracks(mediaStream);
+      stopStreamTracks(mixedAudioStream);
+      if (audioContext && audioContext.state !== "closed") audioContext.close();
       return;
     }
 
@@ -1239,11 +1290,12 @@ const [areCaptionsHidden, setAreCaptionsHidden] = useState(false);
       if (e.data.size > 0) chunksRef.current.push(e.data);
     };
 
-    const fileExt = "webm";
-    const downloadMime = "video/webm";
+    const isMp4 = mimeType.includes("mp4");
+    const fileExt = isMp4 ? "mp4" : "webm";
+    const downloadMime = isMp4 ? "video/mp4" : "video/webm";
 
     let exportEndedListener: (() => void) | null = null;
-    const cleanupExport = (canvasStream: MediaStream, mediaStream: MediaStream | null) => {
+    const cleanupExport = () => {
       if (exportAnimRef.current) cancelAnimationFrame(exportAnimRef.current);
       exportAnimRef.current = undefined;
       if (exportEndedListener) {
@@ -1252,7 +1304,10 @@ const [areCaptionsHidden, setAreCaptionsHidden] = useState(false);
       }
       offscreenCanvasRef.current = null;
       stopStreamTracks(canvasStream);
-      stopStreamTracks(mediaStream);
+      stopStreamTracks(mixedAudioStream);
+      if (audioContext && audioContext.state !== "closed") {
+        audioContext.close().catch(() => {});
+      }
       mediaRecorderRef.current = null;
       setIsExporting(false);
     };
@@ -1271,16 +1326,19 @@ const [areCaptionsHidden, setAreCaptionsHidden] = useState(false);
       } else {
         setExportError("Export cancelled.");
       }
-      cleanupExport(canvasStream, mediaStream);
+      cleanupExport();
     };
 
     recorder.onerror = () => {
       setExportError("The browser stopped the export unexpectedly.");
-      cleanupExport(canvasStream, mediaStream);
+      cleanupExport();
     };
 
     mediaRecorderRef.current = recorder;
     media.currentTime = 0;
+    if (songMediaRef.current && localSongUrl) {
+      songMediaRef.current.currentTime = 0;
+    }
 
     const scaledSettings: CanvasSettings = {
       ...settings,
@@ -1291,44 +1349,63 @@ const [areCaptionsHidden, setAreCaptionsHidden] = useState(false);
       const ctx = offscreen.getContext("2d");
       if (!ctx || exportCancelledRef.current) return;
 
+      const t = media.currentTime;
       ctx.clearRect(0, 0, offscreen.width, offscreen.height);
-      // Paint opaque black base so transparent pixels never become white
-      ctx.fillStyle = settings.backgroundColor || "#000000";
+      ctx.fillStyle = "#000000";
       ctx.fillRect(0, 0, offscreen.width, offscreen.height);
 
-      const customVideo = customVideoRef.current;
-      if (settings.backgroundTheme === "custom-video" && customVideo && customVideo.duration > 0) {
-        const loopTime = media.currentTime % customVideo.duration;
-        if (Math.abs(customVideo.currentTime - loopTime) > 0.25) {
-          customVideo.currentTime = loopTime;
+      // DYNAMIC SEGMENT LOOKUP (Resolves all 6 timeline segments correctly)
+      const segments = bgSegmentsRef.current || [];
+      const activeSeg = segments.find(s => t >= s.start && t < (s.end || effectiveDuration));
+
+      if (activeSeg) {
+        let segImage: HTMLImageElement | null = null;
+        if (activeSeg.themeId === "custom-image" && activeSeg.customImageUrl) {
+          segImage = imageCache.get(activeSeg.customImageUrl) || null;
         }
+
+        drawBackgroundToCanvas(ctx, {
+          themeId: activeSeg.themeId || "midnight",
+          backgroundColor: activeSeg.color || "#000000",
+          width: offscreen.width,
+          height: offscreen.height,
+          videoElement: media,
+          isVideoMedia,
+          customImage: segImage || customImageRef.current,
+          customVideoElement: customVideoRef.current,
+          overlayOpacity: settings.backgroundOverlayOpacity,
+          fitMode: settings.fitMode,
+        });
+      } else {
+        // Fallback default background
+        drawBackgroundToCanvas(ctx, {
+          themeId: settings.backgroundTheme || "midnight",
+          backgroundColor: settings.backgroundColor || "#000000",
+          width: offscreen.width,
+          height: offscreen.height,
+          videoElement: media,
+          isVideoMedia,
+          customImage: customImageRef.current,
+          customVideoElement: customVideoRef.current,
+          overlayOpacity: settings.backgroundOverlayOpacity,
+          fitMode: settings.fitMode,
+        });
       }
 
-      drawBackgroundToCanvas(ctx, {
-      themeId: settings.backgroundTheme,
-      backgroundColor: settings.backgroundColor,
-        width: offscreen.width,
-        height: offscreen.height,
-        videoElement: media,
-        isVideoMedia,
-        customImage: customImageRef.current,
-        customVideoElement: customVideoRef.current,
-        overlayOpacity: settings.backgroundOverlayOpacity,
-        fitMode: settings.fitMode,
-      });
+      // RENDER SUBTITLES AT EXACT TIMESTAMP
+      if (!areCaptionsHidden) {
+        renderSubtitlesToCanvas(
+          ctx,
+          offscreen.width,
+          offscreen.height,
+          t,
+          subtitles,
+          scaledSettings,
+          language,
+          null,
+        );
+      }
 
-      renderSubtitlesToCanvas(
-        ctx,
-        offscreen.width,
-        offscreen.height,
-        media.currentTime,
-        subtitles,
-        scaledSettings,
-        language,
-        null,
-      );
-
-      const t = media.currentTime;
       const d = Number.isFinite(media.duration) ? media.duration : duration;
       setExportCurrentTime(t);
       if (d > 0) setExportProgress(Math.min(100, (t / d) * 100));
@@ -1346,7 +1423,7 @@ const [areCaptionsHidden, setAreCaptionsHidden] = useState(false);
         recorder.stop();
       } catch {
         setExportError("The browser could not finish the export.");
-        cleanupExport(canvasStream, mediaStream);
+        cleanupExport();
       }
     };
     exportEndedListener = handleExportEnded;
@@ -1357,8 +1434,16 @@ const [areCaptionsHidden, setAreCaptionsHidden] = useState(false);
     } catch (error) {
       setIsExporting(false);
       setExportError(error instanceof Error ? error.message : "Unable to start recording.");
-      cleanupExport(canvasStream, mediaStream);
+      cleanupExport();
       return;
+    }
+
+    if (audioContext && audioContext.state === "suspended") {
+      await audioContext.resume();
+    }
+
+    if (songMediaRef.current && localSongUrl) {
+      void songMediaRef.current.play().catch(() => undefined);
     }
 
     void media.play().then(() => {
