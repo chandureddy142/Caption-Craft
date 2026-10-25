@@ -22,6 +22,7 @@ import {
 } from "lucide-react";
 import { supabase } from "../lib/supabase";
 import { getPersistentEmailUsage, recordPersistentUsage } from "../lib/usageTracker";
+import { getLocalProjectDraft } from "../lib/projectDraftStorage";
 import { saveLocalProjectMedia, deleteLocalProjectMedia, getLocalExportMedia, getAllLocalExports, getAllLocalProjects, deleteLocalExportsForProject } from "../lib/localMediaStorage";
 
 interface ProjectItem {
@@ -31,6 +32,7 @@ interface ProjectItem {
   language: "Telugu" | "Tenglish" | "English";
   ratio: "9:16" | "16:9";
   wordsCount: number;
+  captionsCount?: number;
   updatedAt: string;
   status: "Draft" | "Ready";
   user_id?: string;
@@ -130,6 +132,7 @@ export const StudioDashboard: React.FC<StudioDashboardProps> = ({
                 language: p.language || "Telugu",
                 ratio: p.ratio || "9:16",
                 wordsCount: p.words_count || 0,
+                captionsCount: p.words_count || 0,
                 updatedAt: p.updated_at ? new Date(p.updated_at).toLocaleDateString() : "Recently",
                 status: p.status || "Ready",
                 user_id: p.user_id
@@ -143,14 +146,16 @@ export const StudioDashboard: React.FC<StudioDashboardProps> = ({
             const localProjs = await getAllLocalProjects();
             for (const loc of localProjs) {
               if (!combinedProjects.some(p => p.id === loc.id)) {
+                const draft = await getLocalProjectDraft(loc.id);
                 combinedProjects.push({
                   id: loc.id,
-                  title: loc.name.replace(/.[^/.]+$/, "") || "Untitled Project",
-                  duration: "0:30",
+                  title: (draft && draft.projectTitle) || loc.name.replace(/.[^/.]+$/, "") || "Untitled Project",
+                  duration: (draft && draft.durationFormatted) ? draft.durationFormatted : "0:30",
                   language: "Telugu",
-                  ratio: "9:16",
-                  wordsCount: 0,
-                  updatedAt: new Date(loc.createdAt).toLocaleDateString(),
+                  ratio: (draft && draft.settings && draft.settings.aspectRatio) ? draft.settings.aspectRatio as any : "9:16",
+                  wordsCount: draft ? (draft.subtitles ? draft.subtitles.length : 0) : 0,
+                  captionsCount: draft ? (draft.subtitles ? draft.subtitles.length : 0) : 0,
+                  updatedAt: draft && draft.updatedAt ? new Date(draft.updatedAt).toLocaleDateString() : new Date(loc.createdAt).toLocaleDateString(),
                   status: "Draft",
                   user_id: user.id
                 });
@@ -257,6 +262,7 @@ export const StudioDashboard: React.FC<StudioDashboardProps> = ({
       language: "Telugu",
       ratio: "9:16",
       wordsCount: 0,
+      captionsCount: 0,
       updatedAt: "Just now",
       status: "Draft",
       user_id: userId
@@ -880,7 +886,7 @@ export const StudioDashboard: React.FC<StudioDashboardProps> = ({
                         {p.title}
                       </h3>
                       <div style={{ fontSize: "11px", color: "var(--card-text-secondary)" }}>
-                        {p.wordsCount} words • {p.updatedAt}
+                        {p.captionsCount || p.wordsCount || 0} captions • {p.updatedAt}
                       </div>
                     </div>
 

@@ -1,3 +1,4 @@
+import type { TimelineBgSegment, TimelineSongSegment } from "../types";
 export interface StudioAppProps {
   initialTemplateId?: string;
   initialFile?: File | null;
@@ -32,6 +33,7 @@ import { useHistory } from '../utils/history';
 import { ExportPage } from '../components/ExportPage';
 import { renderProjectToBlob } from "../utils/projectRenderer";
 import { getLocalProjectMedia, saveLocalExportMedia } from "../lib/localMediaStorage";
+import { saveLocalProjectDraft, getLocalProjectDraft } from "../lib/projectDraftStorage";
 import { supabase } from "../lib/supabase";
 
 function formatSeconds(seconds: number): string {
@@ -43,6 +45,11 @@ function formatSeconds(seconds: number): string {
 
 function App({ initialTemplateId: _initialTemplateId, initialFile, projectId, onBackToDashboard }: StudioAppProps = {}) {
   const [showLanding, setShowLanding] = useState<boolean>(false);
+  const [showExitConfirmModal, setShowExitConfirmModal] = useState<boolean>(false);
+  const [draftSongUrl, setDraftSongUrl] = useState<string | null>(null);
+  const [draftSongName, setDraftSongName] = useState<string | null>(null);
+  const currentSongBlobRef = useRef<Blob | null>(null);
+  const [isSavingDraft, setIsSavingDraft] = useState<boolean>(false);
   const [captionSearchQuery, setCaptionSearchQuery] = useState<string>("");
   const [videoFile, setVideoFile] = useState<File | null>(null);
   const [audioBlob, setAudioBlob] = useState<Blob | null>(null);
@@ -163,20 +170,43 @@ function App({ initialTemplateId: _initialTemplateId, initialFile, projectId, on
     watermarkOpacity: 0.7,
     watermarkPosition: 'bottom-right',
   };
-  const editorHistory = useHistory({ subtitles: [] as Subtitle[], settings: initialSettings });
+  const editorHistory = useHistory({
+    subtitles: [] as Subtitle[],
+    settings: initialSettings,
+    bgSegments: [] as TimelineBgSegment[],
+    songSegments: [{ id: "song-default", start: 0, end: 0 }] as TimelineSongSegment[],
+  });
   const { undo, redo } = editorHistory;
   const subtitles = editorHistory.value.subtitles;
   const settings = editorHistory.value.settings;
+  const bgSegments = editorHistory.value.bgSegments;
+  const songSegments = editorHistory.value.songSegments;
+
   const setSubtitles = useCallback<React.Dispatch<React.SetStateAction<Subtitle[]>>>((update) => {
     editorHistory.setValue(current => ({
       ...current,
-      subtitles: typeof update === 'function' ? update(current.subtitles) : update,
+      subtitles: typeof update === "function" ? update(current.subtitles) : update,
     }));
   }, [editorHistory.setValue]);
+
   const setSettings = useCallback<React.Dispatch<React.SetStateAction<CanvasSettings>>>((update) => {
     editorHistory.setValue(current => ({
       ...current,
-      settings: typeof update === 'function' ? update(current.settings) : update,
+      settings: typeof update === "function" ? update(current.settings) : update,
+    }));
+  }, [editorHistory.setValue]);
+
+  const setBgSegments = useCallback<React.Dispatch<React.SetStateAction<TimelineBgSegment[]>>>((update) => {
+    editorHistory.setValue(current => ({
+      ...current,
+      bgSegments: typeof update === "function" ? update(current.bgSegments) : update,
+    }));
+  }, [editorHistory.setValue]);
+
+  const setSongSegments = useCallback<React.Dispatch<React.SetStateAction<TimelineSongSegment[]>>>((update) => {
+    editorHistory.setValue(current => ({
+      ...current,
+      songSegments: typeof update === "function" ? update(current.songSegments) : update,
     }));
   }, [editorHistory.setValue]);
 
@@ -424,9 +454,30 @@ const applyProgress = (progress: LocalTranscriptionProgress) => {
       handleFileUpload(initialFile);
     } else if (projectId) {
       setShowLanding(false);
-      getLocalProjectMedia(projectId).then(storedFile => {
+      getLocalProjectMedia(projectId).then(async storedFile => {
         if (storedFile) {
-          handleFileUpload(storedFile);
+          await handleFileUpload(storedFile);
+          try {
+            const draft = await getLocalProjectDraft(projectId);
+            if (draft) {
+              if (draft.projectTitle) setProjectTitle(draft.projectTitle);
+              if (draft.subtitles && draft.subtitles.length > 0) setSubtitles(draft.subtitles);
+              if (draft.settings) setSettings(draft.settings);
+              if (draft.bgSegments && draft.bgSegments.length > 0) setBgSegments(draft.bgSegments);
+              if (draft.songSegments && draft.songSegments.length > 0) setSongSegments(draft.songSegments);
+              if (draft.songBlob) {
+                const sUrl = URL.createObjectURL(draft.songBlob);
+                setDraftSongUrl(sUrl);
+                setDraftSongName(draft.songName || "Custom song track");
+                currentSongBlobRef.current = draft.songBlob;
+              } else if (draft.songUrl) {
+                setDraftSongUrl(draft.songUrl);
+                setDraftSongName(draft.songName || "Custom song track");
+              }
+            }
+          } catch (e) {
+            console.warn("Could not load draft:", e);
+          }
         } else {
           setTranscriptionStatus("Media not found in local browser storage. Please re-upload.");
         }
@@ -477,11 +528,74 @@ const applyProgress = (progress: LocalTranscriptionProgress) => {
     setTranscriptionProgress(0);
   };
 
-  const handleRemoveMedia = () => {
-    if (onBackToDashboard) {
-      onBackToDashboard();
-      return;
+  
+  const handleSaveDraftAndExit = async () => {
+    setIsSavingDraft(true);
+    const targetId = projectId || ("p" + Date.now());
+    try {
+      const m = Math.floor((mediaDuration || playbackState.duration || 0) / 60);
+      const s = Math.floor((mediaDuration || playbackState.duration || 0) % 60);
+      const timecodeStr = m + ":" + String(s).padStart(2, "0");
+
+      await saveLocalProjectDraft({
+        projectId: targetId,
+        projectTitle: projectTitle || "Untitled Project",
+        duration: mediaDuration || playbackState.duration || 0,
+        durationFormatted: timecodeStr,
+        captionsCount: subtitles.length,
+        subtitles,
+        settings,
+        bgSegments,
+        songSegments,
+        songBlob: currentSongBlobRef.current || undefined,
+        songName: draftSongName || undefined,
+        songUrl: draftSongUrl || undefined,
+        updatedAt: new Date().toISOString()
+      });
+      // Also update Supabase metadata if logged in
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user && projectId) {
+        await supabase.from("projects").update({
+          title: projectTitle || "Untitled Project",
+          words_count: subtitles.reduce((acc, s) => acc + (s.text ? s.text.trim().split(/s+/).length : 0), 0),
+          ratio: settings.aspectRatio || "9:16",
+          status: "Draft",
+          updated_at: new Date().toISOString()
+        }).eq("id", projectId);
+      }
+    } catch (err) {
+      console.warn("Failed to save draft:", err);
+    } finally {
+      setIsSavingDraft(false);
+      setShowExitConfirmModal(false);
+      if (onBackToDashboard) onBackToDashboard();
+      else handleForceExit();
     }
+  };
+
+  const handleDiscardAndExit = () => {
+    setShowExitConfirmModal(false);
+    if (onBackToDashboard) onBackToDashboard();
+    else handleForceExit();
+  };
+
+  const handleForceExit = () => {
+    transcriptionSessionRef.current.reset();
+    abortControllerRef.current?.abort();
+    abortControllerRef.current = null;
+    audioBlobRef.current = null;
+    setAudioBlob(null);
+    setVideoFile(null);
+    setShowExportPage(false);
+    setSubtitles([]);
+    setSelectedSubtitleId(null);
+    setMediaDuration(0);
+    setAudioReady(false);
+  };
+
+  const handleRemoveMedia = () => {
+    setShowExitConfirmModal(true);
+    return;
     transcriptionSessionRef.current.reset();
     abortControllerRef.current?.abort();
     abortControllerRef.current = null;
@@ -806,6 +920,17 @@ const applyProgress = (progress: LocalTranscriptionProgress) => {
               }}
             />
             <Workspace
+                initialSongUrl={draftSongUrl}
+                initialSongName={draftSongName}
+                onSongChange={({ songUrl, songName, songBlob }) => {
+                  setDraftSongUrl(songUrl);
+                  setDraftSongName(songName);
+                  if (songBlob !== undefined) currentSongBlobRef.current = songBlob;
+                }}
+                bgSegments={bgSegments}
+                setBgSegments={setBgSegments}
+                songSegments={songSegments}
+                setSongSegments={setSongSegments}
             captionSearchQuery={captionSearchQuery}
               onPlaybackStateChange={(st) => setPlaybackState(prev => ({ ...prev, ...st }))}
               videoFile={videoFile}
@@ -914,7 +1039,105 @@ const applyProgress = (progress: LocalTranscriptionProgress) => {
           </div>
         </div>
       )}
-    </div>
+    
+      {/* EXIT & SAVE DRAFT CONFIRMATION MODAL */}
+      {showExitConfirmModal && (
+        <div style={{
+          position: "fixed",
+          inset: 0,
+          zIndex: 999999,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          backgroundColor: "rgba(0, 0, 0, 0.7)",
+          backdropFilter: "blur(6px)",
+          padding: "20px"
+        }}
+        onClick={() => setShowExitConfirmModal(false)}
+        >
+          <div
+            style={{
+              width: "100%",
+              maxWidth: "420px",
+              background: "#12141c",
+              border: "1px solid rgba(255, 255, 255, 0.12)",
+              borderRadius: "14px",
+              padding: "24px",
+              boxShadow: "0 24px 60px rgba(0, 0, 0, 0.6)",
+              display: "flex",
+              flexDirection: "column",
+              gap: "16px",
+              color: "#ffffff"
+            }}
+            onClick={e => e.stopPropagation()}
+          >
+            <div>
+              <h3 style={{ margin: "0 0 6px 0", fontSize: "16px", fontWeight: 700, color: "#ffffff" }}>
+                Save project as draft?
+              </h3>
+              <p style={{ margin: 0, fontSize: "13px", color: "#94a3b8", lineHeight: 1.5 }}>
+                Do you want to save your edited captions, background segments, and music before leaving?
+              </p>
+            </div>
+
+            <div style={{ display: "flex", justifyContent: "flex-end", gap: "8px", marginTop: "8px" }}>
+              <button
+                type="button"
+                onClick={handleDiscardAndExit}
+                style={{
+                  padding: "8px 14px",
+                  borderRadius: "8px",
+                  border: "1px solid rgba(239, 68, 68, 0.35)",
+                  background: "rgba(239, 68, 68, 0.1)",
+                  color: "#f87171",
+                  fontSize: "12px",
+                  fontWeight: 600,
+                  cursor: "pointer"
+                }}
+              >
+                Discard & Exit
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setShowExitConfirmModal(false)}
+                style={{
+                  padding: "8px 14px",
+                  borderRadius: "8px",
+                  border: "1px solid rgba(255, 255, 255, 0.12)",
+                  background: "transparent",
+                  color: "#cbd5e1",
+                  fontSize: "12px",
+                  fontWeight: 600,
+                  cursor: "pointer"
+                }}
+              >
+                Cancel
+              </button>
+
+              <button
+                type="button"
+                disabled={isSavingDraft}
+                onClick={handleSaveDraftAndExit}
+                style={{
+                  padding: "8px 16px",
+                  borderRadius: "8px",
+                  border: "none",
+                  background: "var(--accent-primary, #ef4444)",
+                  color: "#ffffff",
+                  fontSize: "12px",
+                  fontWeight: 700,
+                  cursor: isSavingDraft ? "not-allowed" : "pointer",
+                  boxShadow: "0 2px 8px rgba(0,0,0,0.3)"
+                }}
+              >
+                {isSavingDraft ? "Saving..." : "Save as Draft"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+</div>
   );
 }
 

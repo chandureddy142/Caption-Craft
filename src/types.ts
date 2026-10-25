@@ -50,7 +50,7 @@ export type BackgroundThemeId =
 
 export type BackgroundFitMode = "cover" | "contain" | "stretch" | "blur-fill";
 
-export type SafeZonePlatform = 'instagram' | 'youtube' | 'tiktok';
+export type SafeZonePlatform = "instagram" | "tiktok" | "youtube" | "youtube-shorts" | "youtube-long";
 
 export interface HookOverlay {
   id: string;
@@ -264,4 +264,20 @@ export interface CaptionTemplateDefinition {
   wordPatterns?: WordStyleRule[];
   styleRules?: WordStyleRule[];
   isCustom?: boolean;
+}
+
+export interface TimelineBgSegment {
+  id: string;
+  start: number;
+  end: number;
+  themeId?: string;
+  color?: string;
+  customImageUrl?: string;
+  customVideoUrl?: string;
+}
+
+export interface TimelineSongSegment {
+  id: string;
+  start: number;
+  end: number;
 }

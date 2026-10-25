@@ -1,0 +1,71 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1920" height="1080" viewBox="0 0 1920 1080">
+  <defs>
+    <linearGradient id="ytTopShadow" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#000000" stop-opacity="0.75"/>
+      <stop offset="60%" stop-color="#000000" stop-opacity="0.3"/>
+      <stop offset="100%" stop-color="#000000" stop-opacity="0"/>
+    </linearGradient>
+    <linearGradient id="ytBotShadow" x1="0" y1="1" x2="0" y2="0">
+      <stop offset="0%" stop-color="#000000" stop-opacity="0.85"/>
+      <stop offset="60%" stop-color="#000000" stop-opacity="0.4"/>
+      <stop offset="100%" stop-color="#000000" stop-opacity="0"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Soft top & bottom shadow vignettes so white UI text is readable over bright video -->
+  <rect width="100%" height="160" fill="url(#ytTopShadow)"/>
+  <rect y="920" width="100%" height="160" fill="url(#ytBotShadow)"/>
+
+  <!-- Top Title Bar -->
+  <circle cx="56" cy="56" r="20" fill="#3b82f6"/>
+  <text x="90" y="52" fill="#ffffff" font-family="-apple-system, Roboto, sans-serif" font-size="22" font-weight="600">Video Title · YouTube Long-Form Player</text>
+  <text x="90" y="74" fill="#cbd5e1" font-family="-apple-system, Roboto, sans-serif" font-size="14">Channel Name · 1.2M subscribers</text>
+
+  <!-- Bottom Scrubber Bar -->
+  <rect x="36" y="1005" width="1848" height="5" rx="2.5" fill="rgba(255, 255, 255, 0.25)"/>
+  <rect x="36" y="1005" width="980" height="5" rx="2.5" fill="rgba(255, 255, 255, 0.45)"/>
+  <rect x="36" y="1005" width="620" height="5" rx="2.5" fill="#ff0000"/>
+  <circle cx="656" cy="1007.5" r="7" fill="#ff0000"/>
+
+  <!-- Left Bottom Controls -->
+  <!-- Play -->
+  <polygon points="40,1036 52,1045 40,1054" fill="#ffffff"/>
+  <!-- Next Track -->
+  <polygon points="72,1036 82,1043 72,1050" fill="#ffffff"/>
+  <rect x="84" y="1036" width="2.5" height="14" fill="#ffffff"/>
+  <!-- Volume -->
+  <polygon points="106,1040 113,1040 120,1035 120,1055 113,1050 106,1050" fill="#ffffff"/>
+  <path d="M 124 1039 Q 130 1045 124 1051" fill="none" stroke="#ffffff" stroke-width="2.5"/>
+  <rect x="136" y="1043" width="56" height="4" rx="2" fill="rgba(255,255,255,0.3)"/>
+  <rect x="136" y="1043" width="38" height="4" rx="2" fill="#ffffff"/>
+
+  <!-- Time -->
+  <text x="210" y="1049" fill="#ffffff" font-family="-apple-system, Roboto, sans-serif" font-size="15" font-weight="500">03:45 / 12:30</text>
+
+  <!-- Right Bottom Controls -->
+  <!-- Auto-play toggle -->
+  <rect x="1650" y="1038" width="32" height="16" rx="8" fill="rgba(255,255,255,0.3)"/>
+  <circle cx="1672" cy="1046" r="6.5" fill="#ffffff"/>
+
+  <!-- CC -->
+  <rect x="1700" y="1037" width="24" height="18" rx="3" fill="none" stroke="#ffffff" stroke-width="2"/>
+  <text x="1712" y="1050" fill="#ffffff" font-family="-apple-system, Roboto, sans-serif" font-size="11" font-weight="700" text-anchor="middle">CC</text>
+
+  <!-- Settings Gear -->
+  <circle cx="1750" cy="1046" r="8" fill="none" stroke="#ffffff" stroke-width="2"/>
+  <circle cx="1750" cy="1046" r="3" fill="#ffffff"/>
+
+  <!-- Miniplayer -->
+  <rect x="1785" y="1038" width="20" height="16" rx="2" fill="none" stroke="#ffffff" stroke-width="2"/>
+  <rect x="1796" y="1047" width="7" height="5" fill="#ffffff"/>
+
+  <!-- Cinema mode -->
+  <rect x="1825" y="1038" width="22" height="16" rx="2" fill="none" stroke="#ffffff" stroke-width="2"/>
+
+  <!-- Fullscreen -->
+  <path d="M 1868 1038 L 1875 1038 M 1868 1038 L 1868 1045
+           M 1886 1038 L 1879 1038 M 1886 1038 L 1886 1045
+           M 1868 1054 L 1875 1054 M 1868 1054 L 1868 1047
+           M 1886 1054 L 1879 1054 M 1886 1054 L 1886 1047"
+        fill="none" stroke="#ffffff" stroke-width="2" stroke-linecap="round"/>
+</svg>

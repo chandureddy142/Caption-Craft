@@ -215,26 +215,26 @@ export const Sidebar: React.FC<SidebarProps> = ({
     if (file) onFileUpload(file);
   };
 
-  const backendButton = sourceLanguage === "te" ? (
-    <button
-      type="button"
-      style={{ width: "100%", background: "#2d3345", color: "#ffffff", border: "1px solid #4a5568", fontWeight: 600, padding: "8px 12px", borderRadius: "6px" }}
-      onClick={() => onSelectBackend?.("gemini")}
-      disabled={isTranscribing}
-
-    >
-      ⚡ CaptionCraft AI
-    </button>
-  ) : (
-    <button
-      type="button"
-      style={{ width: "100%", background: "#2d3345", color: "#ffffff", border: "1px solid #4a5568", fontWeight: 600, padding: "8px 12px", borderRadius: "6px" }}
-      onClick={() => onSelectBackend?.("local")}
-      disabled={isTranscribing}
-
-    >
-      🖥 On-Device
-    </button>
+  const backendButton = (
+    <div style={{ display: "none" }} aria-hidden="true">
+      {sourceLanguage === "te" ? (
+        <button
+          type="button"
+          onClick={() => onSelectBackend?.("gemini")}
+          disabled={isTranscribing}
+        >
+          ⚡ CaptionCraft AI
+        </button>
+      ) : (
+        <button
+          type="button"
+          onClick={() => onSelectBackend?.("local")}
+          disabled={isTranscribing}
+        >
+          🖥 On-Device
+        </button>
+      )}
+    </div>
   );
 
   const hasSelectionOrClipboard = Boolean(hasSelectedSubtitle || hasSelectedSegment || copiedCaption);

@@ -1,17 +1,19 @@
+import { extractWaveformPeaks } from "../utils/waveformExtractor";
 import React, { useCallback, useEffect, useRef, useState } from "react";
-import type { CanvasSettings, Subtitle, CaptionLanguage, ExportResolutionPreset } from "../types";
-import { getSubtitleCanvasLayout, renderSubtitlesToCanvas } from "../utils/SubtitleRenderer";
-import { getPlatformSafeZone } from "../utils/creatorTools";
+import type { CanvasSettings, Subtitle, CaptionLanguage, ExportResolutionPreset, TimelineBgSegment, TimelineSongSegment } from "../types";
+import {
+  getSubtitleCanvasLayout,
+  renderSubtitlesToCanvas } from "../utils/SubtitleRenderer";
 import { getCaptionText } from "../utils/transliterate";
 import AnimatedTemplatePreview from "./AnimatedTemplatePreview";
 import {
   CAPTION_SECTIONS,
   CAPTION_TEMPLATES,
   applyTemplateToSettings,
-} from "../utils/captionTemplates";
+  } from "../utils/captionTemplates";
 import {
   drawBackgroundToCanvas,
-} from "../utils/backgroundThemes";
+  } from "../utils/backgroundThemes";
 import {
   Check,
   FolderUp,
@@ -19,11 +21,18 @@ import {
   LayoutTemplate,
   Maximize2,
   Minimize2,
-    Pencil,
-    Share2,
-      X,
+  Pencil,
+  Share2,
+  X,
   Trash2,
-} from "lucide-react";
+  Eye,
+  EyeOff,
+RotateCcw,
+  Plus,
+  Lock,
+  Unlock,
+  Music,
+  ArrowUp, Magnet, Volume2, VolumeX } from "lucide-react";
 import { ExportModal } from "./ExportModal";
 import { downloadStringAsFile, exportToSRT, exportToVTT } from "../utils/exporter";
 import {
@@ -32,12 +41,13 @@ import {
   getSupportedWebmMimeType,
 } from "../utils/exportCapabilities";
 
-function formatPrecisionTime(seconds: number): string {
-  if (!Number.isFinite(seconds) || seconds < 0) return "0:00.000";
-  const mins = Math.floor(seconds / 60);
-  const secs = Math.floor(seconds % 60);
-  const ms = Math.floor((seconds % 1) * 1000);
-  return `${mins}:${String(secs).padStart(2, "0")}.${String(ms).padStart(3, "0")}`;
+
+
+function formatRulerTime(seconds: number): string {
+  if (!Number.isFinite(seconds) || seconds < 0) return "00:00";
+  const mins = String(Math.floor(seconds / 60)).padStart(2, "0");
+  const secs = String(Math.floor(seconds % 60)).padStart(2, "0");
+  return `${mins}:${secs}`;
 }
 
 function formatDuration(seconds: number): string {
@@ -83,7 +93,14 @@ function stopStreamTracks(stream: MediaStream | null): void {
   stream?.getTracks().forEach((track: MediaStreamTrack) => track.stop());
 }
 
-interface WorkspaceProps {
+export interface WorkspaceProps {
+  initialSongUrl?: string | null;
+  initialSongName?: string | null;
+  onSongChange?: (data: { songUrl: string | null; songName: string | null; songBlob?: Blob | null }) => void;
+  bgSegments?: TimelineBgSegment[];
+  setBgSegments?: React.Dispatch<React.SetStateAction<TimelineBgSegment[]>>;
+  songSegments?: TimelineSongSegment[];
+  setSongSegments?: React.Dispatch<React.SetStateAction<TimelineSongSegment[]>>;
   captionSearchQuery?: string;
   mediaDuration?: number;
   videoFile: File | null;
@@ -111,8 +128,13 @@ interface WorkspaceProps {
 
 
 export const Workspace: React.FC<WorkspaceProps> = ({
+  bgSegments: externalBgSegments,
+  setBgSegments: externalSetBgSegments,
+  songSegments: externalSongSegments,
+  setSongSegments: externalSetSongSegments,
   captionSearchQuery = "",
   videoFile,
+  audioBlob,
   subtitles,
   language,
   settings,
@@ -127,6 +149,9 @@ export const Workspace: React.FC<WorkspaceProps> = ({
   projectTitle,
   onProjectTitleChange,
   mediaDuration = 0,
+  initialSongUrl,
+  initialSongName,
+  onSongChange,
   onPlaybackStateChange,
 }) => {
   const [hoveredTemplateId, setHoveredTemplateId] = useState<string | null>(null);
@@ -137,6 +162,8 @@ export const Workspace: React.FC<WorkspaceProps> = ({
   const customVideoRef = useRef<HTMLVideoElement | null>(null);
   const songMediaRef = useRef<HTMLAudioElement | null>(null);
   const [songDuration, setSongDuration] = useState(0);
+
+
   const [selectedLayer, setSelectedLayer] = useState<"audio" | "background" | "caption" | "music" | null>("caption");
   const [songVolume, setSongVolume] = useState(0.8);
 
@@ -148,12 +175,17 @@ export const Workspace: React.FC<WorkspaceProps> = ({
     }
   }, []);
 
-  const [bgSegments, setBgSegments] = useState<Array<{ id: string; start: number; end: number; themeId?: string; color?: string; customImageUrl?: string; customVideoUrl?: string }>>([]);
-  const bgSegmentsRef = useRef(bgSegments);
+  const [internalBgSegments, setInternalBgSegments] = useState<TimelineBgSegment[]>([]);
+  const bgSegments = externalBgSegments ?? internalBgSegments;
+  const setBgSegments = externalSetBgSegments ?? setInternalBgSegments;
+  const bgSegmentsRef = useRef<TimelineBgSegment[]>(bgSegments);
   bgSegmentsRef.current = bgSegments;
-  const [songSegments, setSongSegments] = useState<Array<{ id: string; start: number; end: number }>>([
+
+  const [internalSongSegments, setInternalSongSegments] = useState<TimelineSongSegment[]>([
     { id: "song-default", start: 0, end: 0 }
   ]);
+  const songSegments = externalSongSegments ?? internalSongSegments;
+  const setSongSegments = externalSetSongSegments ?? setInternalSongSegments;
   
   const normalizeCaption = (str: string) =>
     str.toLowerCase().replace(/[.,/#!$%^&*;:{}=-_~()?]/g, "").trim();
@@ -167,7 +199,100 @@ export const Workspace: React.FC<WorkspaceProps> = ({
     const textWords = text.split(/\s+/).filter(Boolean);
     return qWords.some(qw => textWords.some(tw => tw.includes(qw) || qw.includes(tw)));
   };
-const [selectedSegmentId, setSelectedSegmentId] = useState<string | null>(null);
+const [areCaptionsHidden, setAreCaptionsHidden] = useState(false);
+  const [isCaptionLocked, setIsCaptionLocked] = useState(false);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  const handleResetPlayhead = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    seekToTime(0);
+    if (timelineViewportRef.current) timelineViewportRef.current.scrollLeft = 0;
+  };
+
+  const handleAddCaptionAtPlayhead = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!setSubtitles) return;
+    const t = currentTimeRef.current || 0;
+    const dur = 1.5;
+    const endT = Math.min(t + dur, effectiveDuration);
+    const newSub: Subtitle = {
+      id: "sub_" + Date.now() + "_" + Math.random().toString(36).slice(2, 6),
+      start: t,
+      end: endT,
+      text: "New Caption",
+      words: [{ word: "New", start: t, end: t + 0.75 }, { word: "Caption", start: t + 0.75, end: endT }],
+    };
+    setSubtitles(prev => [...prev, newSub].sort((a, b) => a.start - b.start));
+    selectSubtitle(newSub.id);
+    setSelectedLayer("caption");
+  };
+  const [selectedSegmentId, setSelectedSegmentId] = useState<string | null>(null);
+
+  const handleFitBgLeft = () => {
+    if (!selectedSegmentId) return;
+    setBgSegments(prev => {
+      const sorted = [...prev].sort((a, b) => a.start - b.start);
+      const idx = sorted.findIndex(s => s.id === selectedSegmentId);
+      if (idx === -1) return prev;
+      const prevNeighbor = sorted[idx - 1];
+      const targetStart = prevNeighbor ? prevNeighbor.end : 0;
+      return sorted.map(s => s.id === selectedSegmentId ? { ...s, start: targetStart } : s);
+    });
+    requestAnimationFrame(() => drawFrameRef.current());
+  };
+
+  const handleFitBgFull = () => {
+    if (!selectedSegmentId) return;
+    const maxEnd = duration || mediaDuration || effectiveDuration;
+    if (!maxEnd) return;
+    setBgSegments(prev => {
+      const sorted = [...prev].sort((a, b) => a.start - b.start);
+      const idx = sorted.findIndex(s => s.id === selectedSegmentId);
+      if (idx === -1) return prev;
+      const prevNeighbor = sorted[idx - 1];
+      const nextNeighbor = sorted[idx + 1];
+      const targetStart = prevNeighbor ? prevNeighbor.end : 0;
+      const targetEnd = nextNeighbor ? nextNeighbor.start : maxEnd;
+      return sorted.map(s => s.id === selectedSegmentId ? { ...s, start: targetStart, end: targetEnd } : s);
+    });
+    requestAnimationFrame(() => drawFrameRef.current());
+  };
+
+  const handleFitBgRight = () => {
+    if (!selectedSegmentId) return;
+    const maxEnd = duration || mediaDuration || effectiveDuration;
+    if (!maxEnd) return;
+    setBgSegments(prev => {
+      const sorted = [...prev].sort((a, b) => a.start - b.start);
+      const idx = sorted.findIndex(s => s.id === selectedSegmentId);
+      if (idx === -1) return prev;
+      const nextNeighbor = sorted[idx + 1];
+      const targetEnd = nextNeighbor ? nextNeighbor.start : maxEnd;
+      return sorted.map(s => s.id === selectedSegmentId ? { ...s, end: targetEnd } : s);
+    });
+    requestAnimationFrame(() => drawFrameRef.current());
+  };
   const bgClipboardRef = useRef<any>(null);
   const [hasCopiedBg, setHasCopiedBg] = useState(false);
   const [pendingNewBgSlot, setPendingNewBgSlot] = useState<{ start: number; duration: number } | null>(null);
@@ -188,6 +313,9 @@ const [selectedSegmentId, setSelectedSegmentId] = useState<string | null>(null);
     }
   }, [activeSearchTerm, subtitles]);
   const [timelineZoom, setTimelineZoom] = useState(1);
+  const [isSnappingEnabled, setIsSnappingEnabled] = useState<boolean>(true);
+  const [isAudioMuted, setIsAudioMuted] = useState<boolean>(false);
+  const [isMusicMuted, setIsMusicMuted] = useState<boolean>(false);
   const timelineViewportRef = useRef<HTMLDivElement>(null);
   const timelineContainerRef = useRef<HTMLDivElement>(null);
 
@@ -205,7 +333,7 @@ const [selectedSegmentId, setSelectedSegmentId] = useState<string | null>(null);
   const currentTimeRef = useRef(currentTime);
   currentTimeRef.current = currentTime;
   const [duration, setDuration] = useState(0);
-  const totalPlaybackDuration = Math.max(duration || 0, songDuration || 0, mediaDuration || 0);
+  const totalPlaybackDuration = (duration || mediaDuration || 0);
   const effectiveDuration = totalPlaybackDuration > 0 ? totalPlaybackDuration : 1;
   const totalTimelineDuration = effectiveDuration + 30;
   const [volume, setVolume] = useState(1);
@@ -220,9 +348,45 @@ const [selectedSegmentId, setSelectedSegmentId] = useState<string | null>(null);
   const draftTextRef = useRef("");
   const [exportResolution, setExportResolution] = useState<ExportResolutionPreset>("1080p");
   const [exportCurrentTime, setExportCurrentTime] = useState(0);
-  const [localSongUrl, setLocalSongUrl] = useState<string | null>(null);
-  const [localSongName, setLocalSongName] = useState<string | null>(null);
+  const [localSongUrl, setLocalSongUrl] = useState<string | null>(initialSongUrl || null);
+  
+  
+
+  
+
+  const [audioPeaks, setAudioPeaks] = useState<number[]>([]);
+  const [musicPeaks, setMusicPeaks] = useState<number[]>([]);
+
+  useEffect(() => {
+    const src = audioBlob || videoFile;
+    if (src) {
+      extractWaveformPeaks(src, 24).then((peaks: number[]) => {
+        if (peaks && peaks.length > 0) setAudioPeaks(peaks);
+      });
+    } else {
+      setAudioPeaks([]);
+    }
+  }, [videoFile, audioBlob]);
+
+  useEffect(() => {
+    if (localSongUrl) {
+      extractWaveformPeaks(localSongUrl, 24).then((peaks: number[]) => {
+        if (peaks && peaks.length > 0) setMusicPeaks(peaks);
+      });
+    } else {
+      setMusicPeaks([]);
+    }
+  }, [localSongUrl]);
+  const [localSongName, setLocalSongName] = useState<string | null>(initialSongName || null);
   const [isScrubbing, setIsScrubbing] = useState(false);
+
+  useEffect(() => {
+    if (initialSongUrl) {
+      setLocalSongUrl(initialSongUrl);
+      setLocalSongName(initialSongName || "Custom song track");
+    }
+  }, [initialSongUrl, initialSongName]);
+  
 
   const seekToTime = useCallback((targetTime: number) => {
     const clamped = Math.max(0, Math.min(effectiveDuration, targetTime));
@@ -435,6 +599,8 @@ const [selectedSegmentId, setSelectedSegmentId] = useState<string | null>(null);
 
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
+    ctx.imageSmoothingEnabled = true;
+    ctx.imageSmoothingQuality = "high";
 
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
@@ -481,40 +647,20 @@ const [selectedSegmentId, setSelectedSegmentId] = useState<string | null>(null);
       ctx.fillRect(0, 0, canvas.width, canvas.height);
     }
 
-    if (settings.safeZones?.show) {
-      const zone = getPlatformSafeZone(settings.safeZones.platform, settings.aspectRatio);
-      const safeRect = {
-        x: zone.safeArea.x * canvas.width,
-        y: zone.safeArea.y * canvas.height,
-        width: zone.safeArea.width * canvas.width,
-        height: zone.safeArea.height * canvas.height,
-      };
-      ctx.save();
-      ctx.strokeStyle = "rgba(255,255,255,0.7)";
-      ctx.lineWidth = 2;
-      ctx.setLineDash([8, 8]);
-      ctx.strokeRect(safeRect.x, safeRect.y, safeRect.width, safeRect.height);
-      ctx.setLineDash([]);
-      zone.blocked.forEach(region => {
-        ctx.fillStyle = "rgba(15, 23, 42, 0.18)";
-        ctx.fillRect(region.x * canvas.width, region.y * canvas.height, region.width * canvas.width, region.height * canvas.height);
-        ctx.fillStyle = "rgba(255,255,255,0.8)";
-        ctx.font = "12px sans-serif";
-        ctx.fillText(region.label, region.x * canvas.width + 8, region.y * canvas.height + 18);
-      });
-      ctx.restore();
-    }
+    // Platform overlay handled directly by high-fidelity UI overlay element
 
-    renderSubtitlesToCanvas(
-      ctx,
-      canvas.width,
-      canvas.height,
-      media.currentTime,
-      subtitles,
-      settings,
-      language,
-      selectedSubtitleId,
-    );
+    if (!areCaptionsHidden) {
+      renderSubtitlesToCanvas(
+        ctx,
+        canvas.width,
+        canvas.height,
+        media.currentTime,
+        subtitles,
+        settings,
+        language,
+        selectedSubtitleId,
+      );
+    }
 
     // setCurrentTime driven by master clock loop
     if (isExporting && duration > 0) {
@@ -522,75 +668,75 @@ const [selectedSegmentId, setSelectedSegmentId] = useState<string | null>(null);
     }
 
     // requestAnimationFrame handled by masterClockLoop
-  }, [duration, isExporting, isVideoMedia, language, selectedSubtitleId, settings, subtitles, bgSegments, currentTime]);
+  }, [duration, isExporting, isVideoMedia, language, selectedSubtitleId, settings, subtitles, bgSegments, areCaptionsHidden]);
 
   useEffect(() => {
     if (!isPlaying) return;
-    let lastTime = performance.now();
 
-    const masterClockLoop = (now: number) => {
+    let rafId: number;
+
+    const masterClockLoop = () => {
       if (!isPlayingRef.current) return;
-      const delta = (now - lastTime) / 1000;
-      lastTime = now;
 
-      setCurrentTime(prev => {
-        const next = prev + delta;
-        if (next >= effectiveDuration) {
-          isPlayingRef.current = false;
-          setIsPlaying(false);
-          if (mediaRef.current) mediaRef.current.pause();
-          if (songMediaRef.current) songMediaRef.current.pause();
+      const media = mediaRef.current;
+      const song = songMediaRef.current;
 
-          if (timelineViewportRef.current) {
-            const scroller = timelineViewportRef.current;
-            const scrollableWidth = scroller.scrollWidth - scroller.clientWidth;
-            if (scrollableWidth > 0) {
-              scroller.scrollLeft = (effectiveDuration / totalTimelineDuration) * scrollableWidth;
-            }
-          }
-          return effectiveDuration;
+      // Master source of truth: audio/video hardware clock
+      let t = currentTimeRef.current;
+      if (media && !media.paused && Number.isFinite(media.currentTime)) {
+        t = media.currentTime;
+      } else if (song && !song.paused && Number.isFinite(song.currentTime)) {
+        t = song.currentTime;
+      }
+
+      currentTimeRef.current = t;
+
+      const audioLimit = (duration || mediaDuration || effectiveDuration);
+      if (t >= audioLimit) {
+        isPlayingRef.current = false;
+        setIsPlaying(false);
+        if (media) { media.pause(); media.currentTime = audioLimit; }
+        if (song) { song.pause(); }
+        setCurrentTime(audioLimit);
+        currentTimeRef.current = audioLimit;
+        return;
+      }
+
+      // Sync background song if present
+      if (song && localSongUrl && !song.paused) {
+        if (Math.abs(song.currentTime - t) > 0.15) {
+          song.currentTime = t;
         }
+      }
 
-        const media = mediaRef.current;
-        if (media) {
-          if (next < (media.duration || 0)) {
-            if (media.paused && !media.ended) void media.play().catch(() => undefined);
-          } else {
-            if (!media.paused) media.pause();
-          }
+      // Smooth layer scrolling under fixed 25% playhead needle
+      const scroller = timelineViewportRef.current;
+      if (scroller && totalTimelineDuration > 0) {
+        const scrollableWidth = scroller.scrollWidth - scroller.clientWidth;
+        if (scrollableWidth > 0) {
+          const audioLimit = (duration || mediaDuration || effectiveDuration || 0);
+        if (t <= audioLimit) {
+          scroller.scrollLeft = (t / totalTimelineDuration) * scrollableWidth;
         }
-
-        const song = songMediaRef.current;
-        if (song && localSongUrl) {
-          if (next < (song.duration || 0)) {
-            if (song.paused && !song.ended) void song.play().catch(() => undefined);
-          } else {
-            if (!song.paused) song.pause();
-          }
         }
+      }
 
-        if (timelineViewportRef.current) {
-          const scroller = timelineViewportRef.current;
-          const scrollableWidth = scroller.scrollWidth - scroller.clientWidth;
-          if (scrollableWidth > 0) {
-            scroller.scrollLeft = (next / totalTimelineDuration) * scrollableWidth;
-          }
-        }
+      // Render video canvas frame
+      drawFrameRef.current();
 
-        return next;
-      });
+      // Update React state for UI (captions highlight, needle position)
+      setCurrentTime(t);
 
-      drawFrame();
       if (isPlayingRef.current) {
-        animationRef.current = requestAnimationFrame(masterClockLoop);
+        rafId = requestAnimationFrame(masterClockLoop);
       }
     };
 
-    animationRef.current = requestAnimationFrame(masterClockLoop);
+    rafId = requestAnimationFrame(masterClockLoop);
     return () => {
-      if (animationRef.current) cancelAnimationFrame(animationRef.current);
+      cancelAnimationFrame(rafId);
     };
-  }, [isPlaying, effectiveDuration, totalTimelineDuration, drawFrame]);
+  }, [isPlaying, effectiveDuration, totalTimelineDuration, localSongUrl]);
 
   useEffect(() => {
     const container = timelineContainerRef.current || timelineViewportRef.current;
@@ -598,6 +744,9 @@ const [selectedSegmentId, setSelectedSegmentId] = useState<string | null>(null);
     if (!container || !scroller) return;
 
     const onWheel = (e: WheelEvent) => {
+      if (isPlayingRef.current) {
+        pausePlayback();
+      }
       if (e.ctrlKey || e.metaKey) {
         e.preventDefault();
         const rect = scroller.getBoundingClientRect();
@@ -622,13 +771,23 @@ const [selectedSegmentId, setSelectedSegmentId] = useState<string | null>(null);
         const delta = Math.abs(e.deltaX) >= Math.abs(e.deltaY) ? e.deltaX : (e.shiftKey ? e.deltaY : 0);
         if (delta !== 0) {
           e.preventDefault();
-          scroller.scrollLeft += delta;
+          const targetScroll = scroller.scrollLeft + delta;
+          scroller.scrollLeft = Math.max(0, targetScroll);
         }
       }
     };
 
-    container.addEventListener("wheel", onWheel, { passive: false });
-    return () => container.removeEventListener("wheel", onWheel);
+        container.addEventListener("wheel", onWheel, { passive: false });
+    const onTouchStart = (e: TouchEvent) => {
+      if (e.touches.length >= 2 && isPlayingRef.current) {
+        pausePlayback();
+      }
+    };
+    container.addEventListener("touchstart", onTouchStart, { passive: true });
+    return () => {
+      container.removeEventListener("wheel", onWheel);
+      container.removeEventListener("touchstart", onTouchStart);
+    };
   }, []);
 
   useEffect(() => {
@@ -717,11 +876,23 @@ const [selectedSegmentId, setSelectedSegmentId] = useState<string | null>(null);
 
   const pausePlayback = () => {
     isPlayingRef.current = false;
-    const media = mediaRef.current;
-    if (!media) return;
-    media.pause();
     setIsPlaying(false);
-    if (animationRef.current) cancelAnimationFrame(animationRef.current);
+    if (animationRef.current) {
+      cancelAnimationFrame(animationRef.current);
+      animationRef.current = undefined;
+    }
+    const media = mediaRef.current;
+    if (media) {
+      media.pause();
+      const exact = media.currentTime;
+      setCurrentTime(exact);
+      currentTimeRef.current = exact;
+    }
+    const song = songMediaRef.current;
+    if (song) {
+      song.pause();
+    }
+    drawFrameRef.current();
   };
 
   const startEditing = (subtitle: Subtitle) => {
@@ -1201,31 +1372,30 @@ const [selectedSegmentId, setSelectedSegmentId] = useState<string | null>(null);
     });
   };
 
-  useEffect(() => {
-    if (!isPlaying || !timelineViewportRef.current) return;
-    const el = timelineViewportRef.current;
-    const playheadRatio = currentTime / effectiveDuration;
-    const totalWidth = el.scrollWidth;
-    const clientWidth = el.clientWidth;
-    const playheadX = playheadRatio * totalWidth;
-    if (playheadX > el.scrollLeft + clientWidth * 0.8 || playheadX < el.scrollLeft) {
-      el.scrollLeft = Math.max(0, playheadX - clientWidth * 0.2);
-    }
-  }, [currentTime, isPlaying, effectiveDuration]); // Auto-scroll timeline scroller to follow playback
+// Auto-scroll unified into masterClockLoop
 
   
   // @ts-ignore
   const handleSplitActiveLayer = () => {
+    const curTime = currentTimeRef.current ?? currentTime;
+    const maxBound = (duration || mediaDuration || effectiveDuration || 10);
+
     if (selectedLayer === "background") {
       setBgSegments(prev => {
-        const seg = prev.find(s => currentTime > s.start && currentTime < (s.end || effectiveDuration));
+        // Target selected segment first, otherwise find segment under needle
+        const seg = (selectedSegmentId ? prev.find(s => s.id === selectedSegmentId) : null)
+          || prev.find(s => curTime > s.start && curTime < (s.end || maxBound));
+
         if (!seg) return prev;
-        const actualEnd = seg.end || effectiveDuration;
-        if (currentTime <= seg.start + 0.05 || currentTime >= actualEnd - 0.05) return prev;
-        const newSeg1 = { ...seg, end: currentTime };
-        const newSeg2 = { ...seg, id: "bg-" + Date.now(), start: currentTime, end: actualEnd };
+        const actualEnd = seg.end || maxBound;
+        if (curTime <= seg.start + 0.05 || curTime >= actualEnd - 0.05) return prev;
+
+        const newSeg1 = { ...seg, end: curTime };
+        const newSeg2 = { ...seg, id: "bg-" + Date.now(), start: curTime, end: actualEnd };
         setSelectedSegmentId(newSeg2.id);
-        return prev.map(s => s.id === seg.id ? newSeg1 : s).concat(newSeg2).sort((a,b) => a.start - b.start);
+        const nextList = prev.map(s => s.id === seg.id ? newSeg1 : s).concat(newSeg2).sort((a, b) => a.start - b.start);
+        requestAnimationFrame(() => drawFrameRef.current());
+        return nextList;
       });
     } else if (selectedLayer === "music") {
       setSongSegments(prev => {
@@ -1311,6 +1481,7 @@ const [selectedSegmentId, setSelectedSegmentId] = useState<string | null>(null);
         setLocalSongName(null);
         setSongDuration(0);
         setSongSegments([{ id: "song-default", start: 0, end: 0 }]);
+                      onSongChange?.({ songUrl: null, songName: null, songBlob: null });
         setSelectedSegmentId(null);
       }
     }
@@ -1425,7 +1596,7 @@ const [selectedSegmentId, setSelectedSegmentId] = useState<string | null>(null);
     if (!drag || drag.pointerId !== event.pointerId) return;
     const deltaPixels = event.clientX - drag.startX;
     const deltaSeconds = (deltaPixels / drag.trackWidth) * totalTimelineDuration;
-    const limit = effectiveDuration || 10;
+    const limit = (duration || mediaDuration || effectiveDuration || 10);
     const minDur = 0.5;
 
     if (drag.layer === "background") {
@@ -1777,15 +1948,18 @@ const [selectedSegmentId, setSelectedSegmentId] = useState<string | null>(null);
                 style={{
                   display: "inline-flex",
                   alignItems: "center",
-                  padding: "3px 8px",
-                  borderRadius: "5px",
-                  background: "rgba(255, 255, 255, 0.07)",
-                  border: "1px solid rgba(255, 255, 255, 0.08)",
+                  justifyContent: "center",
+                  height: "30px",
+                  padding: "0 10px",
+                  borderRadius: "6px",
+                  background: "rgba(255, 255, 255, 0.06)",
+                  border: "1px solid rgba(255, 255, 255, 0.1)",
                   color: "#d1d5db",
                   fontSize: "11px",
                   fontWeight: 600,
                   whiteSpace: "nowrap",
-                  flexShrink: 0
+                  flexShrink: 0,
+                  boxSizing: "border-box"
                 }}
               >
                 {formatDuration(duration)}
@@ -1796,13 +1970,15 @@ const [selectedSegmentId, setSelectedSegmentId] = useState<string | null>(null);
               style={{
                 display: "inline-flex",
                 alignItems: "center",
-                gap: "4px",
+                height: "30px",
+                gap: "6px",
                 minWidth: 0,
                 flex: "0 1 300px",
-                background: "rgba(255, 255, 255, 0.03)",
-                border: "1px solid rgba(255, 255, 255, 0.06)",
+                background: "rgba(255, 255, 255, 0.04)",
+                border: "1px solid rgba(255, 255, 255, 0.1)",
                 borderRadius: "6px",
-                padding: "2px 6px"
+                padding: "0 8px",
+                boxSizing: "border-box"
               }}
             >
               <input
@@ -1814,7 +1990,7 @@ const [selectedSegmentId, setSelectedSegmentId] = useState<string | null>(null);
                 aria-label="Project title"
                 style={{
                   background: "transparent",
-                  border: "1px solid #4a5568", 
+                  border: "none",
                   outline: "none",
                   color: "#f3f4f6",
                   fontSize: "12px",
@@ -1823,7 +1999,8 @@ const [selectedSegmentId, setSelectedSegmentId] = useState<string | null>(null);
                   minWidth: 0,
                   overflow: "hidden",
                   textOverflow: "ellipsis",
-                  whiteSpace: "nowrap"
+                  whiteSpace: "nowrap",
+                  padding: 0
                 }}
               />
               <button
@@ -1836,7 +2013,7 @@ const [selectedSegmentId, setSelectedSegmentId] = useState<string | null>(null);
                   background: "transparent",
                   border: "none",
                   cursor: "pointer",
-                  color: "#64748b",
+                  color: "#94a3b8",
                   display: "inline-flex",
                   alignItems: "center",
                   padding: "2px",
@@ -1859,16 +2036,19 @@ const [selectedSegmentId, setSelectedSegmentId] = useState<string | null>(null);
               style={{
                 display: "inline-flex",
                 alignItems: "center",
+                justifyContent: "center",
+                height: "30px",
                 gap: "5px",
-                padding: "4px 9px",
+                padding: "0 10px",
                 borderRadius: "6px",
-                border: "1px solid rgba(255, 255, 255, 0.12)",
+                border: "1px solid rgba(255, 255, 255, 0.1)",
                 background: isZoom100 ? "var(--accent-glow, var(--accent-soft))" : "rgba(255, 255, 255, 0.04)",
                 color: isZoom100 ? "#93c5fd" : "#d1d5db",
                 fontSize: "11px",
                 fontWeight: 600,
                 cursor: "pointer",
-                whiteSpace: "nowrap"
+                whiteSpace: "nowrap",
+                boxSizing: "border-box"
               }}
             >
               {isZoom100 ? <Minimize2 size={12} /> : <Maximize2 size={12} />}
@@ -1882,11 +2062,13 @@ const [selectedSegmentId, setSelectedSegmentId] = useState<string | null>(null);
               style={{
                 display: "inline-flex",
                 alignItems: "center",
+                height: "30px",
                 gap: "6px",
-                background: "rgba(255, 255, 255, 0.03)",
+                background: "rgba(255, 255, 255, 0.04)",
                 border: "1px solid rgba(255, 255, 255, 0.1)",
                 borderRadius: "6px",
-                padding: "3px 6px"
+                padding: "0 8px",
+                boxSizing: "border-box"
               }}
             >
               <span style={{ fontSize: "11px", color: "rgba(255, 255, 255, 0.5)", fontWeight: 500 }}>Ratio</span>
@@ -1928,21 +2110,31 @@ const [selectedSegmentId, setSelectedSegmentId] = useState<string | null>(null);
               style={{
                 display: "inline-flex",
                 alignItems: "center",
-                gap: "5px",
-                padding: "5px 13px",
+                justifyContent: "center",
+                height: "30px",
+                gap: "6px",
+                padding: "0 14px",
                 borderRadius: "6px",
-                background: "#2d3345",
+                background: (!duration || isExporting) ? "rgba(238, 99, 70, 0.25)" : "#ee6346",
                 color: "#ffffff",
                 border: "none",
                 fontSize: "11px",
                 fontWeight: 700,
                 cursor: !duration || isExporting ? "not-allowed" : "pointer",
                 opacity: !duration || isExporting ? 0.5 : 1,
-                boxShadow: "none",
-                whiteSpace: "nowrap"
+                boxShadow: (!duration || isExporting) ? "none" : "0 2px 10px rgba(238, 99, 70, 0.35)",
+                whiteSpace: "nowrap",
+                boxSizing: "border-box",
+                transition: "background 0.15s ease, transform 0.1s ease"
+              }}
+              onMouseEnter={e => {
+                if (duration && !isExporting) e.currentTarget.style.background = "#f07358";
+              }}
+              onMouseLeave={e => {
+                if (duration && !isExporting) e.currentTarget.style.background = "#ee6346";
               }}
             >
-              <Share2 size={12} />
+              <Share2 size={12} strokeWidth={2.5} />
               <span>Export</span>
             </button>
           </div>
@@ -1958,7 +2150,89 @@ const [selectedSegmentId, setSelectedSegmentId] = useState<string | null>(null);
               onDoubleClick={handleCanvasDoubleClick}
               aria-label="Caption preview. Click a visible caption to edit it."
               className={editingSubtitleId ? "editing" : ""}
+              style={{ width: "100%", height: "100%", imageRendering: "-webkit-optimize-contrast", transform: "translateZ(0)", backfaceVisibility: "hidden", display: "block" }}
             />
+          {settings.safeZones?.show && (() => {
+            const isLandscape = settings.aspectRatio === "16:9";
+            const platform = settings.safeZones.platform;
+
+            // Only show 16:9 overlay when video is 16:9
+            if (isLandscape) {
+              if (platform !== "youtube-long" && platform !== "tiktok") return null;
+              return (
+                <div
+                  className="platform-safezone-overlay-layer"
+                  style={{
+                    position: "absolute",
+                    inset: 0,
+                    pointerEvents: "none",
+                    zIndex: 15,
+                    overflow: "hidden",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                  
+                    transform: "translateZ(0)",
+                    imageRendering: "-webkit-optimize-contrast",
+                  }}
+                >
+                  <img
+                    src="/overlays/youtube_long.svg"
+                    alt="YouTube 16:9 safe zone"
+                    style={{
+                      width: "100%",
+                      height: "100%",
+                      objectFit: "fill",
+                      pointerEvents: "none",
+                      userSelect: "none",
+                    }}
+                  />
+                </div>
+              );
+            }
+
+            // Only show 9:16 vertical overlays (Reels / YT Shorts) when ratio is 9:16
+            if (settings.aspectRatio === "9:16") {
+              const src = (platform === "youtube-shorts" || platform === "youtube")
+                ? "/overlays/youtube_shorts.png"
+                : "/overlays/instagram_reels.png";
+
+              return (
+                <div
+                  className="platform-safezone-overlay-layer"
+                  style={{
+                    position: "absolute",
+                    inset: 0,
+                    pointerEvents: "none",
+                    zIndex: 15,
+                    overflow: "hidden",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                  }}
+                >
+                  <img
+                    src={src}
+                    alt="Platform safe zone"
+                    style={{
+                      width: "100%",
+                      height: "100%",
+                      objectFit: "fill",
+                      mixBlendMode: "screen",
+                      pointerEvents: "none",
+                      userSelect: "none",
+                    }}
+                    onError={(e) => {
+                      const t = e.currentTarget;
+                      if (t.src.endsWith(".png")) t.src = t.src.replace(".png", ".jpg");
+                    }}
+                  />
+                </div>
+              );
+            }
+
+            return null;
+          })()}
           </div>
           {!videoFile && <div className="preview-empty">Upload media to start previewing</div>}
           <video
@@ -1996,65 +2270,322 @@ const [selectedSegmentId, setSelectedSegmentId] = useState<string | null>(null);
             }
           }}
         >
-          <div className="timeline-editor" aria-label="Timeline" ref={timelineContainerRef} style={{ display: "flex", width: "100%", overflow: "hidden", position: "relative" }}>
+          <div className="timeline-editor" aria-label="Timeline" ref={timelineContainerRef} style={{ display: "flex", width: "100%", overflow: "hidden", position: "relative", alignItems: "flex-end" }}>
             {/* FIXED LEFT LABELS */}
             <div
               className="timeline-fixed-headers"
               style={{
-                width: "120px",
-                minWidth: "120px",
+                width: "180px",
+                minWidth: "180px",
                 flexShrink: 0,
                 zIndex: 30,
                 background: "#12141a",
                 borderRight: "1px solid rgba(255, 255, 255, 0.08)",
+                borderTop: "1.5px solid rgba(148, 163, 184, 0.35)",
                 display: "flex",
                 flexDirection: "column",
-                userSelect: "none"
-              }}
-            >
-              <div style={{ height: "26px", borderBottom: "1px solid rgba(255, 255, 255, 0.08)", background: "#0d0f14" }} />
-              <div style={{ display: "flex", flexDirection: "column", gap: "6px", paddingTop: "6px", paddingBottom: "14px" }}>
+                userSelect: "none",
+                padding: "0",
+                margin: "0",
+                boxSizing: "border-box"
+              }}>
+              {/* TOP HEADER CONTROLS (Fills the empty space above AUDIO) */}
+              <div
+                style={{
+                  height: "38px",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  padding: "0 8px",
+                  borderBottom: "1px solid rgba(255, 255, 255, 0.06)",
+                  background: "rgba(255, 255, 255, 0.02)"
+                }}
+              >
+                <div style={{ display: "flex", alignItems: "center", gap: "4px" }}>
+                  <button
+                    type="button"
+                    title={isSnappingEnabled ? "Magnetic Snapping ON" : "Magnetic Snapping OFF"}
+                    onClick={() => setIsSnappingEnabled(prev => !prev)}
+                    style={{
+                      background: isSnappingEnabled ? "rgba(238, 99, 70, 0.2)" : "transparent",
+                      border: "none",
+                      borderRadius: "4px",
+                      color: isSnappingEnabled ? "#ee6346" : "#64748b",
+                      cursor: "pointer",
+                      padding: "3px 5px",
+                      display: "flex",
+                      alignItems: "center"
+                    }}
+                  >
+                    <Magnet size={13} />
+                  </button>
+                </div>
+
+                <div style={{ display: "flex", alignItems: "center", gap: "3px" }}>
+                  <button
+                    type="button"
+                    title="Zoom Out"
+                    onClick={() => setTimelineZoom(z => Math.max(0.5, Math.round((z - 0.25) * 100) / 100))}
+                    style={{
+                      background: "rgba(255, 255, 255, 0.05)",
+                      border: "1px solid rgba(255, 255, 255, 0.1)",
+                      borderRadius: "4px",
+                      color: "#94a3b8",
+                      cursor: "pointer",
+                      fontSize: "11px",
+                      fontWeight: 700,
+                      width: "20px",
+                      height: "20px",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      padding: 0
+                    }}
+                  >
+                    -
+                  </button>
+                  <button
+                    type="button"
+                    title="Fit Timeline"
+                    onClick={() => setTimelineZoom(1)}
+                    style={{
+                      background: "rgba(255, 255, 255, 0.05)",
+                      border: "1px solid rgba(255, 255, 255, 0.1)",
+                      borderRadius: "4px",
+                      color: "#cbd5e1",
+                      cursor: "pointer",
+                      fontSize: "9px",
+                      fontWeight: 700,
+                      padding: "2px 5px",
+                      height: "20px"
+                    }}
+                  >
+                    Fit
+                  </button>
+                  <button
+                    type="button"
+                    title="Zoom In"
+                    onClick={() => setTimelineZoom(z => Math.min(5, Math.round((z + 0.25) * 100) / 100))}
+                    style={{
+                      background: "rgba(255, 255, 255, 0.05)",
+                      border: "1px solid rgba(255, 255, 255, 0.1)",
+                      borderRadius: "4px",
+                      color: "#94a3b8",
+                      cursor: "pointer",
+                      fontSize: "11px",
+                      fontWeight: 700,
+                      width: "20px",
+                      height: "20px",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      padding: 0
+                    }}
+                  >
+                    +
+                  </button>
+                </div>
+              </div>
+              
+              <div style={{ display: "flex", flexDirection: "column", gap: "6px", width: "100%", padding: "0", margin: "0" }}>
+                {/* 1. AUDIO ROW */}
                 <div
                   className={"track-name-tag " + (selectedLayer === "audio" ? "is-selected" : "")}
-                  style={{ height: "34px", display: "flex", alignItems: "center", padding: "0 12px", fontSize: "0.65rem", fontWeight: 800, letterSpacing: "0.05em", color: "#ffffff", cursor: "pointer" }}
+                  style={{
+                    height: "36px", minHeight: "36px", maxHeight: "36px",
+                    boxSizing: "border-box",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    padding: "0 10px 0 14px",
+                    fontSize: "0.68rem",
+                    fontWeight: 800,
+                    letterSpacing: "0.06em",
+                    color: "#38bdf8",
+                    background: selectedLayer === "audio" ? "rgba(56, 189, 248, 0.15)" : "transparent",
+                    border: "1px solid transparent",
+                    borderLeft: selectedLayer === "audio" ? "3px solid #38bdf8" : "3px solid transparent",
+                    borderRadius: "4px",
+                    cursor: "pointer"
+                  }}
                   onClick={e => {
                     e.stopPropagation();
                     setSelectedLayer("audio");
                     selectSubtitle(null);
                   }}
                 >
-                  AUDIO
+                  <span>AUDIO</span>
+                  <div style={{ display: "flex", alignItems: "center", gap: "6px" }} onClick={e => e.stopPropagation()}>
+                    <button
+                      type="button"
+                      title={isAudioMuted ? "Unmute Voiceover Audio" : "Mute Voiceover Audio"}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setIsAudioMuted(prev => {
+                          const next = !prev;
+                          if (mediaRef.current) mediaRef.current.muted = next;
+                          return next;
+                        });
+                      }}
+                      style={{
+                        background: "transparent",
+                        border: "none",
+                        color: isAudioMuted ? "#ef4444" : "#64748b",
+                        cursor: "pointer",
+                        padding: "2px",
+                        display: "inline-flex",
+                        alignItems: "center"
+                      }}
+                    >
+                      {isAudioMuted ? <VolumeX size={13} /> : <Volume2 size={13} />}
+                    </button>
+                    <button
+                      type="button"
+                      className="timeline-header-icon-btn"
+                      title="Reset audio playhead"
+                      onClick={handleResetPlayhead}
+                      style={{ background: "transparent", border: "none", color: "#38bdf8", cursor: "pointer", padding: "2px", display: "inline-flex", alignItems: "center" }}
+                    >
+                      <RotateCcw size={13} />
+                    </button>
+                  </div>
                 </div>
 
+                {/* 2. BACKGROUND ROW */}
                 <div
                   className={"track-name-tag " + (selectedLayer === "background" ? "is-selected" : "")}
-                  style={{ height: "34px", display: "flex", alignItems: "center", padding: "0 12px", fontSize: "0.65rem", fontWeight: 800, letterSpacing: "0.05em", color: "#cbd5e1", cursor: "pointer" }}
+                  style={{
+                    height: "36px", minHeight: "36px", maxHeight: "36px",
+                    boxSizing: "border-box",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    padding: "0 10px 0 14px",
+                    fontSize: "0.68rem",
+                    fontWeight: 800,
+                    letterSpacing: "0.06em",
+                    color: "#c084fc",
+                    background: selectedLayer === "background" ? "rgba(192, 132, 252, 0.15)" : "transparent",
+                    border: "1px solid transparent",
+                    borderLeft: selectedLayer === "background" ? "3px solid #c084fc" : "3px solid transparent",
+                    borderRadius: "4px",
+                    cursor: "pointer"
+                  }}
                   onClick={e => {
                     e.stopPropagation();
                     setSelectedLayer("background");
                     selectSubtitle(null);
-                    // Do NOT auto-select any segment here! Wait for user click on a specific clip
-                    setSelectedSegmentId(null);
-                    onPlaybackStateChange?.({ selectedLayer: "background" });
                   }}
                 >
-                  BACKGROUND
+                  <span>BACKGROUND</span>
+                  <div style={{ display: "flex", alignItems: "center", gap: "3px" }} onClick={e => e.stopPropagation()}>
+                    <button
+                      type="button"
+                      className="timeline-header-icon-btn"
+                      title="Align segment start to playhead"
+                      onClick={handleFitBgLeft}
+                      style={{ background: "rgba(255, 255, 255, 0.05)", border: "1px solid rgba(255, 255, 255, 0.1)", borderRadius: "3px", color: "#94a3b8", cursor: "pointer", padding: "2px 4px", fontSize: "10px" }}
+                    >
+                      |←
+                    </button>
+                    <button
+                      type="button"
+                      className="timeline-header-icon-btn"
+                      title="Stretch segment to full duration"
+                      onClick={handleFitBgFull}
+                      style={{ background: "rgba(255, 255, 255, 0.05)", border: "1px solid rgba(255, 255, 255, 0.1)", borderRadius: "3px", color: "#94a3b8", cursor: "pointer", padding: "2px 4px", fontSize: "10px" }}
+                    >
+                      ↔
+                    </button>
+                    <button
+                      type="button"
+                      className="timeline-header-icon-btn"
+                      title="Align segment end to playhead"
+                      onClick={handleFitBgRight}
+                      style={{ background: "rgba(255, 255, 255, 0.05)", border: "1px solid rgba(255, 255, 255, 0.1)", borderRadius: "3px", color: "#94a3b8", cursor: "pointer", padding: "2px 4px", fontSize: "10px" }}
+                    >
+                      →|
+                    </button>
+                  </div>
                 </div>
 
+                {/* 3. CAPTION ROW */}
                 <div
                   className={"track-name-tag " + (selectedLayer === "caption" ? "is-selected" : "")}
-                  style={{ height: "40px", display: "flex", alignItems: "center", padding: "0 12px", fontSize: "0.65rem", fontWeight: 800, letterSpacing: "0.05em", color: "#ffffff", cursor: "pointer" }}
+                  style={{
+                    height: "36px", minHeight: "36px", maxHeight: "36px",
+                    boxSizing: "border-box",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    padding: "0 10px 0 14px",
+                    fontSize: "0.68rem",
+                    fontWeight: 800,
+                    letterSpacing: "0.06em",
+                    color: "#60a5fa",
+                    background: selectedLayer === "caption" ? "rgba(96, 165, 250, 0.15)" : "transparent",
+                    border: "1px solid transparent",
+                    borderLeft: selectedLayer === "caption" ? "3px solid #60a5fa" : "3px solid transparent",
+                    borderRadius: "4px",
+                    cursor: "pointer"
+                  }}
                   onClick={e => {
                     e.stopPropagation();
                     setSelectedLayer("caption");
                   }}
                 >
-                  CAPTION
+                  <span>CAPTION</span>
+                  <div style={{ display: "flex", alignItems: "center", gap: "4px" }} onClick={e => e.stopPropagation()}>
+                    <button
+                      type="button"
+                      className="timeline-header-icon-btn"
+                      title="Add caption at playhead"
+                      onClick={handleAddCaptionAtPlayhead}
+                      style={{ background: "transparent", border: "none", color: "#60a5fa", cursor: "pointer", padding: "2px", display: "inline-flex", alignItems: "center" }}
+                    >
+                      <Plus size={13} />
+                    </button>
+                    <button
+                      type="button"
+                      className="timeline-header-icon-btn"
+                      title={isCaptionLocked ? "Unlock captions track" : "Lock captions track"}
+                      onClick={() => setIsCaptionLocked(prev => !prev)}
+                      style={{ background: "transparent", border: "none", color: isCaptionLocked ? "#ee6346" : "#64748b", cursor: "pointer", padding: "2px", display: "inline-flex", alignItems: "center" }}
+                    >
+                      {isCaptionLocked ? <Lock size={13} /> : <Unlock size={13} />}
+                    </button>
+                    <button
+                      type="button"
+                      className="timeline-header-icon-btn"
+                      title={areCaptionsHidden ? "Show captions on video" : "Hide captions on video"}
+                      onClick={() => setAreCaptionsHidden(prev => !prev)}
+                      style={{ background: "transparent", border: "none", color: areCaptionsHidden ? "#ef4444" : "#64748b", cursor: "pointer", padding: "2px", display: "inline-flex", alignItems: "center" }}
+                    >
+                      {areCaptionsHidden ? <EyeOff size={13} /> : <Eye size={13} />}
+                    </button>
+                  </div>
                 </div>
 
+                {/* 4. MUSIC ROW */}
                 <div
                   className={"track-name-tag " + (selectedLayer === "music" ? "is-selected" : "")}
-                  style={{ height: "34px", display: "flex", alignItems: "center", justifyContent: "space-between", padding: "0 12px", fontSize: "0.65rem", fontWeight: 800, letterSpacing: "0.05em", color: "#cbd5e1", cursor: "pointer" }}
+                  style={{
+                    height: "36px", minHeight: "36px", maxHeight: "36px",
+                    boxSizing: "border-box",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    padding: "0 10px 0 14px",
+                    fontSize: "0.68rem",
+                    fontWeight: 800,
+                    letterSpacing: "0.06em",
+                    color: "#34d399",
+                    background: selectedLayer === "music" ? "rgba(52, 211, 153, 0.15)" : "transparent",
+                    border: "1px solid transparent",
+                    borderLeft: selectedLayer === "music" ? "3px solid #34d399" : "3px solid transparent",
+                    borderRadius: "4px",
+                    cursor: "pointer"
+                  }}
                   onClick={e => {
                     e.stopPropagation();
                     setSelectedLayer("music");
@@ -2062,23 +2593,105 @@ const [selectedSegmentId, setSelectedSegmentId] = useState<string | null>(null);
                   }}
                 >
                   <span>MUSIC</span>
-                  {localSongUrl && (
+                  <div style={{ display: "flex", alignItems: "center", gap: "6px" }} onClick={e => e.stopPropagation()}>
                     <button
                       type="button"
-                      className="music-tag-bin-btn"
-                      title="Delete song from project"
+                      title={isMusicMuted ? "Unmute Music" : "Mute Music"}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setIsMusicMuted(prev => {
+                          const next = !prev;
+                          if (songMediaRef.current) songMediaRef.current.muted = next;
+                          return next;
+                        });
+                      }}
+                      style={{
+                        background: "transparent",
+                        border: "none",
+                        color: isMusicMuted ? "#ef4444" : "#64748b",
+                        cursor: "pointer",
+                        padding: "2px",
+                        display: "inline-flex",
+                        alignItems: "center"
+                      }}
+                    >
+                      {isMusicMuted ? <VolumeX size={13} /> : <Volume2 size={13} />}
+                    </button>
+
+                    <label
+                      className="timeline-header-icon-btn"
+                      title={localSongUrl ? "Replace song file" : "Upload song file"}
+                      style={{
+                        cursor: "pointer",
+                        position: "relative",
+                        color: "#34d399",
+                        margin: 0,
+                        display: "inline-flex",
+                        alignItems: "center"
+                      }}
+                    >
+                      <Music size={13} />
+                      <div style={{
+                        position: "absolute",
+                        right: "-2px",
+                        bottom: "-2px",
+                        background: "#12141a",
+                        borderRadius: "50%",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        padding: "1px"
+                      }}>
+                        <ArrowUp size={8} strokeWidth={3} color="#34d399" />
+                      </div>
+                      <input
+                        type="file"
+                        accept="audio/*,.mp3,.wav,.aac,.ogg,.m4a"
+                        className="visually-hidden"
+                        onChange={e => {
+                          const file = e.target.files?.[0];
+                          if (file) {
+                            if (localSongUrl && localSongUrl.startsWith("blob:")) URL.revokeObjectURL(localSongUrl);
+                            const url = URL.createObjectURL(file);
+                            setLocalSongUrl(url);
+                            setLocalSongName(file.name);
+                            setSelectedLayer("music");
+                            onSongChange?.({ songUrl: url, songName: file.name, songBlob: file });
+                          }
+                          e.target.value = "";
+                        }}
+                      />
+                    </label>
+
+                    <button
+                      type="button"
+                      className="timeline-header-icon-btn"
+                      disabled={!localSongUrl}
+                      title={localSongUrl ? "Delete song from project" : "No song added to delete"}
                       onClick={e => {
                         e.stopPropagation();
+                        if (!localSongUrl) return;
                         if (localSongUrl.startsWith("blob:")) URL.revokeObjectURL(localSongUrl);
                         setLocalSongUrl(null);
                         setLocalSongName(null);
                         setSongDuration(0);
                         setSongSegments([{ id: "song-default", start: 0, end: 0 }]);
+                        onSongChange?.({ songUrl: null, songName: null, songBlob: null });
+                        setSelectedSegmentId(null);
+                      }}
+                      style={{
+                        background: "transparent",
+                        border: "none",
+                        color: localSongUrl ? "#f87171" : "#475569",
+                        cursor: localSongUrl ? "pointer" : "default",
+                        padding: "2px",
+                        display: "inline-flex",
+                        alignItems: "center"
                       }}
                     >
-                      <Trash2 size={12} />
+                      <Trash2 size={13} />
                     </button>
-                  )}
+                  </div>
                 </div>
               </div>
             </div>
@@ -2133,16 +2746,27 @@ const [selectedSegmentId, setSelectedSegmentId] = useState<string | null>(null);
                   const scroller = e.currentTarget;
                   const scrollableWidth = scroller.scrollWidth - scroller.clientWidth;
                   if (scrollableWidth > 0) {
-                    const newTime = Math.max(0, Math.min(effectiveDuration, (scroller.scrollLeft / scrollableWidth) * totalTimelineDuration));
-                    setCurrentTime(newTime);
-                    currentTimeRef.current = newTime;
-                    const media = mediaRef.current;
-                    if (media && newTime <= (media.duration || 0)) {
-                      media.currentTime = newTime;
-                    }
-                    const song = songMediaRef.current;
-                    if (song && localSongUrl && newTime <= (song.duration || 0)) {
-                      song.currentTime = newTime;
+                    const audioLimit = (duration || mediaDuration || effectiveDuration || 0);
+                    const rawTime = (scroller.scrollLeft / scrollableWidth) * totalTimelineDuration;
+                    
+                    if (audioLimit > 0 && rawTime > audioLimit) {
+                      // Clamp scroller back to the exact audio end point so it cannot scroll past
+                      const clampedScroll = (audioLimit / totalTimelineDuration) * scrollableWidth;
+                      scroller.scrollLeft = clampedScroll;
+                      setCurrentTime(audioLimit);
+                      currentTimeRef.current = audioLimit;
+                      if (mediaRef.current) mediaRef.current.currentTime = audioLimit;
+                      if (songMediaRef.current && localSongUrl) songMediaRef.current.currentTime = audioLimit;
+                    } else {
+                      const newTime = Math.max(0, rawTime);
+                      setCurrentTime(newTime);
+                      currentTimeRef.current = newTime;
+                      if (mediaRef.current && newTime <= (mediaRef.current.duration || 0)) {
+                        mediaRef.current.currentTime = newTime;
+                      }
+                      if (songMediaRef.current && localSongUrl && newTime <= (songMediaRef.current.duration || 0)) {
+                        songMediaRef.current.currentTime = newTime;
+                      }
                     }
                     drawFrame();
                   }
@@ -2159,21 +2783,89 @@ const [selectedSegmentId, setSelectedSegmentId] = useState<string | null>(null);
                     boxSizing: "content-box"
                   }}
                 >
-                  <div className="timeline-ruler" aria-hidden="true" onClick={handleTimelineClick} style={{ height: "26px", position: "relative" }}>
+                  <div
+                    className="timeline-ruler"
+                    aria-hidden="true"
+                    onClick={handleTimelineClick}
+                    style={{
+                      height: "38px",
+                      position: "relative",
+                      borderTop: "1.5px solid rgba(148, 163, 184, 0.35)",
+                      borderBottom: "none",
+                      background: "transparent",
+                      cursor: "pointer",
+                      overflow: "visible"
+                    }}
+                  >
                     {(() => {
-                      const step = timelineZoom > 2 ? 0.25 : timelineZoom > 1 ? 0.5 : 1.0;
+                      // Adaptive millisecond sub-step based on zoom level:
+                      // Zoom >= 4  -> 50ms (0.05s)
+                      // Zoom >= 2.5 -> 100ms (0.1s)
+                      // Zoom >= 1.5 -> 200ms (0.2s)
+                      // Base        -> 250ms (0.25s)
+                      const subStep = timelineZoom >= 4
+                        ? 0.05
+                        : timelineZoom >= 2.5
+                        ? 0.1
+                        : timelineZoom >= 1.5
+                        ? 0.2
+                        : 0.25;
+
                       const ticks = [];
-                      for (let t = 0; t <= totalTimelineDuration; t += step) {
-                        const isMajor = Math.abs(t % 1) < 0.001;
+                      const count = Math.floor(totalTimelineDuration / subStep);
+
+                      for (let i = 0; i <= count; i++) {
+                        const t = Math.round(i * subStep * 1000) / 1000;
+                        const isMajor = Math.abs(t % 1) < 0.001 || Math.abs((t % 1) - 1) < 0.001;
+                        const isHalf = !isMajor && Math.abs((t % 0.5)) < 0.001;
+
                         ticks.push(
                           <div
                             key={t}
-                            className={"ruler-tick " + (isMajor ? "major" : "minor")}
-                            style={{ left: ((t / totalTimelineDuration) * 100) + "%" }}
+                            style={{
+                              position: "absolute",
+                              left: ((t / totalTimelineDuration) * 100) + "%",
+                              top: "0px",
+                              transform: "translateX(-50%)",
+                              display: "flex",
+                              flexDirection: "column",
+                              alignItems: "center",
+                              pointerEvents: "none",
+                              zIndex: isMajor ? 5 : 2
+                            }}
                           >
-                            <span className="ruler-tick-label">
-                              {formatPrecisionTime(t)}
-                            </span>
+                            {/* VERTICAL TICK MARKS */}
+                            <div
+                              style={{
+                                width: isMajor ? "1.5px" : "1px",
+                                height: isMajor ? "14px" : isHalf ? "9px" : "6px",
+                                backgroundColor: isMajor
+                                  ? "#64748b"
+                                  : isHalf
+                                  ? "#475569"
+                                  : "#334155",
+                                margin: 0,
+                                padding: 0
+                              }}
+                            />
+                            {/* TIMESTAMP DIRECTLY BELOW THE 14PX TICK */}
+                            {isMajor && (
+                              <div
+                                style={{
+                                  marginTop: "2px",
+                                  fontSize: "10px",
+                                  fontWeight: 500,
+                                  color: "#64748b",
+                                  whiteSpace: "nowrap",
+                                  userSelect: "none",
+                                  lineHeight: 1,
+                                  letterSpacing: "0.03em",
+                                  textAlign: "center"
+                                }}
+                              >
+                                {formatRulerTime(t)}
+                              </div>
+                            )}
                           </div>
                         );
                       }
@@ -2181,7 +2873,7 @@ const [selectedSegmentId, setSelectedSegmentId] = useState<string | null>(null);
                     })()}
                   </div>
 
-                  <div className={"timeline-tracks-stack " + (selectedLayer ? "has-layer-selected" : "all-layers-active")} style={{ width: "100%", minWidth: "100%", display: "flex", flexDirection: "column", gap: "6px", paddingTop: "6px", paddingBottom: "14px" }}>
+                  <div className={"timeline-tracks-stack " + (selectedLayer ? "has-layer-selected" : "all-layers-active")} style={{ width: "100%", minWidth: "100%", display: "flex", flexDirection: "column", gap: "6px", paddingTop: "0px", paddingBottom: "0px" }}>
                     {/* TRACK 1: AUDIO */}
                     <div
                       className={"timeline-unified-row row-audio " + (selectedLayer === "audio" ? "is-selected" : selectedLayer ? "is-dimmed" : "is-active")}
@@ -2194,12 +2886,57 @@ const [selectedSegmentId, setSelectedSegmentId] = useState<string | null>(null);
                     >
                       <div className="track-lane" onClick={handleTimelineClick} style={{ height: "100%", width: "100%", position: "relative" }}>
                         <div
-                          className="track-lane-clip clip-audio-fill" style={{ background: "#232734", border: "1px solid #373e52",
-                            width: Math.min(100, ((duration || mediaDuration || 0) / totalTimelineDuration) * 100) + "%",
-                            height: "100%"
+                          className="track-lane-clip clip-audio-fill"
+                          style={{
+                            background: "linear-gradient(90deg, rgba(14, 116, 144, 0.4), rgba(30, 64, 175, 0.4))",
+                            border: "1px solid #0284c7",
+                            width: Math.min(100, (((duration || mediaDuration || 0)) / totalTimelineDuration) * 100) + "%",
+                            height: "100%",
+                            position: "relative",
+                            overflow: "hidden",
+                            borderRadius: "4px"
                           }}
                         >
-                          <span className="clip-label-text">{videoFile?.name || "Uploaded audio track"}</span>
+                          
+<div
+                            style={{
+                              position: "absolute",
+                              inset: 0,
+                              display: "flex",
+                              alignItems: "center",
+                              gap: "1.5px",
+                              padding: "0 6px",
+                              pointerEvents: "none",
+                              overflow: "hidden",
+                              opacity: 0.75
+                            }}
+                          >
+                            {audioPeaks.length > 0 ? (
+                              audioPeaks.map((peak, idx) => {
+                                const barH = Math.max(3, peak * 26);
+                                return (
+                                  <div
+                                    key={idx}
+                                    style={{
+                                      flex: "1 1 2px",
+                                      minWidth: "1.5px",
+                                      maxWidth: "3.5px",
+                                      height: barH + "px",
+                                      background: "#38bdf8",
+                                      borderRadius: "1px",
+                                      transition: "height 0.1s ease"
+                                    }}
+                                  />
+                                );
+                              })
+                            ) : (
+                              <div style={{ width: "100%", height: "2px", background: "rgba(56, 189, 248, 0.3)" }} />
+                            )}
+                          </div>
+
+                          <span className="clip-label-text" style={{ position: "relative", zIndex: 2, paddingLeft: "10px", fontWeight: 600 }}>
+                            {videoFile?.name || "Uploaded audio track"}
+                          </span>
                         </div>
                       </div>
                     </div>
@@ -2435,6 +3172,7 @@ const [selectedSegmentId, setSelectedSegmentId] = useState<string | null>(null);
                                 transition: segmentDragRef.current ? "none" : "border 0.15s ease, box-shadow 0.15s ease",
                               }}
                               onPointerDown={event => {
+                                if (isCaptionLocked) return;
                                 event.stopPropagation();
                                 setSelectedLayer("caption");
                                 selectSubtitle(subtitle.id);
@@ -2498,19 +3236,31 @@ const [selectedSegmentId, setSelectedSegmentId] = useState<string | null>(null);
                       <div className="track-lane" onClick={handleTimelineClick} style={{ height: "100%", width: "100%", position: "relative" }}>
                         {localSongUrl ? (
                           songSegments.map((seg, idx) => {
-                            const start = seg.start;
+                            const audioLimit = (duration || mediaDuration || effectiveDuration || 0);
+                            const start = seg.start || 0;
                             const actualEnd = seg.end || songDuration || 7;
+                            const segDur = Math.max(0.1, actualEnd - start);
+
                             const leftPct = (start / totalTimelineDuration) * 100;
-                            const widthPct = Math.max(0.5, ((actualEnd - start) / totalTimelineDuration) * 100);
+                            const totalWidthPct = (segDur / totalTimelineDuration) * 100;
+                            const activePctOfSegment = Math.min(100, Math.max(0, ((audioLimit - start) / segDur) * 100));
+
                             const isSegSelected = selectedSegmentId === seg.id;
+                            const hasOverflow = actualEnd > audioLimit && audioLimit > 0;
+
                             return (
                               <div
                                 key={seg.id}
-                                className={"track-lane-clip clip-music-fill " + (isSegSelected ? "is-segment-active" : "")}
+                                className={"track-lane-clip " + (isSegSelected ? "is-segment-active" : "")}
                                 style={{
                                   left: leftPct + "%",
-                                  width: widthPct + "%",
-                                  height: "100%"
+                                  width: totalWidthPct + "%",
+                                  height: "100%",
+                                  position: "absolute",
+                                  borderRadius: "4px",
+                                  overflow: "hidden",
+                                  cursor: "pointer",
+                                  border: isSegSelected ? "1.5px solid #34d399" : "1px solid rgba(52, 211, 153, 0.4)"
                                 }}
                                 onClick={ev => {
                                   ev.stopPropagation();
@@ -2518,22 +3268,87 @@ const [selectedSegmentId, setSelectedSegmentId] = useState<string | null>(null);
                                   setSelectedSegmentId(seg.id);
                                 }}
                               >
-                                <span className="clip-label-text">
-                                  {localSongName || "Custom song track"}
-                                  {songSegments.length > 1 ? " (" + (idx + 1) + ")" : ""}
-                                </span>
-                                {songSegments.length > 1 && (
-                                  <button
-                                    type="button"
-                                    className="track-song-remove-btn"
-                                    onClick={ev => {
-                                      ev.stopPropagation();
-                                      setSongSegments(prev => prev.filter(s => s.id !== seg.id));
+                                {/* ACTIVE PLAYABLE PORTION (GREEN WITH WAVEFORM) */}
+                                <div
+                                  style={{
+                                    position: "absolute",
+                                    left: 0,
+                                    top: 0,
+                                    bottom: 0,
+                                    width: activePctOfSegment + "%",
+                                    background: "linear-gradient(90deg, rgba(6, 95, 70, 0.75), rgba(4, 120, 87, 0.75))",
+                                    borderRight: hasOverflow ? "2px solid #ef4444" : "none",
+                                    display: "flex",
+                                    alignItems: "center",
+                                    overflow: "hidden",
+                                    zIndex: 2
+                                  }}
+                                >
+                                  <div
+                                    style={{
+                                      position: "absolute",
+                                      inset: 0,
+                                      display: "flex",
+                                      alignItems: "center",
+                                      gap: "1.5px",
+                                      padding: "0 6px",
+                                      pointerEvents: "none",
+                                      overflow: "hidden",
+                                      opacity: 0.8
                                     }}
-                                    title="Delete segment"
                                   >
-                                    <X size={11} />
-                                  </button>
+                                    {musicPeaks.length > 0 ? (
+                                      musicPeaks.map((peak, idx) => {
+                                        const barH = Math.max(3, peak * 26);
+                                        return (
+                                          <div
+                                            key={idx}
+                                            style={{
+                                              flex: "1 1 2px",
+                                              minWidth: "1.5px",
+                                              maxWidth: "3.5px",
+                                              height: barH + "px",
+                                              background: "#34d399",
+                                              borderRadius: "1px",
+                                              transition: "height 0.1s ease"
+                                            }}
+                                          />
+                                        );
+                                      })
+                                    ) : (
+                                      <div style={{ width: "100%", height: "2px", background: "rgba(52, 211, 153, 0.3)" }} />
+                                    )}
+                                  </div>
+
+                                  <span className="clip-label-text" style={{ position: "relative", zIndex: 3, paddingLeft: "10px", color: "#a7f3d0", fontWeight: 700, whiteSpace: "nowrap" }}>
+                                    {localSongName || "Custom song track"}
+                                    {songSegments.length > 1 ? " (" + (idx + 1) + ")" : ""}
+                                  </span>
+                                </div>
+
+                                {/* EXCLUDED TAIL PORTION (MONOCHROME HATCHING PAST AUDIO LIMIT) */}
+                                {hasOverflow && (
+                                  <div
+                                    title="Excluded from export (exceeds audio length)"
+                                    style={{
+                                      position: "absolute",
+                                      left: activePctOfSegment + "%",
+                                      right: 0,
+                                      top: 0,
+                                      bottom: 0,
+                                      background: "repeating-linear-gradient(45deg, #181b22, #181b22 6px, #101217 6px, #101217 12px)",
+                                      display: "flex",
+                                      alignItems: "center",
+                                      paddingLeft: "8px",
+                                      boxSizing: "border-box",
+                                      zIndex: 1,
+                                      cursor: "not-allowed"
+                                    }}
+                                  >
+                                    <span style={{ fontSize: "10px", fontWeight: 700, color: "#64748b", whiteSpace: "nowrap", userSelect: "none" }}>
+                                      (trimmed on export)
+                                    </span>
+                                  </div>
                                 )}
                               </div>
                             );
@@ -2569,6 +3384,7 @@ const [selectedSegmentId, setSelectedSegmentId] = useState<string | null>(null);
                                   setLocalSongUrl(url);
                                   setLocalSongName(file.name);
                                   setSelectedLayer("music");
+                                  onSongChange?.({ songUrl: url, songName: file.name, songBlob: file });
                                 }
                                 e.target.value = "";
                               }}
@@ -2763,31 +3579,31 @@ const [selectedSegmentId, setSelectedSegmentId] = useState<string | null>(null);
                   style={{ width: "14px", height: "14px", accentColor: "var(--accent-primary, #60a5fa)", cursor: "pointer" }}
                 />
                 <span style={{ fontSize: "0.72rem", color: "#cbd5e1" }}>Don't show me again</span>
-</label>
+              </label>
 
-<div style={{ display: "flex", justifyContent: "flex-end", marginTop: "4px" }}>
-<button
-type="button"
-onClick={() => setShowBgSelectModal(false)}
-style={{
-padding: "7px 20px",
-borderRadius: "6px",
-background: "var(--accent-primary, #60a5fa)",
-color: "#ffffff",
-border: "none",
-fontWeight: 700,
-fontSize: "0.75rem",
-cursor: "pointer",
-boxShadow: "0 2px 8px rgba(0, 0, 0, 0.3)"
-}}
->
-OK
-</button>
-</div>
-</div>
-</div>
-)}
-</main>
+              <div style={{ display: "flex", justifyContent: "flex-end", marginTop: "4px" }}>
+                <button
+                  type="button"
+                  onClick={() => setShowBgSelectModal(false)}
+                  style={{
+                    padding: "7px 20px",
+                    borderRadius: "6px",
+                    background: "var(--accent-primary, #60a5fa)",
+                    color: "#ffffff",
+                    border: "none",
+                    fontWeight: 700,
+                    fontSize: "0.75rem",
+                    cursor: "pointer",
+                    boxShadow: "0 2px 8px rgba(0, 0, 0, 0.3)"
+                  }}
+                >
+                  OK
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+      </main>
 
       {/* RIGHT PANEL: STUDIO CATALOG & INSPECTOR */}
       <aside className="style-sidebar" style={{ background: "#12141a", borderLeft: "1px solid rgba(255, 255, 255, 0.08)", color: "#ffffff" }}>
@@ -3516,27 +4332,81 @@ OK
                 </label>
 
                 {settings.safeZones?.show && (
-                  <div className="studio-segmented-pill" style={{ background: "#141720", border: "1px solid rgba(255, 255, 255, 0.08)", padding: "2px", borderRadius: "6px", marginTop: "10px" }}>
+                  <div
+                    className="studio-segmented-pill"
+                    style={{
+                      background: "#141720",
+                      border: "1px solid rgba(255, 255, 255, 0.08)",
+                      padding: "2px",
+                      borderRadius: "6px",
+                      marginTop: "10px",
+                      display: "grid",
+                      gridTemplateColumns: "repeat(3, 1fr)",
+                      gap: "2px",
+                    }}
+                  >
                     <button
                       type="button"
-                      className={"pill-btn " + (settings.safeZones?.platform === "instagram" ? "is-active" : "")}
-                      onClick={() => setSettings(prev => ({ ...prev, safeZones: { platform: "instagram", show: true } }))}
+                      className={"pill-btn " + (settings.safeZones?.platform === "instagram" && settings.aspectRatio === "9:16" ? "is-active" : "")}
+                      style={{
+                        padding: "5px 6px",
+                        fontSize: "0.65rem",
+                        fontWeight: 600,
+                        background: settings.safeZones?.platform === "instagram" && settings.aspectRatio === "9:16" ? "#ee6346" : "transparent",
+                        color: "#ffffff",
+                        border: "none",
+                        borderRadius: "4px",
+                        cursor: "pointer",
+                      }}
+                      onClick={() => setSettings(prev => ({
+                        ...prev,
+                        aspectRatio: "9:16",
+                        safeZones: { platform: "instagram", show: true }
+                      }))}
                     >
                       Reels
                     </button>
                     <button
                       type="button"
-                      className={"pill-btn " + (settings.safeZones?.platform === "tiktok" ? "is-active" : "")}
-                      onClick={() => setSettings(prev => ({ ...prev, safeZones: { platform: "tiktok", show: true } }))}
+                      className={"pill-btn " + ((settings.safeZones?.platform === "youtube-shorts" || settings.safeZones?.platform === "youtube") && settings.aspectRatio === "9:16" ? "is-active" : "")}
+                      style={{
+                        padding: "5px 6px",
+                        fontSize: "0.65rem",
+                        fontWeight: 600,
+                        background: (settings.safeZones?.platform === "youtube-shorts" || settings.safeZones?.platform === "youtube") && settings.aspectRatio === "9:16" ? "#ee6346" : "transparent",
+                        color: "#ffffff",
+                        border: "none",
+                        borderRadius: "4px",
+                        cursor: "pointer",
+                      }}
+                      onClick={() => setSettings(prev => ({
+                        ...prev,
+                        aspectRatio: "9:16",
+                        safeZones: { platform: "youtube-shorts", show: true }
+                      }))}
                     >
-                      TikTok
+                      YT Shorts
                     </button>
                     <button
                       type="button"
-                      className={"pill-btn " + (settings.safeZones?.platform === "youtube" ? "is-active" : "")}
-                      onClick={() => setSettings(prev => ({ ...prev, safeZones: { platform: "youtube", show: true } }))}
+                      className={"pill-btn " + (settings.safeZones?.platform === "youtube-long" && settings.aspectRatio === "16:9" ? "is-active" : "")}
+                      style={{
+                        padding: "5px 6px",
+                        fontSize: "0.65rem",
+                        fontWeight: 600,
+                        background: settings.safeZones?.platform === "youtube-long" && settings.aspectRatio === "16:9" ? "#ee6346" : "transparent",
+                        color: "#ffffff",
+                        border: "none",
+                        borderRadius: "4px",
+                        cursor: "pointer",
+                      }}
+                      onClick={() => setSettings(prev => ({
+                        ...prev,
+                        aspectRatio: "16:9",
+                        safeZones: { platform: "youtube-long", show: true }
+                      }))}
                     >
-                      Shorts
+                      YouTube (16:9)
                     </button>
                   </div>
                 )}
@@ -3555,3 +4425,4 @@ OK
     </div>
   );
 };
+export default Workspace;
