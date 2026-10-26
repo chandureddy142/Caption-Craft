@@ -9,7 +9,7 @@ interface FAQItem {
 const faqs: FAQItem[] = [
   {
     question: "Why does transcription happen completely on my device?",
-    answer: "CaptionCraft runs the speech recognition model inside your browser using WebAssembly and WebGPU. This ensures complete privacy so your unedited videos and audio never leave your computer."
+    answer: "Create Captions runs the speech recognition model inside your browser using WebAssembly and WebGPU. This ensures complete privacy so your unedited videos and audio never leave your computer."
   },
   {
     question: "How do I switch between Telugu Lipi and Tenglish?",
@@ -17,7 +17,7 @@ const faqs: FAQItem[] = [
   },
   {
     question: "What video and audio formats are supported?",
-    answer: "CaptionCraft supports MP4, MOV, WEBM for video files, as well as MP3, WAV, and M4A audio files. Rendered videos can be exported directly as 1080p MP4 or downloaded as SRT subtitle tracks."
+    answer: "Create Captions supports MP4, MOV, WEBM for video files, as well as MP3, WAV, and M4A audio files. Rendered videos can be exported directly as 1080p MP4 or downloaded as SRT subtitle tracks."
   },
   {
     question: "What should I do if a word is misheard by the AI?",
@@ -177,7 +177,7 @@ export const SupportPage: React.FC = () => {
             </div>
             <div>
               <div style={{ fontSize: "14px", fontWeight: 700, color: "var(--card-text-primary)" }}>Direct Email</div>
-              <div style={{ fontSize: "12px", color: "var(--accent-primary)", fontWeight: 600, marginTop: "2px" }}>support@captioncraft.in</div>
+              <div style={{ fontSize: "12px", color: "var(--accent-primary)", fontWeight: 600, marginTop: "2px" }}>support@createcaptions.in</div>
             </div>
           </div>
         </div>

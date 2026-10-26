@@ -35,7 +35,7 @@ function outputMimeType(container: FfmpegContainer): string {
 
 function outputArguments(container: FfmpegContainer, _frameRate: number, includeAudio: boolean): string[] {
   const args = [
-    "-i", "captioncraft-input.webm",
+    "-i", "createcaptions-input.webm",
     "-c:v", "copy",
   ];
 
@@ -49,7 +49,7 @@ function outputArguments(container: FfmpegContainer, _frameRate: number, include
     args.push("-movflags", "+faststart");
   }
 
-  args.push(`captioncraft-output.${container}`);
+  args.push(`createcaptions-output.${container}`);
   return args;
 }
 
@@ -65,10 +65,10 @@ export async function transcodeWithFfmpeg(
   const progress = ({ progress: value }: { progress: number }) => onProgress(Math.max(0, Math.min(100, value * 100)));
   instance.on('progress', progress);
   try {
-    await instance.writeFile('captioncraft-input.webm', await fetchFile(input), { signal });
+    await instance.writeFile('createcaptions-input.webm', await fetchFile(input), { signal });
     const exitCode = await instance.exec(outputArguments(container, frameRate, includeAudio), undefined, { signal });
     if (exitCode !== 0) throw new Error(`FFmpeg could not encode ${container.toUpperCase()} output (exit code ${exitCode}).`);
-    const output = await instance.readFile(`captioncraft-output.${container}`, undefined, { signal });
+    const output = await instance.readFile(`createcaptions-output.${container}`, undefined, { signal });
     if (typeof output === 'string') throw new Error('FFmpeg returned an invalid binary output.');
     const outputBytes = new Uint8Array(output.byteLength);
     outputBytes.set(output);
@@ -79,8 +79,8 @@ export async function transcodeWithFfmpeg(
   } finally {
     instance.off('progress', progress);
     await Promise.allSettled([
-      instance.deleteFile('captioncraft-input.webm'),
-      instance.deleteFile(`captioncraft-output.${container}`),
+      instance.deleteFile('createcaptions-input.webm'),
+      instance.deleteFile(`createcaptions-output.${container}`),
     ]);
   }
 }

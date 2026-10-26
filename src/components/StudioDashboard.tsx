@@ -407,13 +407,13 @@ export const StudioDashboard: React.FC<StudioDashboardProps> = ({
           <div style={{ width: "50px", height: "50px", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
             <img
               src={theme === "dark" ? "/media/Llogo.png" : "/media/Dlogo.png"}
-              alt="CaptionCraft"
+              alt="Create Captions"
               style={{ width: "100%", height: "100%", objectFit: "contain" }}
             />
           </div>
           <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
             <span style={{ fontSize: "20px", fontWeight: 700, color: "var(--nav-text-primary, #ffffff)", letterSpacing: "-0.02em", lineHeight: 1.1 }}>
-              CaptionCraft
+              Create Captions
             </span>
             <span style={{ fontSize: "10px", padding: "2px 7px", borderRadius: "6px", background: "rgba(239, 68, 68, 0.15)", color: "var(--accent-primary, #ef4444)", fontWeight: 700, textTransform: "lowercase", letterSpacing: "0.02em" }}>
               studio

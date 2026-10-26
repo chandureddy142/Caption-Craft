@@ -52,11 +52,7 @@ function App({ initialTemplateId: _initialTemplateId, initialFile, projectId, on
     if (saved) setUserPlan(saved);
   }, []);
 
-  const handleDevPlanChange = (newPlan: string) => {
-    setUserPlan(newPlan);
-    localStorage.setItem("dev_user_plan", newPlan);
-  };
-  const [showExitConfirmModal, setShowExitConfirmModal] = useState<boolean>(false);
+    const [showExitConfirmModal, setShowExitConfirmModal] = useState<boolean>(false);
   const [draftSongUrl, setDraftSongUrl] = useState<string | null>(null);
   const [draftSongName, setDraftSongName] = useState<string | null>(null);
   const currentSongBlobRef = useRef<Blob | null>(null);
@@ -67,7 +63,7 @@ function App({ initialTemplateId: _initialTemplateId, initialFile, projectId, on
   const [sourceLanguage, setSourceLanguage] = useState<SourceLanguage>('en');
   const [language, setLanguage] = useState<CaptionLanguage>('en');
   const [whisperModel, setWhisperModel] = useState<'tiny' | 'base'>('tiny');
-  /** Active transcription backend: CaptionCraft AI (cloud) or local Whisper (in-browser). */
+  /** Active transcription backend: Create Captions AI (cloud) or local Whisper (in-browser). */
   const [transcriptionBackend, setTranscriptionBackend] = useState<'gemini' | 'local'>('gemini');
 
   const [isTranscribing, setIsTranscribing] = useState(false);
@@ -297,7 +293,7 @@ const applyProgress = (progress: LocalTranscriptionProgress) => {
     setTranscriptionProgress(0);
     setTranscriptionProcessedDuration(0);
     setSubtitles([]);
-    setTranscriptionStatus('Sending audio to CaptionCraft AI…');
+    setTranscriptionStatus('Sending audio to Create Captions AI…');
 
     try {
       const result = await transcribeWithGemini(audioBlob, {
@@ -310,7 +306,7 @@ const applyProgress = (progress: LocalTranscriptionProgress) => {
           setTranscriptionProcessedDuration(progress.processedDuration);
           setTranscriptionTotalDuration(progress.totalDuration);
           setTranscriptionStatus(
-             `CaptionCraft AI transcribing chunk ${progress.completedChunks}/${progress.totalChunks} · ` +
+             `Create Captions AI transcribing chunk ${progress.completedChunks}/${progress.totalChunks} · ` +
             `${formatSeconds(progress.processedDuration)} / ${formatSeconds(progress.totalDuration)}`,
           );
         },
@@ -337,7 +333,7 @@ const applyProgress = (progress: LocalTranscriptionProgress) => {
         updateSubtitles(error.partialSubtitles);
         setTranscriptionError(`${error.message} Completed segments were kept.`);
       } else {
-         setTranscriptionError(error instanceof Error ? error.message : 'CaptionCraft AI transcription failed.');
+         setTranscriptionError(error instanceof Error ? error.message : 'Create Captions AI transcription failed.');
       }
       setTranscriptionStatus('Transcription failed');
     } finally {
@@ -790,32 +786,7 @@ const applyProgress = (progress: LocalTranscriptionProgress) => {
     return (
       <div className="app-frame">
 
-      {/* DEV PLAN TEST SWITCHER */}
-      <div style={{ position: "fixed", bottom: "20px", left: "20px", zIndex: 9999999, display: "inline-flex", alignItems: "center", gap: "8px", background: "#1c202a", border: "2px solid #3b82f6", borderRadius: "10px", padding: "8px 14px", boxShadow: "0 10px 30px rgba(0,0,0,0.8)" }}>
-        <span style={{ fontSize: "11px", fontWeight: 800, color: "#60a5fa", letterSpacing: "0.05em" }}>TEST PLAN:</span>
-        <select
-          id="dev-plan-switcher"
-          value={userPlan}
-          onChange={(e) => handleDevPlanChange(e.target.value)}
-          style={{
-            background: "#12141a",
-            color: "#ffffff",
-            border: "1px solid #475569",
-            borderRadius: "6px",
-            padding: "4px 8px",
-            fontSize: "12px",
-            fontWeight: 700,
-            cursor: "pointer",
-            outline: "none"
-          }}
-        >
-          <option value="starter">Starter (Free)</option>
-          <option value="creator_lite">Creator Lite (₹49)</option>
-          <option value="creator_pro">Creator Pro (₹99)</option>
-          <option value="weekly_pro">7-Day Pass (₹29)</option>
-          <option value="studio_max">Studio Max (₹199)</option>
-        </select>
-      </div>
+      
 
 
       <ExportPage
@@ -830,7 +801,8 @@ const applyProgress = (progress: LocalTranscriptionProgress) => {
             const activeSongUrl = draftSongUrl || playbackState.localSongUrl || undefined;
             const blob = await renderProjectToBlob(videoFile, subtitles, settings, language, {
               ...options,
-              bgSegments,
+              watermark: userPlan === "starter",
+          bgSegments,
               musicUrl: activeSongUrl,
               musicVolume: playbackState.songVolume ?? 0.8,
               audioVolume: playbackState.volume ?? 1,
@@ -871,32 +843,7 @@ const applyProgress = (progress: LocalTranscriptionProgress) => {
   return (
     <div className="app-frame">
 
-      {/* DEV PLAN TEST SWITCHER */}
-      <div style={{ position: "fixed", bottom: "20px", left: "20px", zIndex: 9999999, display: "inline-flex", alignItems: "center", gap: "8px", background: "#1c202a", border: "2px solid #3b82f6", borderRadius: "10px", padding: "8px 14px", boxShadow: "0 10px 30px rgba(0,0,0,0.8)" }}>
-        <span style={{ fontSize: "11px", fontWeight: 800, color: "#60a5fa", letterSpacing: "0.05em" }}>TEST PLAN:</span>
-        <select
-          id="dev-plan-switcher"
-          value={userPlan}
-          onChange={(e) => handleDevPlanChange(e.target.value)}
-          style={{
-            background: "#12141a",
-            color: "#ffffff",
-            border: "1px solid #475569",
-            borderRadius: "6px",
-            padding: "4px 8px",
-            fontSize: "12px",
-            fontWeight: 700,
-            cursor: "pointer",
-            outline: "none"
-          }}
-        >
-          <option value="starter">Starter (Free)</option>
-          <option value="creator_lite">Creator Lite (₹49)</option>
-          <option value="creator_pro">Creator Pro (₹99)</option>
-          <option value="weekly_pro">7-Day Pass (₹29)</option>
-          <option value="studio_max">Studio Max (₹199)</option>
-        </select>
-      </div>
+      
 
       {showLanding && !videoFile ? (
         <LandingPage onStart={() => setShowLanding(false)} />
@@ -971,7 +918,7 @@ const applyProgress = (progress: LocalTranscriptionProgress) => {
                 setTranscriptionProcessedDuration(0);
                 setTranscriptionStatus(
                   forceBackend === 'gemini'
-                    ? 'Switched to CaptionCraft AI · click Generate captions'
+                    ? 'Switched to Create Captions AI · click Generate captions'
                     : 'Switched to Local Whisper · click Generate captions',
                 );
               }}

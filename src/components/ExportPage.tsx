@@ -18,7 +18,6 @@ import { getExportDimensions } from "../utils/exportCapabilities";
 import {
   downloadBlob,
   downloadSubtitleFile,
-  BROWSER_EXPORT_LIMITATION,
   getExportFormatAvailability,
   normalizeExportFilename,
   type ExportFormat,
@@ -87,13 +86,14 @@ export function ExportPage({
 
   useEffect(() => () => controllerRef.current?.abort(), []);
 
-  const options: ExportOptions = {
+  const options: ExportOptions & { watermark?: boolean } = {
     resolution,
     frameRate,
     format,
     includeAudio,
     filename: normalizeExportFilename(filename, format),
     aspectRatio: selectedAspectRatio,
+    watermark: userPlan === "starter",
   };
 
   const handleRender = async () => {
@@ -144,18 +144,18 @@ export function ExportPage({
     setProgress(0);
   };
 
-  const getPreviewAspectStyles = () => {
+      const getPreviewAspectStyles = () => {
     switch (selectedAspectRatio) {
       case "9:16":
-        return { width: "160px", height: "284px" };
+        return { aspectRatio: "9 / 16", height: "360px", maxWidth: "100%" };
       case "16:9":
-        return { width: "284px", height: "160px" };
+        return { aspectRatio: "16 / 9", width: "360px", maxHeight: "100%" };
       case "1:1":
-        return { width: "200px", height: "200px" };
+        return { aspectRatio: "1 / 1", height: "310px", maxWidth: "100%" };
       case "4:5":
-        return { width: "180px", height: "225px" };
+        return { aspectRatio: "4 / 5", height: "360px", maxWidth: "100%" };
       default:
-        return { width: "160px", height: "284px" };
+        return { aspectRatio: "9 / 16", height: "360px", maxWidth: "100%" };
     }
   };
 
@@ -176,8 +176,7 @@ export function ExportPage({
             top: "16px",
             left: "50%",
             transform: "translateX(-50%)",
-            zIndex: 999999,
-            display: "flex",
+            zIndex: 999999, display: "flex",
             alignItems: "center",
             gap: "10px",
             padding: "9px 18px",
@@ -203,8 +202,7 @@ export function ExportPage({
               cursor: "pointer",
               fontSize: "13px",
               padding: "0 2px",
-              marginLeft: "4px",
-              display: "flex",
+              marginLeft: "4px", display: "flex",
               alignItems: "center"
             }}
           >
@@ -289,17 +287,20 @@ export function ExportPage({
         gridTemplateColumns: "1fr 1.25fr",
         gap: "28px",
         maxWidth: "1180px",
-        margin: "0 auto"
+        margin: "0 auto",
+        alignItems: "stretch"
       }}>
         {/* LEFT COLUMN: RENDER SETTINGS */}
         <section style={{
           background: "#12141a",
           border: "1px solid rgba(255, 255, 255, 0.08)",
           borderRadius: "14px",
-          padding: "24px",
-          display: "flex",
+          padding: "24px", display: "flex",
           flexDirection: "column",
-          gap: "22px"
+          justifyContent: "space-between",
+          gap: "18px",
+          height: "100%",
+          boxSizing: "border-box"
         }}>
           <div style={{ display: "flex", alignItems: "center", gap: "8px", borderBottom: "1px solid #1c202a", paddingBottom: "12px" }}>
             <Sliders size={16} color="var(--accent-primary)" />
@@ -336,8 +337,7 @@ export function ExportPage({
                       setResolution(val);
                     }}
                     style={{
-                      position: "relative",
-                      display: "flex",
+                      position: "relative", display: "flex",
                       flexDirection: "column",
                       alignItems: "center",
                       justifyContent: "center",
@@ -366,9 +366,6 @@ export function ExportPage({
                         </span>
                       )}
                     </div>
-                    <span style={{ fontSize: "10px", color: "#64748b" }}>
-                      {val === "720p" ? "720p HD" : val === "1080p" ? "1080p Full HD" : val === "2K" ? "2K QHD" : "4K UHD"}
-                    </span>
                   </button>
                 );
               })}
@@ -477,8 +474,7 @@ export function ExportPage({
                         setFormat(fmt);
                       }}
                       style={{
-                        position: "relative",
-                        display: "flex",
+                        position: "relative", display: "flex",
                         alignItems: "center",
                         justifyContent: "center",
                         padding: "8px 6px",
@@ -550,11 +546,11 @@ export function ExportPage({
               </span>
             </div>
 
-            <label style={{
+                        <label style={{
               display: "flex",
               alignItems: "center",
               justifyContent: "space-between",
-              padding: "10px 14px",
+              padding: "12px 14px",
               background: "#1c202a",
               border: "1px solid #232836",
               borderRadius: "8px",
@@ -576,19 +572,97 @@ export function ExportPage({
                 style={{ width: "16px", height: "16px", accentColor: "var(--accent-primary)", cursor: "pointer" }}
               />
             </label>
+
+            {/* Redesigned Clean Remove Watermark Card */}
+            <div
+              onClick={() => {
+                if (userPlan === "starter") {
+                  setPlanNotice("Watermark removal is included in Creator Lite and above. Upgrade to unlock.");
+                  setTimeout(() => setPlanNotice(null), 3500);
+                }
+              }}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                padding: "12px 14px",
+                background: "#1c202a",
+                border: "1px solid #232836",
+                borderRadius: "8px",
+                cursor: userPlan === "starter" ? "pointer" : "default",
+                transition: "all 0.15s ease"
+              }}
+            >
+              <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                <Sparkles size={16} color={userPlan === "starter" ? "#64748b" : "var(--accent-primary)"} />
+                <div>
+                  <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                    <span style={{ fontSize: "12px", fontWeight: 600, color: "#f3f4f6" }}>
+                      Remove Watermark
+                    </span>
+                    {userPlan === "starter" && (
+                      <span
+                        style={{
+                          fontSize: "9px",
+                          fontWeight: 800,
+                          padding: "1px 5px",
+                          borderRadius: "4px",
+                          background: "rgba(2, 132, 199, 0.2)",
+                          color: "#38bdf8"
+                        }}
+                      >
+                        LITE
+                      </span>
+                    )}
+                  </div>
+                  <div style={{ fontSize: "11px", color: "#64748b" }}>
+                    {userPlan === "starter"
+                      ? "Exports include 'Create Captions' dynamic watermark"
+                      : "Clean master export without watermark"}
+                  </div>
+                </div>
+              </div>
+
+              {/* Toggle switch visual */}
+              <div
+                style={{
+                  width: "36px",
+                  height: "20px",
+                  borderRadius: "12px",
+                  background: userPlan !== "starter" ? "#ee6346" : "rgba(255, 255, 255, 0.12)",
+                  position: "relative",
+                  transition: "background 0.2s ease",
+                  cursor: userPlan === "starter" ? "pointer" : "default",
+                  flexShrink: 0
+                }}
+              >
+                <div
+                  style={{
+                    width: "16px",
+                    height: "16px",
+                    borderRadius: "50%",
+                    background: "#ffffff",
+                    position: "absolute",
+                    top: "2px",
+                    left: userPlan !== "starter" ? "18px" : "2px",
+                    transition: "left 0.2s ease",
+                    boxShadow: "0 1px 3px rgba(0,0,0,0.4)"
+                  }}
+                />
+              </div>
+            </div>
           </div>
         </section>
 
         {/* RIGHT COLUMN: PREVIEW WITH CAPCUT OUTLINE PROGRESS & ACTIONS */}
-        <section style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
+        <section style={{ display: "flex", flexDirection: "column", gap: "20px", height: "100%", justifyContent: "space-between" }}>
           
           {/* PREVIEW + CAPCUT-STYLE OUTLINE PROGRESS BOX */}
           <div style={{
             background: "#12141a",
             border: "1px solid rgba(255, 255, 255, 0.08)",
             borderRadius: "14px",
-            padding: "20px",
-            display: "flex",
+            padding: "20px", display: "flex",
             flexDirection: "column",
             alignItems: "center",
             gap: "16px",
@@ -606,22 +680,31 @@ export function ExportPage({
 
             {/* VIDEO FRAME WITH CAPCUT ANIMATED CONIC PROGRESS BORDER */}
             <div style={{
+              width: "100%",
+              height: "372px", display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              background: "rgba(0, 0, 0, 0.2)",
+              borderRadius: "12px",
+              padding: "6px",
+              boxSizing: "border-box"
+            }}>
+              <div style={{
               position: "relative",
               padding: "4px",
               borderRadius: "14px",
               background: busy
                 ? `conic-gradient(var(--accent-primary) ${progress * 3.6}deg, #d946ef ${progress * 3.6}deg, rgba(255, 255, 255, 0.08) 0deg)`
                 : "rgba(255, 255, 255, 0.1)",
-              boxShadow: busy ? "0 0 20px var(--accent-glow, rgba(255, 255, 255, 0.18)" : "none",
-              transition: "box-shadow 0.3s ease"
-            }}>
+              boxShadow: busy ? "0 0 20px var(--accent-glow, rgba(255, 255, 255, 0.18))" : "none",
+              transition: "box-shadow 0.3s ease",
+              display: "flex", alignItems: "center", justifyContent: "center" }}>
               <div style={{
                 ...previewDims,
                 background: "#12141a",
                 borderRadius: "10px",
                 overflow: "hidden",
-                position: "relative",
-                display: "flex",
+                position: "relative", display: "flex",
                 flexDirection: "column",
                 alignItems: "center",
                 justifyContent: "center",
@@ -661,8 +744,7 @@ export function ExportPage({
                     position: "absolute",
                     inset: 0,
                     background: "rgba(8, 11, 14, 0.82)",
-                    backdropFilter: "blur(4px)",
-                    display: "flex",
+                    backdropFilter: "blur(4px)", display: "flex",
                     flexDirection: "column",
                     alignItems: "center",
                     justifyContent: "center",
@@ -698,14 +780,11 @@ export function ExportPage({
                   </div>
                 )}
               </div>
+              </div>
             </div>
 
             {/* STATUS NOTICES */}
-            {format === "mp4" && (
-              <div style={{ width: "100%", padding: "10px 12px", background: "rgba(234, 179, 8, 0.08)", border: "1px solid rgba(234, 179, 8, 0.2)", borderRadius: "8px", fontSize: "11px", color: "#fde047", lineHeight: "1.4" }}>
-                {BROWSER_EXPORT_LIMITATION}
-              </div>
-            )}
+            
 
             {!formatSupported && (
               <div style={{ width: "100%", display: "flex", alignItems: "center", gap: "8px", padding: "10px 12px", background: "var(--bg-app, #fbf8ef)", border: "1px solid rgba(239, 68, 68, 0.25)", borderRadius: "8px", fontSize: "12px", color: "#f87171" }}>
@@ -764,8 +843,7 @@ export function ExportPage({
             background: "#12141a",
             border: "1px solid rgba(255, 255, 255, 0.08)",
             borderRadius: "14px",
-            padding: "18px",
-            display: "flex",
+            padding: "18px", display: "flex",
             flexDirection: "column",
             gap: "12px"
           }}>

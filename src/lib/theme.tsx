@@ -13,13 +13,13 @@ const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 
 export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [theme, setThemeState] = useState<Theme>(() => {
-    const saved = localStorage.getItem("captioncraft-theme");
+    const saved = localStorage.getItem("createcaptions-theme");
     if (saved === "light" || saved === "dark") return saved;
     return window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
   });
 
   useEffect(() => {
-    localStorage.setItem("captioncraft-theme", theme);
+    localStorage.setItem("createcaptions-theme", theme);
     const root = document.documentElement;
     root.setAttribute("data-theme", theme);
     if (theme === "dark") {

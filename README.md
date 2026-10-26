@@ -1,6 +1,6 @@
-# CaptionCraft
+# Create Captions
 
-CaptionCraft is a privacy-conscious caption editor for audio and video. It prepares media in the browser, runs a multilingual Whisper model locally in a Web Worker, and lets creators correct, style, preview, and export captions without a transcription API or account.
+Create Captions is a privacy-conscious caption editor for audio and video. It prepares media in the browser, runs a multilingual Whisper model locally in a Web Worker, and lets creators correct, style, preview, and export captions without a transcription API or account.
 
 ## Highlights
 
@@ -42,7 +42,7 @@ The unit tests are intentionally model-free. They test subtitle timing, translit
 
 ## Local Whisper model and privacy
 
-CaptionCraft does not use a hosted transcription API, an API key, an LLM translation service, or a browser speech-recognition service.
+Create Captions does not use a hosted transcription API, an API key, an LLM translation service, or a browser speech-recognition service.
 
 The first local transcription requires an internet connection so Transformers.js can download the model and runtime assets from Hugging Face. Transformers.js stores supported assets in the browser cache. Later transcription can run without contacting a transcription API while those assets remain cached. Browser cache eviction, private browsing, clearing site data, or offline application-shell limitations may require a new download.
 
@@ -77,7 +77,7 @@ Whisper inference is performed in bounded sequential chunks. The normalized sour
 - SRT and VTT subtitle files use the current subtitle text and timestamps.
 - PNG exports the current rendered canvas frame.
 - WebM uses `MediaRecorder` when the browser supports a compatible codec. Audio is included when the source exposes an audio capture track; silent video can still be exported when only a video track is available.
-- MP4 is not offered because CaptionCraft does not include an MP4 encoder.
+- MP4 is not offered because Create Captions does not include an MP4 encoder.
 
 ## Development notes
 

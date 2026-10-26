@@ -223,7 +223,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
           onClick={() => onSelectBackend?.("gemini")}
           disabled={isTranscribing}
         >
-          ⚡ CaptionCraft AI
+          ⚡ Create Captions AI
         </button>
       ) : (
         <button
@@ -244,8 +244,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
       {/* 1. brand row */}
       <div className="sidebar-brand-row" style={{ paddingBottom: "2px", marginBottom: "0" }}>
         <div className="brand-lockup compact">
-          <img src="/media/logo.png" alt="CaptionCraft" style={{ width: "28px", height: "28px", borderRadius: "7px", objectFit: "contain", border: "1.5px solid rgba(255, 255, 255, 0.85)", padding: "2px" }} />
-          <div style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}><span style={{ fontSize: "15px", fontWeight: 700, color: "var(--card-text-primary, #ffffff)" }}>CaptionCraft</span><span style={{ fontSize: "9px", padding: "2px 6px", borderRadius: "4px", background: "#232734", color: "#e2e8f0", border: "1px solid rgba(255,255,255,0.1)", fontWeight: 700 }}>studio</span></div>
+          <img src="/media/logo.png" alt="Create Captions" style={{ width: "28px", height: "28px", borderRadius: "7px", objectFit: "contain", border: "1.5px solid rgba(255, 255, 255, 0.85)", padding: "2px" }} />
+          <div style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}><span style={{ fontSize: "15px", fontWeight: 700, color: "var(--card-text-primary, #ffffff)" }}>Create Captions</span><span style={{ fontSize: "9px", padding: "2px 6px", borderRadius: "4px", background: "#232734", color: "#e2e8f0", border: "1px solid rgba(255,255,255,0.1)", fontWeight: 700 }}>studio</span></div>
         </div>
         <button className="ghost-button" onClick={onBackToUpload}>
           ← Back to Upload

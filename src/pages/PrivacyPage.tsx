@@ -101,7 +101,7 @@ export const PrivacyPage: React.FC = () => {
                 lineHeight: 1.6
               }}
             >
-              <span style={{ color: "var(--card-text-secondary)", fontSize: "13px", lineHeight: 1.6, display: "block" }}><span style={{ color: "var(--card-text-secondary)", fontSize: "13px", lineHeight: "1.6", display: "block" }}>CaptionCraft executes speech recognition locally using on-device machine learning models. Video clips and uncaptioned media files are not uploaded or permanently archived on external servers.</span></span>
+              <span style={{ color: "var(--card-text-secondary)", fontSize: "13px", lineHeight: 1.6, display: "block" }}><span style={{ color: "var(--card-text-secondary)", fontSize: "13px", lineHeight: "1.6", display: "block" }}>Create Captions executes speech recognition locally using on-device machine learning models. Video clips and uncaptioned media files are not uploaded or permanently archived on external servers.</span></span>
             </div>
           </div>
         </div>

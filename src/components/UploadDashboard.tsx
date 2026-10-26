@@ -119,7 +119,7 @@ export function UploadDashboard({
         <div className="brand-lockup">
           <div className="brand-mark">CC</div>
           <div>
-            <div className="brand-name">CaptionCraft</div>
+            <div className="brand-name">Create Captions</div>
             <div className="brand-tagline">Turn your audio into perfectly styled captions.</div>
           </div>
         </div>
@@ -137,7 +137,7 @@ export function UploadDashboard({
       <section className="upload-hero">
         <span className="eyebrow accent-eyebrow">Start a new caption project</span>
         <h1>What are you creating today?</h1>
-        <p>Choose an audio or video source. CaptionCraft prepares the timeline first, then lets you style and edit captions frame by frame.</p>
+        <p>Choose an audio or video source. Create Captions prepares the timeline first, then lets you style and edit captions frame by frame.</p>
       </section>
 
       <section className="upload-grid" aria-label="Media upload choices">

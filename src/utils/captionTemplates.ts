@@ -541,7 +541,7 @@ const PREVIEW_LOOP_SECONDS = PREVIEW_CAPTION_END + PREVIEW_GAP;
 
 /**
  * Idle frame: entry transition finished, no word active yet -> the complete
- * "Caption Craft" phrase in its base style (boxes, fonts and strokes visible).
+ * "Create Captions" phrase in its base style (boxes, fonts and strokes visible).
  */
 export const PREVIEW_IDLE_TIME = PREVIEW_LEAD_IN - 0.01;
 
@@ -550,10 +550,10 @@ export const PREVIEW_SUBTITLES: Subtitle[] = [
     id: "template-preview",
     start: 0,
     end: PREVIEW_CAPTION_END,
-    text: "Caption Craft",
+    text: "Create Captions",
     words: [
-      { word: "Caption", start: PREVIEW_LEAD_IN, end: PREVIEW_FIRST_END },
-      { word: "Craft", start: PREVIEW_FIRST_END, end: PREVIEW_SECOND_END },
+      { word: "Create", start: PREVIEW_LEAD_IN, end: PREVIEW_FIRST_END },
+      { word: "Captions", start: PREVIEW_FIRST_END, end: PREVIEW_SECOND_END },
     ],
   },
 ];

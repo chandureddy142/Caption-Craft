@@ -74,13 +74,13 @@ export const SiteLayout: React.FC<SiteLayoutProps> = ({ user }) => {
             <div style={{ width: "50px", height: "50px", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
       <img
         src={theme === "dark" ? "/media/Llogo.png" : "/media/Dlogo.png"}
-        alt="CaptionCraft"
+        alt="Create Captions"
         style={{ width: "100%", height: "100%", objectFit: "contain" }}
       />
     </div>
     <div>
               <div style={{ fontSize: "20px", fontWeight: 700, color: "var(--nav-text-primary)", letterSpacing: "-0.02em", lineHeight: 1.1 }}>
-                CaptionCraft
+                Create Captions
               </div>
               <div style={{ fontSize: "11px", color: "var(--nav-text-secondary)", marginTop: "2px", fontWeight: 500 }}>
                 smart captions for creators

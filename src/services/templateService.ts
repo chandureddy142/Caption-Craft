@@ -25,7 +25,7 @@ export async function getTemplates(): Promise<CaptionTemplateDefinition[]> {
       .order('display_order', { ascending: true });
 
     if (error || !data || data.length === 0) {
-      console.warn('CaptionCraft: using local caption template fallback.', error?.message);
+      console.warn('Create Captions: using local caption template fallback.', error?.message);
       return CAPTION_TEMPLATES;
     }
 
@@ -41,7 +41,7 @@ export async function getTemplates(): Promise<CaptionTemplateDefinition[]> {
       previewTokens: (item as any).preview_tokens ?? undefined,
     }));
   } catch (error) {
-    console.error('CaptionCraft: unable to fetch caption templates.', error);
+    console.error('Create Captions: unable to fetch caption templates.', error);
     return CAPTION_TEMPLATES;
   }
 }

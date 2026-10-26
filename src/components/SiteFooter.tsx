@@ -32,12 +32,12 @@ export const SiteFooter: React.FC = () => {
             <div style={{ width: "50px", height: "50px", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
       <img
         src={theme === "dark" ? "/media/Llogo.png" : "/media/Dlogo.png"}
-        alt="CaptionCraft"
+        alt="Create Captions"
         style={{ width: "100%", height: "100%", objectFit: "contain" }}
       />
     </div>
             <span style={{ fontSize: "16px", fontWeight: 700, letterSpacing: "-0.02em", color: "var(--card-text-primary)" }}>
-              CaptionCraft
+              Create Captions
             </span>
           </div>
           <p
@@ -108,10 +108,10 @@ export const SiteFooter: React.FC = () => {
         }}
       >
         <div>
-          © {new Date().getFullYear()} CaptionCraft Studio. Built for Indian digital creators.
+          © {new Date().getFullYear()} Create Captions Studio. Built for Indian digital creators.
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: "6px", color: "var(--card-text-secondary)" }}>
-          Crafted with <Heart size={13} color="var(--accent-primary)" fill="var(--accent-primary)" /> for Telugu & multilingual creators
+          Built with <Heart size={13} color="var(--accent-primary)" fill="var(--accent-primary)" /> for Telugu & multilingual creators
         </div>
       </div>
     </footer>

@@ -1,4 +1,4 @@
-const DB_NAME = "CaptionCraftMediaDB";
+const DB_NAME = "CreateCaptionsMediaDB";
 const DB_VERSION = 1;
 const STORE_MEDIA = "mediaFiles";
 const STORE_EXPORTS = "exportsFiles";

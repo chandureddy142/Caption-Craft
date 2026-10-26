@@ -154,7 +154,7 @@ export const RoadmapPage: React.FC = () => {
             maxWidth: "580px",
             margin: "0 auto 16px"
           }}>
-            CaptionCraft is built from creator pain points. Tell us what you like, what you want, and what we should build next.
+            Create Captions is built from creator pain points. Tell us what you like, what you want, and what we should build next.
           </p>
 
           <span style={{ fontSize: "13px", color: "var(--text-muted)", fontWeight: 500 }}>

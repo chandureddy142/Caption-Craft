@@ -206,7 +206,7 @@ export type FontWeightValue = 'normal' | '600' | '700' | '800' | '900';
 
 /**
  * Per-word style. Templates alternate rules by word index (index % rules.length),
- * so a 2-rule template styles "Caption" with rule 0 and "Craft" with rule 1.
+ * so a 2-rule template styles "Create" with rule 0 and "Captions" with rule 1.
  * The canvas renderer and the sidebar preview both read these fields.
  */
 export interface WordStyleRule {

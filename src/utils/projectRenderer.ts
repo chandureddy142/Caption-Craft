@@ -80,7 +80,7 @@ export async function renderProjectToBlob(
       subtitles,
       settings,
       language,
-      { ...options, format: "webm", filename: "captioncraft-staging.webm" },
+      { ...options, format: "webm", filename: "createcaptions-staging.webm" },
       progress => onProgress(Math.min(75, progress * 0.75)),
       signal,
     );
@@ -349,30 +349,41 @@ export async function renderProjectToBlob(
           );
 
           
-          // Watermark pass for Starter tier
+          // Watermark pass for Starter tier (matches studio preview)
           if (options.watermark) {
             context.save();
-            const badgeHeight = Math.round(height * 0.035);
-            const badgeWidth = Math.round(width * 0.38);
-            const badgeX = width - badgeWidth - 20;
-            const badgeY = height - badgeHeight - 24;
+            const evalT = t || 0;
+            const totalDur = media.duration || 30;
+            const intervalSec = Math.max(3.5, Math.min(6, totalDur / 5));
+            const spotIndex = Math.floor(evalT / intervalSec) % 5;
 
-            // Semi-transparent pill background
-            context.fillStyle = "rgba(0, 0, 0, 0.55)";
-            if (typeof context.roundRect === "function") {
-              context.beginPath();
-              context.roundRect(badgeX, badgeY, badgeWidth, badgeHeight, 6);
-              context.fill();
-            } else {
-              context.fillRect(badgeX, badgeY, badgeWidth, badgeHeight);
-            }
+            const captionY = (settings.verticalPosition ?? 0.75) * height;
 
-            // Watermark typography
-            context.font = "700 " + Math.round(badgeHeight * 0.5) + "px 'Inter', sans-serif";
-            context.fillStyle = "rgba(255, 255, 255, 0.85)";
+            const spots = [
+              { x: width * 0.50, y: height * 0.30, rot: -0.16 },
+              { x: width * 0.50, y: captionY,     rot: 0.10  },
+              { x: width * 0.54, y: height * 0.44, rot: -0.22 },
+              { x: width * 0.46, y: height * 0.58, rot: 0.18  },
+              { x: width * 0.50, y: Math.max(height * 0.25, captionY - 40), rot: -0.12 }
+            ];
+
+            const activeSpot = spots[spotIndex];
+            context.translate(activeSpot.x, activeSpot.y);
+            context.rotate(activeSpot.rot);
+
+            const fontSize = Math.round(width * 0.085);
+            context.font = `900 ${fontSize}px Inter, -apple-system, sans-serif`;
             context.textAlign = "center";
             context.textBaseline = "middle";
-            context.fillText("Made with CaptionCraft", badgeX + badgeWidth / 2, badgeY + badgeHeight / 2);
+
+            context.lineWidth = Math.max(2, Math.round(fontSize * 0.055));
+            context.strokeStyle = "rgba(0, 0, 0, 0.50)";
+            context.lineJoin = "round";
+            context.strokeText("Create Captions", 0, 0);
+
+            context.fillStyle = "rgba(255, 255, 255, 0.32)";
+            context.fillText("Create Captions", 0, 0);
+
             context.restore();
           }
 

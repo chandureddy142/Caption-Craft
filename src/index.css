@@ -233,8 +233,8 @@ button:disabled { cursor: not-allowed; opacity: 0.5; }
 .tiny-icon-button { width: 24px; height: 24px; }
 .icon-button:hover, .tiny-icon-button:hover { border-color: var(--border-bright); color: var(--text-main); background: var(--bg-soft); }
 .icon-button.danger:hover, .tiny-icon-button.danger:hover { color: var(--danger); border-color: rgba(248, 113, 113, .3); }
-.spin { animation: caption-craft-spin 1s linear infinite; }
-@keyframes caption-craft-spin { to { transform: rotate(360deg); } }
+.spin { animation: create-captions-spin 1s linear infinite; }
+@keyframes create-captions-spin { to { transform: rotate(360deg); } }
 
 .eyebrow, .section-kicker { color: var(--text-dim); font-size: .64rem; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; }
 .accent-eyebrow { color: #b8a4ff; }

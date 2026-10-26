@@ -16,7 +16,7 @@ export interface ProjectDraftData {
   updatedAt: string;
 }
 
-const DB_NAME = "CaptionCraftDraftsDB";
+const DB_NAME = "CreateCaptionsDraftsDB";
 const STORE_NAME = "drafts";
 
 function openDraftDB(): Promise<IDBDatabase> {

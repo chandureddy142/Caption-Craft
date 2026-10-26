@@ -667,7 +667,7 @@ const [areCaptionsHidden, setAreCaptionsHidden] = useState(false);
 
     // Platform overlay handled directly by high-fidelity UI overlay element
 
-    if (!areCaptionsHidden) {
+        if (!areCaptionsHidden) {
       renderSubtitlesToCanvas(
         ctx,
         canvas.width,
@@ -678,6 +678,49 @@ const [areCaptionsHidden, setAreCaptionsHidden] = useState(false);
         language,
         selectedSubtitleId,
       );
+    }
+
+            // Anti-screen-recording Dynamic Watermark for Free / Starter preview
+    if (userPlan === "starter") {
+      ctx.save();
+      const evalT = currentTimeRef.current || 0;
+      const totalDur = effectiveDuration || 30;
+      // 4-5 spots across video length (each spot lasts ~4 to 6 seconds)
+      const intervalSec = Math.max(3.5, Math.min(6, totalDur / 5));
+      const spotIndex = Math.floor(evalT / intervalSec) % 5;
+
+      // Caption Y coordinate in canvas coordinates
+      const captionY = (settings.verticalPosition ?? 0.75) * canvas.height;
+
+      // 5 predefined strategic coordinates
+      const spots = [
+        { x: canvas.width * 0.50, y: canvas.height * 0.30, rot: -0.16 }, // Upper-mid
+        { x: canvas.width * 0.50, y: captionY,             rot: 0.10  }, // Directly over captions
+        { x: canvas.width * 0.54, y: canvas.height * 0.44, rot: -0.22 }, // Mid-right
+        { x: canvas.width * 0.46, y: canvas.height * 0.58, rot: 0.18  }, // Mid-left
+        { x: canvas.width * 0.50, y: Math.max(canvas.height * 0.25, captionY - 40), rot: -0.12 } // Caption crown area
+      ];
+
+      const activeSpot = spots[spotIndex];
+      ctx.translate(activeSpot.x, activeSpot.y);
+      ctx.rotate(activeSpot.rot);
+
+      const fontSize = Math.round(canvas.width * 0.085);
+      ctx.font = `900 ${fontSize}px Inter, -apple-system, sans-serif`;
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+
+      // Dark border stroke for crisp contrast against any white/bright backdrops
+      ctx.lineWidth = Math.max(2, Math.round(fontSize * 0.055));
+      ctx.strokeStyle = "rgba(0, 0, 0, 0.50)";
+      ctx.lineJoin = "round";
+      ctx.strokeText("Create Captions", 0, 0);
+
+      // Semi-transparent fill
+      ctx.fillStyle = "rgba(255, 255, 255, 0.32)";
+      ctx.fillText("Create Captions", 0, 0);
+
+      ctx.restore();
     }
 
     // setCurrentTime driven by master clock loop

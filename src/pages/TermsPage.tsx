@@ -92,7 +92,7 @@ export const TermsPage: React.FC = () => {
               margin: 0
             }}
           >
-            By accessing and using CaptionCraft (&ldquo;the Service&rdquo;), you agree to be bound by these Terms and Conditions. If you do not agree to these terms, please do not use our services.
+            By accessing and using Create Captions (&ldquo;the Service&rdquo;), you agree to be bound by these Terms and Conditions. If you do not agree to these terms, please do not use our services.
           </p>
         </section>
 
@@ -115,7 +115,7 @@ export const TermsPage: React.FC = () => {
               marginBottom: "12px"
             }}
           >
-            You retain full ownership and intellectual property rights to any audio, video, or script data you import into CaptionCraft.
+            You retain full ownership and intellectual property rights to any audio, video, or script data you import into Create Captions.
           </p>
           <p
             style={{
@@ -124,7 +124,7 @@ export const TermsPage: React.FC = () => {
               margin: 0
             }}
           >
-            Because CaptionCraft leverages client-side WebAssembly and WebGPU for speech transcription and canvas rendering, your raw media files are decoded directly inside your web browser. CaptionCraft does not claim ownership or license rights over user videos.
+            Because Create Captions leverages client-side WebAssembly and WebGPU for speech transcription and canvas rendering, your raw media files are decoded directly inside your web browser. Create Captions does not claim ownership or license rights over user videos.
           </p>
         </section>
 
@@ -147,7 +147,7 @@ export const TermsPage: React.FC = () => {
               marginBottom: "12px"
             }}
           >
-            You agree not to use CaptionCraft to transcribe, burn, or generate subtitles for content that:
+            You agree not to use Create Captions to transcribe, burn, or generate subtitles for content that:
           </p>
           <ul
             style={{
@@ -182,7 +182,7 @@ export const TermsPage: React.FC = () => {
               margin: 0
             }}
           >
-            CaptionCraft is currently operating in public beta. While select features are free during beta evaluation, future commercial subscriptions and export quotas will be clearly billed and processed through certified regional payment gateways (including UPI, Net Banking, and Cards).
+            Create Captions is currently operating in public beta. While select features are free during beta evaluation, future commercial subscriptions and export quotas will be clearly billed and processed through certified regional payment gateways (including UPI, Net Banking, and Cards).
           </p>
         </section>
       </div>

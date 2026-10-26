@@ -81,7 +81,7 @@ export default function LoginPage(): ReactElement {
             color: "var(--card-text-primary)",
             margin: "0 0 6px 0"
           }}>
-            Sign in to CaptionCraft
+            Sign in to Create Captions
           </h1>
           <p style={{
             fontSize: "13px",

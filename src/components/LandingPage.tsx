@@ -311,7 +311,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onStart }) => {
             <div className="cc-eyebrow">
               <span>interactive product tour</span>
             </div>
-            <h2 className="cc-section-title">see CaptionCraft in action</h2>
+            <h2 className="cc-section-title">see Create Captions in action</h2>
             <p className="cc-section-sub">preview how word-level sync and typography adapt effortlessly across english, telugu, and tenglish.</p>
 
             <div className="cc-tab-bar" style={{ marginTop: "24px" }}>
@@ -417,7 +417,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onStart }) => {
                 marginTop: "8px",
                 textTransform: "uppercase"
               }}>
-                CaptionCraft Display
+                Create Captions Display
               </div>
             </div>
 
@@ -453,7 +453,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onStart }) => {
                 caption styles engineered for high retention
               </h2>
               <p className="cc-section-sub" style={{ margin: "8px 0 0", maxWidth: "620px" }}>
-                stop using plain subtitles that viewers ignore. CaptionCraft presets are tuned with hook physics, dynamic word emphasis, and safe regional typography.
+                stop using plain subtitles that viewers ignore. Create Captions presets are tuned with hook physics, dynamic word emphasis, and safe regional typography.
               </p>
             </div>
             <button onClick={() => routerNavigate("/templates")} className="cc-btn-primary" style={{ padding: "12px 24px" }}>
@@ -609,7 +609,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onStart }) => {
             </div>
             <h2 className="cc-section-title">from raw media to viral post</h2>
             <p className="cc-section-sub">
-              how CaptionCraft extracts audio, generates regional transcripts, and burns kinetic styles.
+              how Create Captions extracts audio, generates regional transcripts, and burns kinetic styles.
             </p>
           </div>
 
@@ -841,7 +841,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onStart }) => {
                 <tr style={{ borderBottom: "1px solid var(--box-border)" }}>
                   <th style={{ padding: "20px 24px", width: "30%" }} />
                   <th style={{ padding: "20px 24px", color: "var(--accent-primary)", fontSize: "14px", fontWeight: 800, width: "38%" }}>
-                    CaptionCraft
+                    Create Captions
                   </th>
                   <th style={{ padding: "20px 24px", color: "var(--card-text-muted)", fontSize: "13px", fontWeight: 600, width: "32%" }}>
                     typical english-first tools

@@ -50,7 +50,7 @@ export const PLANS: Plan[] = [
       { text: "3 minutes total export length per month" },
       { text: "720p standard resolution export" },
       { text: "WebM format only (MP4 locked)", isLocked: true },
-      { text: "CaptionCraft watermark included", isLocked: true },
+      { text: "Create Captions watermark included", isLocked: true },
       { text: "Up to 3 background cuts per timeline" },
       { text: "Local device photo/video backdrop locked", isLocked: true },
       { text: "Background music track locked", isLocked: true },

@@ -19,7 +19,7 @@ export function exportToASS(subtitles: Subtitle[], language: CaptionLanguage = '
 
   return [
     '[Script Info]',
-    'Title: CaptionCraft Export',
+    'Title: Create Captions Export',
     'ScriptType: v4.00+',
     'WrapStyle: 2',
     'ScaledBorderAndShadow: yes',
