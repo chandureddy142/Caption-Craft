@@ -694,7 +694,7 @@ export const StudioDashboard: React.FC<StudioDashboardProps> = ({
           </button>
 
           <div style={{ display: "flex", alignItems: "center", gap: "24px", marginTop: "24px", fontSize: "11px", color: "var(--card-text-secondary)" }}>
-            <span style={{ display: "flex", alignItems: "center", gap: "6px" }}><Zap size={13} color="#f59e0b" /> WebGPU Hardware Acceleration</span>
+            <span style={{ display: "flex", alignItems: "center", gap: "6px" }}><Zap size={13} color="#f59e0b" /> High-Speed AI</span>
             <span style={{ display: "flex", alignItems: "center", gap: "6px" }}><Lock size={13} color="#10b981" /> 100% Private (Runs In-Browser)</span>
             <span style={{ display: "flex", alignItems: "center", gap: "6px" }}><Sparkles size={13} color="var(--accent-primary)" /> Telugu Lipi & Tenglish Dual Engine</span>
           </div>
@@ -1018,7 +1018,7 @@ export const StudioDashboard: React.FC<StudioDashboardProps> = ({
                     <span style={{ fontSize: "15px", fontWeight: 700, color: "var(--card-text-primary, #12141a)" }}>Creator Free Tier</span>
                     <span style={{ fontSize: "10px", padding: "2px 6px", borderRadius: "4px", background: "rgba(59, 130, 246, 0.15)", color: "var(--accent-primary)", fontWeight: 700 }}>active</span>
                   </div>
-                  <div style={{ fontSize: "12px", color: "var(--card-text-secondary, #64748b)", marginTop: "4px" }}>60 minutes free client-side transcription per month</div>
+                  <div style={{ fontSize: "12px", color: "var(--card-text-secondary, #64748b)", marginTop: "4px" }}>60 minutes free on-device transcription per month</div>
                 </div>
                 <button
                   onClick={() => {

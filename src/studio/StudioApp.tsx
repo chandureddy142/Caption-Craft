@@ -476,7 +476,7 @@ function App({ initialTemplateId: _initialTemplateId, initialFile, projectId, on
       setMediaDuration(duration);
       setTranscriptionTotalDuration(duration);
       setIsTranscribing(false);
-      setTranscriptionStatus(`Audio ready · ${formatSeconds(duration)} · click Generate captions to load Whisper locally`);
+      setTranscriptionStatus(`Audio ready · ${formatSeconds(duration)} · click Generate captions to process on-device`);
     } catch (error) {
       if (!session.isCurrent(jobId)) return;
       setIsTranscribing(false);
@@ -900,7 +900,7 @@ function App({ initialTemplateId: _initialTemplateId, initialFile, projectId, on
                 setTranscriptionStatus(
                   forceBackend === "cloud"
                     ? "Switched to Create Captions AI · click Generate captions"
-                    : "Switched to Local Whisper · click Generate captions",
+                    : "Switched to On-Device AI · click Generate captions",
                 );
               }}
               aiKeyMissing={!import.meta.env.VITE_AI_API_KEY || import.meta.env.VITE_AI_API_KEY === "your_ai_api_key_here"}
@@ -1008,7 +1008,7 @@ function App({ initialTemplateId: _initialTemplateId, initialFile, projectId, on
 
             <div style={{ fontSize: "13px", color: "rgba(255, 255, 255, 0.65)", minHeight: "20px" }}>
               {modelStatus === "loading"
-                ? `Loading Whisper locally (${Math.round(modelProgress || 0)}%)`
+                ? `Loading Speech AI (${Math.round(modelProgress || 0)}%)`
                 : (transcriptionStatus || "Processing audio...")}
             </div>
 

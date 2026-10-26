@@ -50,7 +50,7 @@ interface TemplateSeed {
   words: readonly [WordStyleRule, WordStyleRule];
   /**
    * 'accent' (default): word 0 flashes the accent colour while it is spoken.
-   * 'none': no spoken-word colour change (calm, simple presets).
+   * 'none': no spoken-word colour change (calm, simple templates).
    */
   spoken?: "accent" | "none";
   settings?: Partial<CanvasSettings>;
@@ -58,7 +58,7 @@ interface TemplateSeed {
 
 function withOwnHighlight(rule: WordStyleRule): WordStyleRule {
   // Without this the active-word colour would fall back to the *template*
-  // highlight, which turns word 0 invisible on box presets.
+  // highlight, which turns word 0 invisible on box templates.
   const base = rule.textColor ?? rule.color ?? "#ffffff";
   return { ...rule, textColor: base, highlightColor: rule.highlightColor ?? base };
 }
@@ -96,7 +96,7 @@ function define(seed: TemplateSeed): CaptionTemplateDefinition {
 }
 
 /* -------------------------------------------------------------------------- */
-/*  Catalog: 6 sections x 7 presets                                           */
+/*  Catalog: 6 sections x 7 templates                                           */
 /*  Pixel values (outline, padding, radius, glow) are authored at a 26px      */
 /*  font and scale with the real font size inside the renderer.               */
 /* -------------------------------------------------------------------------- */
@@ -493,7 +493,7 @@ export function applyTemplateDefinition(
 ): CanvasSettings {
   return {
     ...current,
-    // Reset per-template extras so switching presets never leaks old shadows/animations.
+    // Reset per-template extras so switching templates never leaks old shadows/animations.
     animation: undefined,
     textTransform: undefined,
     fontWeight: undefined,
@@ -526,7 +526,7 @@ export function applyTemplateToSettings(
 /*  the fake "spoken" caption used by the card.                               */
 /* -------------------------------------------------------------------------- */
 
-/** Canvas width (px) at which a preset's own fontSize looks right inside a card. */
+/** Canvas width (px) at which a template's own fontSize looks right inside a card. */
 const PREVIEW_REFERENCE_WIDTH = 270;
 
 const PREVIEW_LEAD_IN = 0.7;     // caption enters (entry transition plays here)
@@ -636,7 +636,7 @@ export function rowToTemplate(row: CaptionTemplateRow): CaptionTemplateDefinitio
   };
 }
 
-/** Remote rows win over local presets that share an id; new ids are appended. */
+/** Remote rows win over local templates that share an id; new ids are appended. */
 export function mergeRemoteTemplates(
   local: CaptionTemplateDefinition[],
   remote: CaptionTemplateRow[],

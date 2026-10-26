@@ -12,7 +12,7 @@ describe('creator tools', () => {
     expect(emptySuggestions.length).toBeGreaterThanOrEqual(3);
   });
 
-  it('exposes safe-zone presets for social platforms without leaking the guides into export', () => {
+  it('exposes safe-zone templates for social platforms without leaking the guides into export', () => {
     const instagram = getPlatformSafeZone('instagram', '9:16');
     expect(instagram.name).toContain('Instagram');
     expect(instagram.blocked.length).toBeGreaterThan(0);

@@ -49,13 +49,13 @@ export const PLANS: Plan[] = [
     features: [
       { text: "3 minutes total export length per month" },
       { text: "720p standard resolution export" },
-      { text: "WebM format only (MP4 locked)", isLocked: true },
-      { text: "Create Captions watermark included", isLocked: true },
       { text: "Up to 3 background cuts per timeline" },
+      { text: "Create Captions watermark included" },
+      { text: "WebM format only (MP4 locked)", isLocked: true },
       { text: "Local device photo/video backdrop locked", isLocked: true },
       { text: "Background music track locked", isLocked: true },
-      { text: "SRT and VTT subtitle downloads locked", isLocked: true },
-      { text: "Platform safe area guides locked", isLocked: true }
+      { text: "Platform safe area guides locked", isLocked: true },
+      { text: "SRT and VTT subtitle downloads locked", isLocked: true }
     ],
     ctaText: "Start Creating Free"
   },
@@ -83,8 +83,8 @@ export const PLANS: Plan[] = [
       { text: "Zero watermark (clean video master)" },
       { text: "Unlock background music track layer" },
       { text: "Unlock custom photo & video uploads" },
-      { text: "Up to 12 background cuts per project" },
       { text: "Unlock Instagram & Shorts safe area overlays" },
+      { text: "Up to 12 background cuts per project", isLocked: true },
       { text: "SRT and VTT subtitle downloads locked", isLocked: true }
     ],
     ctaText: "Get Creator Lite"
@@ -110,14 +110,15 @@ export const PLANS: Plan[] = [
     allowSrtVttExport: true,
     features: [
       { text: "60 minutes export duration per month" },
-      { text: "1080p Full HD @ 60fps high framerate" },
-      { text: "MP4, WebM & MOV export formats" },
-      { text: "Zero watermark" },
-      { text: "Up to 30 background cuts per timeline" },
-      { text: "Full access to 42+ animated kinetic templates" },
-      { text: "Unlimited photo & video background uploads" },
-      { text: "Dual audio mixer (voiceover + background music)" },
-      { text: "Priority Create Captions Telugu AI transcription" }
+      { text: "1080p Full HD video exports" },
+      { text: "MP4 & WebM container downloads" },
+      { text: "Zero watermark (clean video master)" },
+      { text: "Up to 30 background cuts per project" },
+      { text: "Unlock background music track layer" },
+      { text: "Unlock custom photo & video uploads" },
+      { text: "Unlock Instagram & Shorts safe area overlays" },
+      { text: "SRT and VTT subtitle downloads included" },
+      { text: "MP4, WebM & MOV export formats", isLocked: true }
     ],
     ctaText: "Upgrade to Creator Pro"
   },
@@ -142,9 +143,12 @@ export const PLANS: Plan[] = [
       { text: "300 minutes export length (unlimited reels)" },
       { text: "2K and 4K Ultra HD video rendering" },
       { text: "All formats: MP4, MOV, WebM & MKV" },
-      { text: "Zero watermark" },
+      { text: "Zero watermark & custom studio branding" },
       { text: "Unlimited background cuts & segment switches" },
-      { text: "Custom studio branding watermark option" },
+      { text: "Unlock background music track layer" },
+      { text: "Unlock custom photo & video uploads" },
+      { text: "Unlock Instagram & Shorts safe area overlays" },
+      { text: "SRT and VTT subtitle downloads included" },
       { text: "Multiple editor team seats" },
       { text: "Batch caption processing queue" },
       { text: "Priority customer & direct technical support" }

@@ -2,7 +2,7 @@ import { useState } from "react";
 import type { ReactElement } from "react";
 import { Navigate, useLocation, Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
-import { Check } from "lucide-react";
+import { Turnstile } from "@marsidev/react-turnstile";
 
 interface FromState {
   from?: { pathname: string; search: string; state?: unknown };
@@ -17,13 +17,20 @@ export default function LoginPage(): ReactElement {
 
   const [busy, setBusy] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
-  const [cfVerified, setCfVerified] = useState<boolean>(true);
+  const [cfVerified, setCfVerified] = useState<boolean>(false);
+
+  // Cloudflare Turnstile site key
+  const turnstileSiteKey = import.meta.env.VITE_CLOUDFLARE_TURNSTILE_SITE_KEY || "1x00000000000000000000AA";
 
   if (!loading && session) {
     return <Navigate to={target} replace state={from?.state} />;
   }
 
   const handleGoogle = async (): Promise<void> => {
+    if (!cfVerified) {
+      setError("Please complete human verification below before signing in.");
+      return;
+    }
     try {
       setBusy(true);
       setError(null);
@@ -40,13 +47,14 @@ export default function LoginPage(): ReactElement {
 
   return (
     <div style={{
-      minHeight: "calc(100vh - 64px)",
+      minHeight: "calc(100vh - 70px)",
       display: "flex",
       alignItems: "center",
       justifyContent: "center",
-      padding: "40px 20px",
+      padding: "36px 16px",
       position: "relative",
       backgroundColor: "var(--bg-app)",
+      fontFamily: "'Plus Jakarta Sans', 'Inter', sans-serif",
       overflow: "hidden"
     }}>
       {/* Background Ambience Layer */}
@@ -64,20 +72,21 @@ export default function LoginPage(): ReactElement {
         position: "relative",
         zIndex: 10,
         width: "100%",
-        maxWidth: "420px",
-        background: "var(--nav-bg)",
+        maxWidth: "390px",
+        backgroundColor: "var(--nav-bg)",
         border: "1px solid var(--box-border)",
-        borderRadius: "24px",
-        padding: "36px 32px",
+        borderRadius: "20px",
+        padding: "32px 26px 26px",
         boxShadow: "var(--card-shadow-hover)",
         transition: "all 0.2s ease"
       }}>
         {/* Header Title */}
-        <div style={{ marginBottom: "24px", textAlign: "left" }}>
+        <div style={{ marginBottom: "20px", textAlign: "center" }}>
           <h1 style={{
+            fontFamily: "'Plus Jakarta Sans', sans-serif",
             fontSize: "22px",
             fontWeight: 800,
-            letterSpacing: "-0.02em",
+            letterSpacing: "-0.03em",
             color: "var(--card-text-primary)",
             margin: "0 0 6px 0"
           }}>
@@ -87,10 +96,10 @@ export default function LoginPage(): ReactElement {
             fontSize: "13px",
             color: "var(--card-text-secondary)",
             margin: 0,
-            lineHeight: 1.5,
+            lineHeight: 1.45,
             fontWeight: 500
           }}>
-            Sign in or create your free account.
+            Sign in with your Google account to access your studio.
           </p>
         </div>
 
@@ -100,11 +109,12 @@ export default function LoginPage(): ReactElement {
             background: "rgba(239, 68, 68, 0.1)",
             border: "1px solid rgba(239, 68, 68, 0.3)",
             borderRadius: "10px",
-            padding: "10px 14px",
+            padding: "8px 12px",
             color: "#ef4444",
-            fontSize: "13px",
-            marginBottom: "18px",
-            fontWeight: 500
+            fontSize: "12px",
+            marginBottom: "14px",
+            fontWeight: 600,
+            textAlign: "center"
           }}>
             {error}
           </div>
@@ -114,38 +124,40 @@ export default function LoginPage(): ReactElement {
         <button
           type="button"
           onClick={() => void handleGoogle()}
-          disabled={busy}
+          disabled={busy || !cfVerified}
           style={{
             width: "100%",
-            padding: "13px 18px",
-            background: "var(--bg-surface-elevated)",
+            padding: "11px 16px",
+            backgroundColor: cfVerified ? "var(--bg-surface-elevated)" : "var(--nav-bg)",
             border: "1px solid var(--box-border)",
             borderRadius: "12px",
             color: "var(--card-text-primary)",
-            fontSize: "14px",
+            fontFamily: "'Plus Jakarta Sans', sans-serif",
+            fontSize: "13.5px",
             fontWeight: 700,
-            cursor: busy ? "not-allowed" : "pointer",
+            cursor: (!cfVerified || busy) ? "not-allowed" : "pointer",
+            opacity: !cfVerified ? 0.6 : 1,
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
-            gap: "12px",
+            gap: "10px",
             boxShadow: "var(--card-shadow)",
             transition: "all 0.15s ease"
           }}
           onMouseEnter={e => {
-            if (!busy) {
+            if (cfVerified && !busy) {
               e.currentTarget.style.borderColor = "var(--accent-primary)";
               e.currentTarget.style.transform = "translateY(-1px)";
             }
           }}
           onMouseLeave={e => {
-            if (!busy) {
+            if (cfVerified && !busy) {
               e.currentTarget.style.borderColor = "var(--box-border)";
               e.currentTarget.style.transform = "translateY(0)";
             }
           }}
         >
-          <svg width="18" height="18" viewBox="0 0 24 24" style={{ flexShrink: 0 }}>
+          <svg width="17" height="17" viewBox="0 0 24 24" style={{ flexShrink: 0 }}>
             <path
               fill="#4285F4"
               d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
@@ -163,70 +175,43 @@ export default function LoginPage(): ReactElement {
               d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"
             />
           </svg>
-          <span>{busy ? "connecting to google…" : "Continue with Google"}</span>
+          <span>{busy ? "Connecting to Google…" : "Continue with Google"}</span>
         </button>
 
-        {/* Cloudflare Turnstile Verification Badge Widget */}
+        {/* Cloudflare Turnstile Verification Widget (Below Google button & scaled) */}
         <div style={{
-          marginTop: "20px",
-          padding: "10px 14px",
-          background: "var(--bg-surface-elevated)",
-          border: "1px solid var(--box-border)",
-          borderRadius: "10px",
+          marginTop: "14px",
           display: "flex",
+          justifyContent: "center",
           alignItems: "center",
-          justifyContent: "space-between",
-          cursor: "default"
+          overflow: "hidden",
+          borderRadius: "8px"
         }}>
-          <div
-            onClick={() => setCfVerified(prev => !prev)}
-            style={{ display: "flex", alignItems: "center", gap: "10px", cursor: "pointer" }}
-          >
-            <div style={{
-              width: "18px",
-              height: "18px",
-              borderRadius: "4px",
-              border: cfVerified ? "none" : "2px solid var(--card-text-muted)",
-              background: cfVerified ? "#10b981" : "transparent",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              transition: "all 0.15s ease"
-            }}>
-              {cfVerified && <Check size={13} color="#ffffff" strokeWidth={3} />}
-            </div>
-            <span style={{ fontSize: "12.5px", fontWeight: 600, color: "var(--card-text-primary)" }}>
-              {cfVerified ? "Success! Verification complete" : "Verify you are human"}
-            </span>
-          </div>
-
-          {/* Cloudflare Brand Logo & Links */}
-          <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end" }}>
-            <div style={{ display: "flex", alignItems: "center", gap: "4px" }}>
-              <svg width="20" height="12" viewBox="0 0 114 60" fill="none">
-                <path
-                  d="M87.2 24.5C84.9 10.4 72.8 0 58.2 0 46.1 0 35.8 7.3 31.7 17.6 29 16.5 26 15.9 22.8 15.9 10.2 15.9 0 26.1 0 38.7c0 1.2.1 2.3.3 3.5h88.6c13.7 0 24.8-11.1 24.8-24.8 0-11.8-8.2-21.7-19.3-24.1-2.1 4-4.5 7.7-7.2 11.2z"
-                  fill="#F38020"
-                />
-                <path
-                  d="M93.3 42.2H2.3c-.8 0-1.4.6-1.4 1.4 0 9.1 7.4 16.4 16.4 16.4h76c8.5 0 15.4-6.9 15.4-15.4 0-1.3-.2-2.4-.6-2.4h-14.8z"
-                  fill="#FAAE40"
-                />
-              </svg>
-              <span style={{ fontSize: "9px", fontWeight: 800, color: "#F38020", letterSpacing: "0.08em" }}>
-                CLOUDFLARE
-              </span>
-            </div>
-            <div style={{ fontSize: "9px", color: "var(--card-text-muted)", display: "flex", gap: "4px", marginTop: "1px" }}>
-              <span style={{ textDecoration: "none" }}>Privacy</span>
-              <span>•</span>
-              <span style={{ textDecoration: "none" }}>Terms</span>
-            </div>
+          <div style={{
+            transform: "scale(0.85)",
+            transformOrigin: "center center"
+          }}>
+            <Turnstile
+              siteKey={turnstileSiteKey}
+              onSuccess={() => {
+                setCfVerified(true);
+                setError(null);
+              }}
+              onError={() => {
+                setCfVerified(false);
+                setError("Verification failed. Please refresh.");
+              }}
+              onExpire={() => setCfVerified(false)}
+              options={{
+                theme: "auto",
+                size: "normal"
+              }}
+            />
           </div>
         </div>
 
         {/* Cancel Button */}
-        <div style={{ marginTop: "22px", textAlign: "center" }}>
+        <div style={{ marginTop: "14px", textAlign: "center" }}>
           <button
             type="button"
             onClick={() => navigate("/")}
@@ -234,6 +219,7 @@ export default function LoginPage(): ReactElement {
               background: "transparent",
               border: "none",
               color: "var(--card-text-muted)",
+              fontFamily: "inherit",
               fontSize: "12.5px",
               fontWeight: 600,
               cursor: "pointer",
@@ -252,7 +238,8 @@ export default function LoginPage(): ReactElement {
           fontSize: "11px",
           color: "var(--card-text-muted)",
           textAlign: "center",
-          lineHeight: 1.5
+          lineHeight: 1.45,
+          margin: "16px 0 0"
         }}>
           By continuing, you agree to the{" "}
           <Link to="/terms" style={{ color: "var(--accent-primary)", textDecoration: "none", fontWeight: 600 }}>

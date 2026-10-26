@@ -1,5 +1,5 @@
-import React, { useState } from "react";
-import { LifeBuoy, Mail, MessageSquare, Clock, HelpCircle, Check, Send, ChevronDown, ChevronUp, ImagePlus, X } from "lucide-react";
+import React, { useState, useEffect } from "react";
+import { LifeBuoy, Mail, Clock, HelpCircle, ChevronDown, ChevronUp } from "lucide-react";
 
 interface FAQItem {
   question: string;
@@ -9,7 +9,7 @@ interface FAQItem {
 const faqs: FAQItem[] = [
   {
     question: "Why does transcription happen completely on my device?",
-    answer: "Create Captions runs the speech recognition model inside your browser using WebAssembly and WebGPU. This ensures complete privacy so your unedited videos and audio never leave your computer."
+    answer: "Create Captions runs speech recognition directly inside your browser on your device. This ensures complete privacy so your unedited videos and audio never leave your computer."
   },
   {
     question: "How do I switch between Telugu Lipi and Tenglish?",
@@ -27,42 +27,31 @@ const faqs: FAQItem[] = [
 
 export const SupportPage: React.FC = () => {
   const [openFaq, setOpenFaq] = useState<number | null>(null);
-  const [ticketSubmitted, setTicketSubmitted] = useState(false);
-  const [screenshot, setScreenshot] = useState<{ file: File; preview: string } | null>(null);
-  const [formData, setFormData] = useState({
-    name: "",
-    email: "",
-    category: "Technical issue",
-    message: ""
-  });
+
+  // Initialize and load Tally embed auto-sizer
+  useEffect(() => {
+    const scriptSrc = "https://tally.so/widgets/embed.js";
+    let script = document.querySelector(`script[src="${scriptSrc}"]`) as HTMLScriptElement | null;
+    
+    if (!script) {
+      script = document.createElement("script");
+      script.src = scriptSrc;
+      script.async = true;
+      script.onload = () => {
+        if (typeof (window as any).Tally !== "undefined") {
+          (window as any).Tally.loadEmbeds();
+        }
+      };
+      document.body.appendChild(script);
+    } else {
+      if (typeof (window as any).Tally !== "undefined") {
+        (window as any).Tally.loadEmbeds();
+      }
+    }
+  }, []);
 
   const toggleFaq = (index: number) => {
     setOpenFaq(openFaq === index ? null : index);
-  };
-
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      if (file.size > 5 * 1024 * 1024) {
-        alert("Please upload an image smaller than 5MB");
-        return;
-      }
-      const preview = URL.createObjectURL(file);
-      setScreenshot({ file, preview });
-    }
-  };
-
-  const removeScreenshot = () => {
-    if (screenshot) {
-      URL.revokeObjectURL(screenshot.preview);
-      setScreenshot(null);
-    }
-  };
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!formData.message.trim() || !formData.email.trim()) return;
-    setTicketSubmitted(true);
   };
 
   return (
@@ -112,7 +101,7 @@ export const SupportPage: React.FC = () => {
             lineHeight: 1.6,
             fontWeight: 500
           }}>
-            Have a question, encountered a bug, or need help with Telugu typography? Check the quick answers below or submit a ticket.
+            Have a question, encountered a bug, or need help with typography? Check the quick answers below or submit a ticket.
           </p>
         </div>
 
@@ -121,7 +110,7 @@ export const SupportPage: React.FC = () => {
           display: "grid",
           gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))",
           gap: "16px",
-          marginBottom: "48px"
+          marginBottom: "36px"
         }}>
           <div style={{
             background: "var(--nav-bg)",
@@ -177,249 +166,43 @@ export const SupportPage: React.FC = () => {
             </div>
             <div>
               <div style={{ fontSize: "14px", fontWeight: 700, color: "var(--card-text-primary)" }}>Direct Email</div>
-              <div style={{ fontSize: "12px", color: "var(--accent-primary)", fontWeight: 600, marginTop: "2px" }}>support@createcaptions.in</div>
+              <a
+                href="mailto:support@createcaptions.in"
+                style={{ fontSize: "12px", color: "var(--accent-primary)", fontWeight: 700, marginTop: "2px", display: "inline-block", textDecoration: "none" }}
+              >
+                support@createcaptions.in
+              </a>
             </div>
           </div>
         </div>
 
-        {/* Submit Ticket Form Card */}
+        {/* Support Ticket Container - Crisp contrast & generous height so nothing is cropped */}
         <div style={{
-          background: "var(--nav-bg)",
+          backgroundColor: "#ffffff",
           border: "1px solid var(--box-border)",
-          borderRadius: "16px",
-          padding: "36px 32px",
+          borderRadius: "18px",
+          padding: "32px 24px 28px",
           marginBottom: "56px",
-          boxShadow: "var(--card-shadow)"
+          boxShadow: "0 10px 30px rgba(0, 0, 0, 0.08)",
+          overflow: "visible",
+          position: "relative"
         }}>
-          <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "8px" }}>
-            <MessageSquare size={18} color="var(--accent-primary)" />
-            <h2 style={{ fontSize: "20px", fontWeight: 800, margin: 0, color: "var(--card-text-primary)" }}>Submit a Support Ticket</h2>
-          </div>
-          <p style={{ fontSize: "14px", color: "var(--card-text-secondary)", margin: "0 0 24px 0" }}>
-            Fill in the details below and our team will get back to your email address.
-          </p>
-
-          {ticketSubmitted ? (
-            <div style={{
-              display: "flex",
-              alignItems: "center",
-              gap: "12px",
-              padding: "20px",
-              borderRadius: "12px",
-              backgroundColor: "var(--accent-surface)",
-              border: "1px solid var(--accent-primary)",
-              color: "var(--card-text-primary)"
-            }}>
-              <Check size={22} color="var(--accent-primary)" />
-              <div>
-                <div style={{ fontWeight: 700, fontSize: "15px" }}>Ticket Received</div>
-                <div style={{ fontSize: "13px", color: "var(--card-text-secondary)", marginTop: "2px" }}>
-                  Thanks for reaching out! We will review your request and reply shortly.
-                </div>
-              </div>
-            </div>
-          ) : (
-            <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: "18px" }}>
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: "16px" }}>
-                <div>
-                  <label style={{ display: "block", fontSize: "13px", fontWeight: 700, color: "var(--card-text-primary)", marginBottom: "6px" }}>
-                    Your Name
-                  </label>
-                  <input
-                    type="text"
-                    placeholder="Enter your name"
-                    value={formData.name}
-                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                    style={{
-                      width: "100%",
-                      boxSizing: "border-box",
-                      backgroundColor: "var(--bg-surface-elevated)",
-                      border: "1px solid var(--box-border)",
-                      borderRadius: "10px",
-                      padding: "12px 14px",
-                      color: "var(--card-text-primary)",
-                      fontSize: "14px",
-                      outline: "none"
-                    }}
-                  />
-                </div>
-
-                <div>
-                  <label style={{ display: "block", fontSize: "13px", fontWeight: 700, color: "var(--card-text-primary)", marginBottom: "6px" }}>
-                    Email Address *
-                  </label>
-                  <input
-                    type="email"
-                    required
-                    placeholder="creator@example.com"
-                    value={formData.email}
-                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                    style={{
-                      width: "100%",
-                      boxSizing: "border-box",
-                      backgroundColor: "var(--bg-surface-elevated)",
-                      border: "1px solid var(--box-border)",
-                      borderRadius: "10px",
-                      padding: "12px 14px",
-                      color: "var(--card-text-primary)",
-                      fontSize: "14px",
-                      outline: "none"
-                    }}
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label style={{ display: "block", fontSize: "13px", fontWeight: 700, color: "var(--card-text-primary)", marginBottom: "6px" }}>
-                  Issue Category
-                </label>
-                <select
-                  value={formData.category}
-                  onChange={(e) => setFormData({ ...formData, category: e.target.value })}
-                  style={{
-                    width: "100%",
-                    boxSizing: "border-box",
-                    backgroundColor: "var(--bg-surface-elevated)",
-                    border: "1px solid var(--box-border)",
-                    borderRadius: "10px",
-                    padding: "12px 14px",
-                    color: "var(--card-text-primary)",
-                    fontSize: "14px",
-                    outline: "none"
-                  }}
-                >
-                  <option value="Technical issue">Technical or playback issue</option>
-                  <option value="Telugu transcription">Telugu Lipi / Tenglish transcription</option>
-                  <option value="Export & rendering">Export & rendering problem</option>
-                  <option value="Feature suggestion">Feature request or feedback</option>
-                  <option value="Account & billing">Account or other</option>
-                </select>
-              </div>
-
-              <div>
-                <label style={{ display: "block", fontSize: "13px", fontWeight: 700, color: "var(--card-text-primary)", marginBottom: "6px" }}>
-                  Message *
-                </label>
-                <textarea
-                  required
-                  rows={4}
-                  placeholder="Describe what happened or what assistance you need..."
-                  value={formData.message}
-                  onChange={(e) => setFormData({ ...formData, message: e.target.value })}
-                  style={{
-                    width: "100%",
-                    boxSizing: "border-box",
-                    backgroundColor: "var(--bg-surface-elevated)",
-                    border: "1px solid var(--box-border)",
-                    borderRadius: "10px",
-                    padding: "12px 14px",
-                    color: "var(--card-text-primary)",
-                    fontSize: "14px",
-                    outline: "none",
-                    resize: "vertical"
-                  }}
-                />
-              </div>
-
-              {/* Screenshot Upload Dropzone */}
-              <div>
-                <label style={{ display: "block", fontSize: "13px", fontWeight: 700, color: "var(--card-text-primary)", marginBottom: "6px" }}>
-                  Attach Screenshot <span style={{ color: "var(--card-text-muted)", fontWeight: 500 }}>(Optional, PNG/JPG up to 5MB)</span>
-                </label>
-                
-                {screenshot ? (
-                  <div style={{
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "space-between",
-                    padding: "12px 16px",
-                    backgroundColor: "var(--bg-surface-elevated)",
-                    border: "1px solid var(--accent-primary)",
-                    borderRadius: "10px"
-                  }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: "12px", overflow: "hidden" }}>
-                      <img
-                        src={screenshot.preview}
-                        alt="Screenshot preview"
-                        style={{ width: "42px", height: "42px", borderRadius: "6px", objectFit: "cover" }}
-                      />
-                      <div style={{ overflow: "hidden" }}>
-                        <div style={{ fontSize: "13px", fontWeight: 600, color: "var(--card-text-primary)", textOverflow: "ellipsis", whiteSpace: "nowrap", overflow: "hidden" }}>
-                          {screenshot.file.name}
-                        </div>
-                        <div style={{ fontSize: "11px", color: "var(--card-text-muted)" }}>
-                          {(screenshot.file.size / (1024 * 1024)).toFixed(2)} MB
-                        </div>
-                      </div>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={removeScreenshot}
-                      style={{
-                        background: "var(--nav-btn-bg)",
-                        border: "1px solid var(--box-border)",
-                        borderRadius: "8px",
-                        padding: "6px",
-                        color: "var(--card-text-primary)",
-                        cursor: "pointer",
-                        display: "flex",
-                        alignItems: "center"
-                      }}
-                    >
-                      <X size={16} />
-                    </button>
-                  </div>
-                ) : (
-                  <label style={{
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    gap: "10px",
-                    padding: "18px",
-                    border: "1px dashed var(--box-border)",
-                    borderRadius: "10px",
-                    backgroundColor: "var(--bg-surface-elevated)",
-                    cursor: "pointer",
-                    transition: "border-color 0.15s ease"
-                  }}>
-                    <ImagePlus size={18} color="var(--accent-primary)" />
-                    <span style={{ fontSize: "13px", color: "var(--card-text-secondary)", fontWeight: 500 }}>
-                      Click to upload an error or timeline screenshot
-                    </span>
-                    <input
-                      type="file"
-                      accept="image/png, image/jpeg, image/webp"
-                      onChange={handleFileChange}
-                      style={{ display: "none" }}
-                    />
-                  </label>
-                )}
-              </div>
-
-              <div style={{ display: "flex", justifyContent: "flex-end", marginTop: "8px" }}>
-                <button
-                  type="submit"
-                  style={{
-                    display: "inline-flex",
-                    alignItems: "center",
-                    gap: "8px",
-                    background: "var(--accent-primary)",
-                    color: "#ffffff",
-                    border: "none",
-                    borderRadius: "10px",
-                    padding: "12px 24px",
-                    fontWeight: 700,
-                    fontSize: "14px",
-                    cursor: "pointer",
-                    boxShadow: "0 2px 12px var(--accent-surface)",
-                    transition: "all 0.15s ease"
-                  }}
-                >
-                  <Send size={15} /> Submit Request
-                </button>
-              </div>
-            </form>
-          )}
+          <iframe
+            data-tally-src="https://tally.so/embed/peeyxq?alignLeft=1&hideTitle=1&transparentBackground=0&dynamicHeight=1"
+            loading="lazy"
+            width="100%"
+            height="720"
+            frameBorder="0"
+            marginHeight={0}
+            marginWidth={0}
+            title="Submit a Support Ticket"
+            style={{
+              border: "none",
+              width: "100%",
+              minHeight: "720px",
+              display: "block"
+            }}
+          />
         </div>
 
         {/* FAQ Section */}
@@ -462,7 +245,7 @@ export const SupportPage: React.FC = () => {
         </div>
 
       </div>
-      </div>
+    </div>
   );
 };
 

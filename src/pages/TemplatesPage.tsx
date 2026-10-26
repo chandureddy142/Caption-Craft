@@ -3,6 +3,7 @@ import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import AnimatedTemplatePreview from "../components/AnimatedTemplatePreview";
 import { CAPTION_SECTIONS, CAPTION_TEMPLATES } from "../utils/captionTemplates";
+import { Sparkles } from "lucide-react";
 
 export default function TemplatesPage(): ReactElement {
   const navigate = useNavigate();
@@ -10,12 +11,12 @@ export default function TemplatesPage(): ReactElement {
 
   const categories = useMemo(() => {
     const list = [
-      { key: "all", label: "all", count: CAPTION_TEMPLATES.length },
+      { key: "all", label: "All Styles", count: CAPTION_TEMPLATES.length },
     ];
     CAPTION_SECTIONS.forEach(sec => {
       const count = CAPTION_TEMPLATES.filter(t => t.category === sec.key).length;
       if (count > 0) {
-        list.push({ key: sec.key, label: sec.title.toLowerCase(), count });
+        list.push({ key: sec.key, label: sec.title, count });
       }
     });
     return list;
@@ -27,30 +28,76 @@ export default function TemplatesPage(): ReactElement {
   }, [selectedCategory]);
 
   const activeLabel = useMemo(() => {
-    if (selectedCategory === "all") return "every template";
+    if (selectedCategory === "all") return "All Templates";
     const found = categories.find(c => c.key === selectedCategory);
     return found ? found.label : selectedCategory;
   }, [selectedCategory, categories]);
 
   return (
-    <div style={{ minHeight: "100vh", background: "var(--bg-app)", color: "var(--text-primary)", padding: "54px 32px 90px", transition: "background-color 0.2s ease, color 0.2s ease" }}>
-      <div style={{ maxWidth: "1320px", margin: "0 auto" }}>
+    <div
+      style={{
+        minHeight: "100vh",
+        background: "var(--bg-app)",
+        color: "var(--text-primary)",
+        padding: "60px 32px 110px",
+        fontFamily: "'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif",
+        transition: "background-color 0.2s ease, color 0.2s ease"
+      }}
+    >
+      <div style={{ maxWidth: "1360px", margin: "0 auto" }}>
         
-        {/* Kicker & Headline */}
-        <div style={{ marginBottom: "28px" }}>
-          <span style={{ fontSize: "11px", fontWeight: 700, letterSpacing: "0.14em", textTransform: "uppercase", color: "var(--accent-primary)" }}>
-            viral caption presets
-          </span>
-          <h1 style={{ fontSize: "46px", fontWeight: 800, letterSpacing: "-0.03em", color: "var(--text-primary)", margin: "10px 0 14px", lineHeight: 1.15 }}>
-            turn every spoken word into high-retention video hooks
+        {/* Kicker & Headline Header */}
+        <div style={{ marginBottom: "34px", maxWidth: "860px" }}>
+          <div
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: "8px",
+              fontSize: "12px",
+              fontWeight: 700,
+              color: "var(--accent-primary)",
+              background: "var(--accent-surface)",
+              border: "1px solid var(--accent-primary)",
+              padding: "5px 14px",
+              borderRadius: "999px",
+              marginBottom: "16px",
+              letterSpacing: "0.03em",
+              textTransform: "uppercase"
+            }}
+          >
+            <Sparkles size={13} />
+            Viral Caption Templates
+          </div>
+
+          <h1
+            style={{
+              fontSize: "clamp(34px, 4.8vw, 48px)",
+              fontWeight: 800,
+              letterSpacing: "-0.035em",
+              color: "var(--text-primary)",
+              margin: "0 0 16px 0",
+              lineHeight: 1.15
+            }}
+          >
+            Turn Every Spoken Word into High-Retention Hooks
           </h1>
-          <p style={{ fontSize: "15px", color: "var(--text-secondary)", maxWidth: "660px", margin: 0, lineHeight: 1.6 }}>
-            built specifically for instagram reels and youtube shorts. click any style to open it inside studio with your video, or preview how words light up in sync.
+
+          <p
+            style={{
+              fontSize: "15.5px",
+              color: "var(--text-secondary)",
+              margin: 0,
+              lineHeight: 1.6,
+              fontWeight: 500
+            }}
+          >
+            Optimized for Instagram Reels, YouTube Shorts, and regional creators.
+            Click any style to launch directly inside the Studio with your clip, or preview synced word highlights.
           </p>
         </div>
 
         {/* Filter Pills */}
-        <div style={{ display: "flex", flexWrap: "wrap", gap: "10px", margin: "32px 0 42px" }}>
+        <div style={{ display: "flex", flexWrap: "wrap", gap: "10px", margin: "32px 0 38px" }}>
           {categories.map(cat => {
             const isActive = selectedCategory === cat.key;
             return (
@@ -65,21 +112,33 @@ export default function TemplatesPage(): ReactElement {
                   padding: "8px 18px",
                   borderRadius: "999px",
                   fontSize: "13px",
-                  fontWeight: 600,
+                  fontWeight: 700,
+                  fontFamily: "inherit",
                   cursor: "pointer",
                   transition: "all 0.18s ease",
                   background: isActive ? "var(--accent-primary)" : "var(--nav-bg)",
-                  color: isActive ? "#ffffff" : "var(--card-text-secondary)",
+                  color: isActive ? "#ffffff" : "var(--card-text-primary)",
                   border: isActive ? "1px solid var(--accent-primary)" : "1px solid var(--box-border)",
                   boxShadow: "var(--card-shadow)"
                 }}
+                onMouseEnter={e => {
+                  if (!isActive) e.currentTarget.style.borderColor = "var(--accent-primary)";
+                }}
+                onMouseLeave={e => {
+                  if (!isActive) e.currentTarget.style.borderColor = "var(--box-border)";
+                }}
               >
                 <span>{cat.label}</span>
-                <span style={{
-                  fontSize: "11px",
-                  fontWeight: 600,
-                  color: isActive ? "#ffffff" : "var(--card-text-muted)"
-                }}>
+                <span
+                  style={{
+                    fontSize: "11px",
+                    fontWeight: 800,
+                    padding: "2px 7px",
+                    borderRadius: "999px",
+                    background: isActive ? "rgba(0,0,0,0.22)" : "var(--accent-surface)",
+                    color: isActive ? "#ffffff" : "var(--accent-primary)"
+                  }}
+                >
                   {cat.count}
                 </span>
               </button>
@@ -87,15 +146,36 @@ export default function TemplatesPage(): ReactElement {
           })}
         </div>
 
-        {/* Section Title */}
-        <div style={{ marginBottom: "20px" }}>
-          <h2 style={{ fontSize: "16px", fontWeight: 700, color: "var(--text-primary)", margin: 0, letterSpacing: "-0.01em" }}>
-            {activeLabel} · {filteredTemplates.length} styles
+        {/* Section Counter */}
+        <div style={{ marginBottom: "22px", display: "flex", alignItems: "center", gap: "10px" }}>
+          <h2
+            style={{
+              fontSize: "17px",
+              fontWeight: 800,
+              color: "var(--text-primary)",
+              margin: 0,
+              letterSpacing: "-0.015em"
+            }}
+          >
+            {activeLabel}
           </h2>
+          <span
+            style={{
+              fontSize: "12px",
+              fontWeight: 700,
+              color: "var(--card-text-muted)",
+              background: "var(--nav-btn-bg)",
+              padding: "2px 8px",
+              borderRadius: "6px",
+              border: "1px solid var(--box-border)"
+            }}
+          >
+            {filteredTemplates.length} styles
+          </span>
         </div>
 
         {/* Templates Grid */}
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(320px, 1fr))", gap: "22px" }}>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(320px, 1fr))", gap: "24px" }}>
           {filteredTemplates.map(template => (
             <div
               key={template.id}
@@ -103,14 +183,14 @@ export default function TemplatesPage(): ReactElement {
               style={{
                 background: "var(--nav-bg)",
                 border: "1px solid var(--box-border)",
-                borderRadius: "18px",
-                padding: "12px",
+                borderRadius: "20px",
+                padding: "14px",
                 display: "flex",
                 flexDirection: "column",
                 gap: "12px",
                 cursor: "pointer",
                 boxShadow: "var(--card-shadow)",
-                transition: "all 0.2s ease",
+                transition: "transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease"
               }}
               onMouseEnter={e => {
                 e.currentTarget.style.borderColor = "var(--accent-primary)";
@@ -124,49 +204,65 @@ export default function TemplatesPage(): ReactElement {
               }}
             >
               {/* Inner Preview Area */}
-              <div style={{
-                position: "relative",
-                aspectRatio: "16 / 9",
-                borderRadius: "12px",
-                overflow: "hidden",
-                background: "var(--bg-surface-elevated)",
-                border: "1px solid var(--box-border)",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-              }}>
+              <div
+                style={{
+                  position: "relative",
+                  aspectRatio: "16 / 9",
+                  borderRadius: "14px",
+                  overflow: "hidden",
+                  background: "var(--bg-surface-elevated)",
+                  border: "1px solid var(--box-border)",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center"
+                }}
+              >
                 <AnimatedTemplatePreview template={template} isHovered={true} />
                 
                 <div style={{ position: "absolute", bottom: "10px", left: "10px", display: "flex", gap: "6px" }}>
-                  <span style={{
-                    fontSize: "10px",
-                    fontWeight: 700,
-                    background: "var(--nav-btn-bg)",
-                    color: "var(--card-text-secondary)",
-                    padding: "2px 7px",
-                    borderRadius: "5px",
-                    border: "1px solid var(--box-border)"
-                  }}>
+                  <span
+                    style={{
+                      fontSize: "10.5px",
+                      fontWeight: 700,
+                      background: "var(--nav-btn-bg)",
+                      color: "var(--card-text-secondary)",
+                      padding: "3px 8px",
+                      borderRadius: "6px",
+                      border: "1px solid var(--box-border)",
+                      letterSpacing: "0.02em",
+                      textTransform: "capitalize"
+                    }}
+                  >
                     {template.category}
                   </span>
                 </div>
               </div>
 
               {/* Title & Badge */}
-              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "2px 6px 4px" }}>
-                <span style={{ fontSize: "14px", fontWeight: 700, color: "var(--card-text-primary)", letterSpacing: "-0.01em" }}>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "4px 6px 2px" }}>
+                <span
+                  style={{
+                    fontSize: "14.5px",
+                    fontWeight: 800,
+                    color: "var(--card-text-primary)",
+                    letterSpacing: "-0.015em"
+                  }}
+                >
                   {template.name}
                 </span>
                 {template.badge && (
-                  <span style={{
-                    fontSize: "10px",
-                    fontWeight: 800,
-                    padding: "3px 8px",
-                    borderRadius: "999px",
-                    background: template.badge.toLowerCase() === "new" ? "var(--accent-primary)" : "#38bdf8",
-                    color: "#ffffff",
-                    textTransform: "lowercase",
-                  }}>
+                  <span
+                    style={{
+                      fontSize: "10.5px",
+                      fontWeight: 800,
+                      padding: "3px 9px",
+                      borderRadius: "999px",
+                      background: "var(--accent-primary)",
+                      color: "#ffffff",
+                      textTransform: "uppercase",
+                      letterSpacing: "0.04em"
+                    }}
+                  >
                     {template.badge}
                   </span>
                 )}
@@ -176,6 +272,6 @@ export default function TemplatesPage(): ReactElement {
         </div>
 
       </div>
-      </div>
+    </div>
   );
 }

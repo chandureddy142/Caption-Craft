@@ -178,11 +178,11 @@ export interface CanvasSettings {
   watermarkPosition?: 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right' | 'custom';
 }
 
-/** The four export quality presets exposed in the Export Modal. */
+/** The four export quality templates exposed in the Export Modal. */
 export type ExportResolutionPreset = '720p' | '1080p' | '2K' | '4K';
 
 /**
- * Per-preset pixel dimensions and target bitrate for the MediaRecorder.
+ * Per-template pixel dimensions and target bitrate for the MediaRecorder.
  * widthLandscape / heightLandscape → 16:9 and 1:1/4:5 variants.
  * widthVertical / heightVertical   → 9:16 variant.
  */

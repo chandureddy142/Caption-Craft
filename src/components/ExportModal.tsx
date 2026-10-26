@@ -15,10 +15,10 @@ export interface ExportModalProps {
   exportProgress: number;
   exportError: string;
   exportComplete: boolean;
-  /** Selected resolution preset. */
+  /** Selected resolution template. */
   exportResolution: ExportResolutionPreset;
   /** Called when the user picks a new resolution. Disabled during export. */
-  onChangeResolution: (preset: ExportResolutionPreset) => void;
+  onChangeResolution: (template: ExportResolutionPreset) => void;
   /** Current playback time during export (seconds). */
   exportCurrentTime?: number;
   /** Total media duration (seconds). */
@@ -84,21 +84,21 @@ export function ExportModal({
             <span>Export resolution</span>
           </div>
           <div className="resolution-pill-group" role="group" aria-label="Export resolution">
-            {PRESET_ORDER.map(preset => {
-              const config = EXPORT_RESOLUTION_PRESETS[preset];
-              const isActive = exportResolution === preset;
-              const isRecommended = preset === '1080p';
+            {PRESET_ORDER.map(template => {
+              const config = EXPORT_RESOLUTION_PRESETS[template];
+              const isActive = exportResolution === template;
+              const isRecommended = template === '1080p';
               return (
                 <button
-                  key={preset}
+                  key={template}
                   type="button"
                   className={`resolution-pill ${isActive ? 'active' : ''}`}
-                  onClick={() => onChangeResolution(preset)}
+                  onClick={() => onChangeResolution(template)}
                   disabled={isExporting}
                   aria-pressed={isActive}
                   title={`${config.label} — ${(config.videoBitsPerSecond / 1_000_000).toFixed(0)} Mbps`}
                 >
-                  <strong>{preset}</strong>
+                  <strong>{template}</strong>
                   {isRecommended && <span className="res-badge">✓ Recommended</span>}
                 </button>
               );
@@ -210,7 +210,7 @@ export function ExportModal({
         {/* FOOTER */}
         <div className="modal-footer">
           <span>
-            High-resolution render · WebM capture or local FFmpeg.wasm H.264 export · first MP4/MKV/MOV export downloads the encoder
+            High-resolution render · WebM capture or high-definition H.264 video export · first MP4/MKV/MOV export downloads the encoder
           </span>
           <button className="text-button" onClick={onClose} disabled={isExporting}>
             Close

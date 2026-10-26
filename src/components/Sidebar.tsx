@@ -360,7 +360,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
           </span>
         </div>
 
-        <div className="language-pills backend-pills" role="group" aria-label="Transcription backend" style={{ gridTemplateColumns: "1fr", background: "#181b24", padding: "3px", borderRadius: "8px", border: "1px solid rgba(255, 255, 255, 0.08)" }}>
+        <div className="language-pills engine-pills" role="group" aria-label="Transcription engine" style={{ gridTemplateColumns: "1fr", background: "#181b24", padding: "3px", borderRadius: "8px", border: "1px solid rgba(255, 255, 255, 0.08)" }}>
           {backendButton}
         </div>
 
@@ -374,7 +374,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
         )}
 
         {sourceLanguage === "en" && (
-          <div className="language-pills model-choice-pills" role="group" aria-label="Whisper model accuracy" style={{ margin: "8px 0", background: "#181b24", padding: "3px", borderRadius: "8px", border: "1px solid rgba(255, 255, 255, 0.08)" }}>
+          <div className="language-pills model-choice-pills" role="group" aria-label="Speech AI model accuracy" style={{ margin: "8px 0", background: "#181b24", padding: "3px", borderRadius: "8px", border: "1px solid rgba(255, 255, 255, 0.08)" }}>
             <button
               type="button"
               style={{ background: whisperModel === "tiny" ? "#2d3345" : "#181b24", color: "#ffffff", border: whisperModel === "tiny" ? "1px solid #4a5568" : "1px solid rgba(255,255,255,0.08)", fontWeight: 600 }}

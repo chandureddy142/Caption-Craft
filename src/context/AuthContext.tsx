@@ -25,7 +25,7 @@ interface AuthContextValue {
 const AuthContext = createContext<AuthContextValue | null>(null);
 
 const NOT_CONFIGURED: AuthResult = {
-  error: "Supabase is not configured. Add VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY to your .env file.",
+  error: "Cloud authentication is not configured. Please verify environment keys.",
 };
 
 export function AuthProvider({ children }: { children: ReactNode }): ReactElement {

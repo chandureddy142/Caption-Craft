@@ -48,14 +48,14 @@ export const SiteFooter: React.FC = () => {
               margin: 0
             }}
           >
-            Client-side speech-to-text video captioning studio tailored for Telugu Lipi, Tenglish transliteration, and English creators. 100% private in-browser transcription.
+            AI speech-to-text video captioning studio tailored for Telugu Lipi, Tenglish transliteration, and English creators. 100% private on-device transcription.
           </p>
           <div style={{ display: "flex", gap: "14px", marginTop: "4px" }}>
             <span style={{ display: "inline-flex", alignItems: "center", gap: "6px", fontSize: "11px", color: "var(--card-text-secondary)" }}>
               <Shield size={13} color="#10b981" /> In-Browser Privacy
             </span>
             <span style={{ display: "inline-flex", alignItems: "center", gap: "6px", fontSize: "11px", color: "var(--card-text-secondary)" }}>
-              <Sparkles size={13} color="#f59e0b" /> WebGPU Accelerated
+              <Sparkles size={13} color="#f59e0b" /> Ultra-Fast Device AI
             </span>
           </div>
         </div>

@@ -10,7 +10,7 @@ import { exportToSRT, exportToVTT, downloadStringAsFile } from './exporter';
 export type ExportFormat = 'webm' | 'mp4' | 'mkv' | 'mov';
 
 export const BROWSER_EXPORT_LIMITATION =
-  'MP4, MKV, and MOV are encoded locally with FFmpeg.wasm using H.264 (libx264) and AAC when audio is included. The first export downloads the FFmpeg runtime.';
+  'MP4, MKV, and MOV are encoded directly on your device using crisp H.264 and clear AAC audio. The initial export loads the high-definition encoder.';
 
 export interface ExportOptions {
   resolution: ExportResolutionPreset;

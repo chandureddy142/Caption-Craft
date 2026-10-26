@@ -44,7 +44,7 @@ export function getPreferredMimeType(hasAudio: boolean): string | null {
 }
 
 // ---------------------------------------------------------------------------
-// Resolution Presets
+// Resolution Templates
 // ---------------------------------------------------------------------------
 
 /**
@@ -88,15 +88,15 @@ export const EXPORT_RESOLUTION_PRESETS: Record<ExportResolutionPreset, ExportRes
 };
 
 /**
- * Resolves the exact pixel dimensions for a given preset + aspect ratio.
+ * Resolves the exact pixel dimensions for a given template + aspect ratio.
  * 9:16 uses the vertical dimensions; all others use landscape dimensions
  * adjusted to maintain the exact ratio.
  */
 export function getExportDimensions(
-  preset: ExportResolutionPreset,
+  template: ExportResolutionPreset,
   aspectRatio: AspectRatio,
 ): { width: number; height: number; videoBitsPerSecond: number } {
-  const config = EXPORT_RESOLUTION_PRESETS[preset];
+  const config = EXPORT_RESOLUTION_PRESETS[template];
   const bps = config.videoBitsPerSecond;
 
   switch (aspectRatio) {

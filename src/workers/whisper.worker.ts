@@ -157,7 +157,7 @@ async function loadModel(forceWasm = false): Promise<WhisperPipeline> {
         status: 'loading',
         backend: 'wasm',
         modelId,
-        message: 'WebGPU is unavailable; loading the WASM/CPU backend.',
+        message: 'Optimizing engine for your device hardware.',
       } satisfies ModelStatusMessage);
     }
   }
