@@ -1,20 +1,20 @@
 /**
- * Gemini Caption Service
+ * Cloud AI Caption Service
  * ----------------------
- * Replaces Whisper/WebWorker pipeline with Gemini 2.0 Flash for audio
+ * Replaces Whisper/WebWorker pipeline with Create Captions Cloud AI for audio
  * transcription that natively supports Telugu, Tenglish (Roman-phonetic
  * Telugu), and English. Returns timestamped SubtitleSegment[] objects
  * ready to feed directly into the caption editor.
  *
  * Audio limits
- * - Gemini inline audio payload: up to 20 MB per request (~10–12 min of
+ * - CloudAi inline audio payload: up to 20 MB per request (~10–12 min of
  *   mono WAV at 16 kHz / 16-bit, or longer with compressed formats).
  * - For audio > 10 minutes the service automatically slices the Blob into
  *   10-minute chunks via createAudioChunkIterator and stitches timestamps
  *   using cumulative time offsets.
  *
  * Security note
- * - The API key is read from import.meta.env.VITE_GEMINI_API_KEY.
+ * - The API key is read from import.meta.env.VITE_AI_API_KEY.
  * - For production deployments, proxy calls through a server-side endpoint.
  */
 
@@ -27,10 +27,10 @@ import { mergeOverlappingSubtitles } from '../utils/subtitleValidation';
 // Constants
 // ---------------------------------------------------------------------------
 
-const GEMINI_MODEL = 'gemini-3.5-flash-lite';
-const GEMINI_API_BASE = 'https://generativelanguage.googleapis.com/v1beta/models';
+const AI_MODEL = 'cloud-3.5-flash-lite';
+const AI_API_BASE = 'https://generativelanguage.googleapis.com/v1beta/models';
 
-/** Maximum audio chunk duration sent per Gemini request (seconds). */
+/** Maximum audio chunk duration sent per CloudAi request (seconds). */
 const CHUNK_DURATION_SECONDS = 10 * 60; // 10 minutes
 /** Small overlap to prevent word-boundary clipping at chunk seams. */
 const CHUNK_OVERLAP_SECONDS = 0;
@@ -46,7 +46,7 @@ export interface SubtitleSegment {
   text: string;
 }
 
-export interface GeminiTranscriptionProgress {
+export interface CloudTranscriptionProgress {
   completedChunks: number;
   totalChunks: number;
   percent: number;
@@ -57,7 +57,7 @@ export interface GeminiTranscriptionProgress {
   totalDuration: number;
 }
 
-export interface GeminiTranscriptionOptions {
+export interface CloudTranscriptionOptions {
   /** Source language spoken in the audio. */
   sourceLanguage?: SourceLanguage;
   /**
@@ -70,42 +70,42 @@ export interface GeminiTranscriptionOptions {
   /** Abort signal to cancel in-flight requests. */
   signal?: AbortSignal;
   /** Called after each chunk completes. */
-  onProgress?: (progress: GeminiTranscriptionProgress) => void;
+  onProgress?: (progress: CloudTranscriptionProgress) => void;
   /** Called with cumulative subtitles after each chunk. */
-  onPartialResult?: (subtitles: Subtitle[], progress: GeminiTranscriptionProgress) => void;
+  onPartialResult?: (subtitles: Subtitle[], progress: CloudTranscriptionProgress) => void;
 }
 
 // ---------------------------------------------------------------------------
 // Error classes
 // ---------------------------------------------------------------------------
 
-export class GeminiKeyMissingError extends Error {
+export class AiKeyMissingError extends Error {
   constructor() {
     super('Create Captions AI is not configured. Add the transcription provider key to your .env file to continue.');
-    this.name = 'GeminiKeyMissingError';
+    this.name = 'AiKeyMissingError';
   }
 }
 
-export class GeminiRateLimitError extends Error {
+export class CloudRateLimitError extends Error {
   constructor() {
     super('Create Captions AI rate limit reached. Please wait a moment and try again.');
-    this.name = 'GeminiRateLimitError';
+    this.name = 'CloudRateLimitError';
   }
 }
 
-export class GeminiPayloadError extends Error {
+export class CloudPayloadError extends Error {
   constructor(message: string) {
     super(`Create Captions AI rejected the audio payload: ${message}`);
-    this.name = 'GeminiPayloadError';
+    this.name = 'CloudPayloadError';
   }
 }
 
-export class GeminiTranscriptionError extends Error {
+export class CloudTranscriptionError extends Error {
   readonly partialSubtitles: Subtitle[];
   readonly failedChunkIndex: number;
   constructor(message: string, failedChunkIndex: number, partialSubtitles: Subtitle[]) {
     super(message);
-    this.name = 'GeminiTranscriptionError';
+    this.name = 'CloudTranscriptionError';
     this.failedChunkIndex = failedChunkIndex;
     this.partialSubtitles = partialSubtitles;
   }
@@ -207,7 +207,7 @@ function getBlobMimeType(blob: Blob): string {
 }
 
 // ---------------------------------------------------------------------------
-// Single-chunk Gemini request
+// Single-chunk CloudAi request
 // ---------------------------------------------------------------------------
 
 interface RawSegment {
@@ -216,7 +216,7 @@ interface RawSegment {
   text: string;
 }
 
-async function transcribeChunkWithGemini(
+async function transcribeChunkWithCloudAi(
   chunkBlob: Blob,
   chunkOffsetSeconds: number,
   systemPrompt: string,
@@ -253,7 +253,7 @@ async function transcribeChunkWithGemini(
     },
   };
 
-  const url = `${GEMINI_API_BASE}/${GEMINI_MODEL}:generateContent?key=${apiKey}`;
+  const url = `${AI_API_BASE}/${AI_MODEL}:generateContent?key=${apiKey}`;
 
   let response: Response;
   try {
@@ -268,10 +268,10 @@ async function transcribeChunkWithGemini(
     throw new Error(`Network error calling Create Captions AI: ${(error as Error).message}`);
   }
 
-  if (response.status === 429) throw new GeminiRateLimitError();
+  if (response.status === 429) throw new CloudRateLimitError();
   if (response.status === 400) {
     const body = await response.text().catch(() => '');
-    throw new GeminiPayloadError(body || 'Bad request');
+    throw new CloudPayloadError(body || 'Bad request');
   }
   if (!response.ok) {
     const body = await response.text().catch(() => '');
@@ -344,7 +344,7 @@ function segmentsToSubtitles(
 
   for (let i = 0; i < segments.length; i++) {
     const seg = segments[i];
-    // Timestamps from Gemini are already absolute (we applied offset in transcribeChunkWithGemini)
+    // Timestamps from CloudAi are already absolute (we applied offset in transcribeChunkWithCloudAi)
     // But for segmentIntoShortCaptions we need chunk-relative times
     const relStart = Math.max(0, seg.start - chunkStart);
     const relEnd = Math.min(chunkDuration, Math.max(relStart + 0.05, seg.end - chunkStart));
@@ -367,19 +367,19 @@ function segmentsToSubtitles(
 // ---------------------------------------------------------------------------
 
 /**
- * Transcribe an audio Blob using the Gemini 2.0 Flash model.
+ * Transcribe an audio Blob using the Create Captions Cloud AI model.
  *
  * Automatically chunks audio > 10 minutes and stitches timestamps.
  * Returns an array of normalized Subtitle objects ready for the editor.
  */
-export async function transcribeWithGemini(
+export async function transcribeWithCloudAi(
   audioBlob: Blob,
-  options: GeminiTranscriptionOptions = {},
+  options: CloudTranscriptionOptions = {},
 ): Promise<Subtitle[]> {
   // Validate API key
-  const apiKey = import.meta.env.VITE_GEMINI_API_KEY as string | undefined;
-  if (!apiKey || apiKey === 'your_gemini_api_key_here') {
-    throw new GeminiKeyMissingError();
+  const apiKey = import.meta.env.VITE_AI_API_KEY as string | undefined;
+  if (!apiKey || apiKey === 'your_cloud_api_key_here') {
+    throw new AiKeyMissingError();
   }
 
   if (!(audioBlob instanceof Blob) || audioBlob.size === 0) {
@@ -411,7 +411,7 @@ export async function transcribeWithGemini(
 
     let rawSegments: RawSegment[];
     try {
-      rawSegments = await transcribeChunkWithGemini(
+      rawSegments = await transcribeChunkWithCloudAi(
         chunk.blob,
         chunk.start,
         systemPrompt,
@@ -421,7 +421,7 @@ export async function transcribeWithGemini(
     } catch (error) {
       if ((error as Error).name === 'AbortError') throw error;
       const merged = mergeOverlappingSubtitles(allSubtitles);
-      throw new GeminiTranscriptionError(
+      throw new CloudTranscriptionError(
         error instanceof Error ? error.message : 'Create Captions AI transcription failed.',
         chunk.index,
         merged,
@@ -437,7 +437,7 @@ export async function transcribeWithGemini(
     allSubtitles.push(...chunkSubtitles);
 
     const completedChunks = chunk.index + 1;
-    const progress: GeminiTranscriptionProgress = {
+    const progress: CloudTranscriptionProgress = {
       completedChunks,
       totalChunks: chunkPlan.totalChunks,
       percent: Math.round((completedChunks / chunkPlan.totalChunks) * 100),

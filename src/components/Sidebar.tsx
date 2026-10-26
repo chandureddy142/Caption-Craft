@@ -52,9 +52,9 @@ interface SidebarProps {
   onReplaceMedia?: () => void;
   whisperModel?: "tiny" | "base";
   onSelectWhisperModel?: (model: "tiny" | "base") => void;
-  transcriptionBackend?: "gemini" | "local";
-  onSelectBackend?: (backend: "gemini" | "local") => void;
-  geminiKeyMissing?: boolean;
+  transcriptionBackend?: "cloud" | "local";
+  onSelectBackend?: (backend: "cloud" | "local") => void;
+  aiKeyMissing?: boolean;
   canUndo?: boolean;
   canRedo?: boolean;
   onUndo?: () => void;
@@ -121,9 +121,9 @@ export const Sidebar: React.FC<SidebarProps> = ({
   onReplaceMedia,
   whisperModel = "tiny",
   onSelectWhisperModel,
-  transcriptionBackend: _transcriptionBackend = "gemini",
+  transcriptionBackend: _transcriptionBackend = "cloud",
   onSelectBackend,
-  geminiKeyMissing = false,
+  aiKeyMissing = false,
   canUndo = false,
   canRedo = false,
   onUndo,
@@ -220,7 +220,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
       {sourceLanguage === "te" ? (
         <button
           type="button"
-          onClick={() => onSelectBackend?.("gemini")}
+          onClick={() => onSelectBackend?.("cloud")}
           disabled={isTranscribing}
         >
           ⚡ Create Captions AI
@@ -364,11 +364,11 @@ export const Sidebar: React.FC<SidebarProps> = ({
           {backendButton}
         </div>
 
-        {sourceLanguage === "te" && geminiKeyMissing && (
-          <div className="inline-error compact-error gemini-key-warning" style={{ margin: "8px 0" }}>
+        {sourceLanguage === "te" && aiKeyMissing && (
+          <div className="inline-error compact-error ai-key-warning" style={{ margin: "8px 0" }}>
             <AlertCircle size={13} />
             <span>
-              <strong>API key missing.</strong> Set <code>VITE_GEMINI_API_KEY</code> in your <code>.env</code> file.
+              <strong>API key missing.</strong> Set <code>VITE_AI_API_KEY</code> in your <code>.env</code> file.
             </span>
           </div>
         )}
@@ -398,7 +398,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
           type="button"
           className="primary-action" style={{ background: "#2d3345", color: "#ffffff", border: "1px solid #4a5568", fontWeight: 700, padding: "10px", borderRadius: "6px", display: "flex", alignItems: "center", justifyContent: "center", gap: "8px", width: "100%", cursor: "pointer" }}
           onClick={onGenerateCaptions}
-          disabled={isTranscribing || !onGenerateCaptions || (sourceLanguage === "te" && geminiKeyMissing)}
+          disabled={isTranscribing || !onGenerateCaptions || (sourceLanguage === "te" && aiKeyMissing)}
 
         >
           <RefreshCw size={16} className={isTranscribing || modelStatus === "loading" ? "spin" : ""} />

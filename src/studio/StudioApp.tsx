@@ -1,17 +1,17 @@
-import type { TimelineBgSegment, TimelineSongSegment } from "../types";
-export interface StudioAppProps {
-  initialTemplateId?: string;
-  initialFile?: File | null;
-  projectId?: string;
-  onBackToDashboard?: () => void;
-}
-
+import { useCallback, useEffect, useRef, useState } from "react";
 import { LandingPage } from "../components/LandingPage";
-import { useCallback, useEffect, useRef, useState } from 'react';
-import { Sidebar } from '../components/Sidebar';
-import { Workspace } from '../components/Workspace';
-import type { CanvasSettings, Subtitle, CaptionLanguage, SourceLanguage } from '../types';
-import { extractAudioToWav, getWavDurationFromBlob } from '../utils/audioExtractor';
+import { Sidebar } from "../components/Sidebar";
+import { Workspace } from "../components/Workspace";
+import { ExportPage } from "../components/ExportPage";
+import type {
+  CanvasSettings,
+  Subtitle,
+  CaptionLanguage,
+  SourceLanguage,
+  TimelineBgSegment,
+  TimelineSongSegment,
+} from "../types";
+import { extractAudioToWav, getWavDurationFromBlob } from "../utils/audioExtractor";
 import {
   createLocalTranscriptionClient,
   LocalTranscriptionError,
@@ -19,25 +19,32 @@ import {
   LOCAL_WHISPER_MODEL_ID,
   type LocalModelStatus,
   type LocalTranscriptionProgress,
-} from '../services/localTranscription';
+} from "../services/localTranscription";
 import {
-  transcribeWithGemini,
-  GeminiTranscriptionError,
-  GeminiKeyMissingError,
-} from '../services/geminiCaptionService';
+  transcribeWithCloudAi,
+  CloudTranscriptionError,
+  AiKeyMissingError,
+} from "../services/cloudCaptionService";
 import { normalizeSubtitles } from "../utils/subtitleValidation";
 import { applyTemplateToSettings } from "../utils/captionTemplates";
-import { validateMediaFile } from '../utils/mediaValidation';
-import { TranscriptionSession } from '../services/transcriptionSession';
-import { useHistory } from '../utils/history';
-import { ExportPage } from '../components/ExportPage';
+import { validateMediaFile } from "../utils/mediaValidation";
+import { TranscriptionSession } from "../services/transcriptionSession";
+import { useHistory } from "../utils/history";
 import { renderProjectToBlob } from "../utils/projectRenderer";
 import { getLocalProjectMedia, saveLocalExportMedia } from "../lib/localMediaStorage";
 import { saveLocalProjectDraft, getLocalProjectDraft } from "../lib/projectDraftStorage";
 import { supabase } from "../lib/supabase";
+import { getCurrentUserPlan } from "../services/userService";
+
+export interface StudioAppProps {
+  initialTemplateId?: string;
+  initialFile?: File | null;
+  projectId?: string;
+  onBackToDashboard?: () => void;
+}
 
 function formatSeconds(seconds: number): string {
-  if (!Number.isFinite(seconds) || seconds <= 0) return '0.0s';
+  if (!Number.isFinite(seconds) || seconds <= 0) return "0.0s";
   const minutes = Math.floor(seconds / 60);
   const remainder = seconds - minutes * 60;
   return minutes > 0 ? `${minutes}m ${remainder.toFixed(1)}s` : `${remainder.toFixed(1)}s`;
@@ -46,54 +53,32 @@ function formatSeconds(seconds: number): string {
 function App({ initialTemplateId: _initialTemplateId, initialFile, projectId, onBackToDashboard }: StudioAppProps = {}) {
   const [showLanding, setShowLanding] = useState<boolean>(false);
   const [userPlan, setUserPlan] = useState<string>("starter");
-  // Sync dev plan selector with localStorage for seamless refreshes
+
+  // Sync real-time Supabase user plan & subscription tier
   useEffect(() => {
-    const saved = localStorage.getItem("dev_user_plan");
-    if (saved) setUserPlan(saved);
-  }, []);
+    let mounted = true;
 
-    const [showExitConfirmModal, setShowExitConfirmModal] = useState<boolean>(false);
-  const [draftSongUrl, setDraftSongUrl] = useState<string | null>(null);
-  const [draftSongName, setDraftSongName] = useState<string | null>(null);
-  const currentSongBlobRef = useRef<Blob | null>(null);
-  const [isSavingDraft, setIsSavingDraft] = useState<boolean>(false);
-  const [captionSearchQuery, setCaptionSearchQuery] = useState<string>("");
-  const [videoFile, setVideoFile] = useState<File | null>(null);
-  const [audioBlob, setAudioBlob] = useState<Blob | null>(null);
-  const [sourceLanguage, setSourceLanguage] = useState<SourceLanguage>('en');
-  const [language, setLanguage] = useState<CaptionLanguage>('en');
-  const [whisperModel, setWhisperModel] = useState<'tiny' | 'base'>('tiny');
-  /** Active transcription backend: Create Captions AI (cloud) or local Whisper (in-browser). */
-  const [transcriptionBackend, setTranscriptionBackend] = useState<'gemini' | 'local'>('gemini');
+    async function syncPlan() {
+      const activePlan = await getCurrentUserPlan();
+      if (mounted) {
+        setUserPlan(activePlan);
+      }
+    }
 
-  const [isTranscribing, setIsTranscribing] = useState(false);
-  const [transcriptionStatus, setTranscriptionStatus] = useState('');
-  const [transcriptionProgress, setTranscriptionProgress] = useState(0);
-  const [transcriptionProcessedDuration, setTranscriptionProcessedDuration] = useState(0);
-  const [transcriptionTotalDuration, setTranscriptionTotalDuration] = useState(0);
-  const [transcriptionError, setTranscriptionError] = useState('');
-  const [modelStatus, setModelStatus] = useState<LocalModelStatus>('idle');
-  const [modelProgress, setModelProgress] = useState(0);
-  const [audioReady, setAudioReady] = useState(false);
-  const [showExportPage, setShowExportPage] = useState(false);
-  const [projectTitle, setProjectTitle] = useState('Untitled Caption Project');
-  const [copiedCaption, setCopiedCaption] = useState<Subtitle | null>(null);
+    syncPlan();
 
-    useEffect(() => {
-    supabase.auth.getUser().then(async ({ data: { user } }) => {
-      if (user) {
-        const { data: profile } = await supabase
-          .from("profiles")
-          .select("plan")
-          .eq("id", user.id)
-          .single();
-        if (profile?.plan) {
-          setUserPlan(profile.plan);
-        } else if (user.user_metadata?.plan) {
-          setUserPlan(user.user_metadata.plan);
-        }
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event) => {
+      if (event === "SIGNED_IN" || event === "TOKEN_REFRESHED" || event === "USER_UPDATED") {
+        await syncPlan();
+      } else if (event === "SIGNED_OUT") {
+        if (mounted) setUserPlan("starter");
       }
     });
+
+    return () => {
+      mounted = false;
+      subscription.unsubscribe();
+    };
   }, []);
 
   const [playbackState, setPlaybackState] = useState<{
@@ -109,8 +94,8 @@ function App({ initialTemplateId: _initialTemplateId, initialFile, projectId, on
     localSongUrl?: string | null;
     hasSong?: boolean;
     splitActiveLayer?: () => void;
-  pasteActiveLayer?: () => void;
-  hasCopiedBg?: boolean;
+    pasteActiveLayer?: () => void;
+    hasCopiedBg?: boolean;
     deleteActiveLayer?: () => void;
     copyActiveLayer?: () => void;
     togglePlay: () => void;
@@ -130,40 +115,39 @@ function App({ initialTemplateId: _initialTemplateId, initialFile, projectId, on
     setVolume: () => {},
   });
 
-
   const initialSettings: CanvasSettings = {
-    aspectRatio: '9:16',
+    aspectRatio: "9:16",
     backgroundColor: "#ffffff",
-    backgroundTheme: 'midnight',
+    backgroundTheme: "midnight",
     backgroundOverlayOpacity: 0.25,
-    fitMode: 'cover',
+    fitMode: "cover",
     selectedTemplateId: "classic-two-tone",
     fontFamily: "'Inter', sans-serif",
     fontSize: 24,
-    textColor: '#ffffff',
-    highlightColor: 'var(--accent-primary)',
-    boxColor: '#000000',
-    style: 'outline',
+    textColor: "#ffffff",
+    highlightColor: "var(--accent-primary)",
+    boxColor: "#000000",
+    style: "outline",
     verticalPosition: 0.82,
-    alignment: 'center',
+    alignment: "center",
     textBackground: false,
     hookOverlay: {
-      id: 'hook-overlay-default',
-      text: '',
+      id: "hook-overlay-default",
+      text: "",
       enabled: false,
       fontFamily: "'Inter', sans-serif",
       fontSize: 34,
-      color: '#ffffff',
+      color: "#ffffff",
       backgroundColor: "#ffffff",
-      outlineColor: '#000000',
+      outlineColor: "#000000",
       outlineWidth: 2,
-      horizontalAlign: 'center',
+      horizontalAlign: "center",
       verticalPosition: 0.14,
       xPosition: 0.5,
       yPosition: 0.14,
     },
     safeZones: {
-      platform: 'instagram',
+      platform: "instagram",
       show: false,
     },
     backgroundMusic: {
@@ -180,26 +164,28 @@ function App({ initialTemplateId: _initialTemplateId, initialFile, projectId, on
       release: 0.18,
     },
     animationSettings: {
-      style: 'karaoke',
+      style: "karaoke",
       wordHighlightEnabled: true,
       emojiEnhancement: false,
     },
     exportPreferences: {
-      subtitleFormat: 'srt',
+      subtitleFormat: "srt",
       includeHookOverlay: true,
       includeWatermark: true,
-      audioExportFormat: 'wav',
+      audioExportFormat: "wav",
     },
     watermarkEnabled: false,
     watermarkOpacity: 0.7,
-    watermarkPosition: 'bottom-right',
+    watermarkPosition: "bottom-right",
   };
+
   const editorHistory = useHistory({
     subtitles: [] as Subtitle[],
     settings: initialSettings,
     bgSegments: [] as TimelineBgSegment[],
     songSegments: [{ id: "song-default", start: 0, end: 0 }] as TimelineSongSegment[],
   });
+
   const { undo, redo } = editorHistory;
   const subtitles = editorHistory.value.subtitles;
   const settings = editorHistory.value.settings;
@@ -238,6 +224,32 @@ function App({ initialTemplateId: _initialTemplateId, initialFile, projectId, on
   const [selectedSubtitleId, setSelectedSubtitleId] = useState<string | null>(null);
   const [mediaDuration, setMediaDuration] = useState(0);
 
+  const [draftSongUrl, setDraftSongUrl] = useState<string | null>(null);
+  const [draftSongName, setDraftSongName] = useState<string | null>(null);
+  const currentSongBlobRef = useRef<Blob | null>(null);
+  const [isSavingDraft, setIsSavingDraft] = useState<boolean>(false);
+  const [showExitConfirmModal, setShowExitConfirmModal] = useState<boolean>(false);
+  const [captionSearchQuery, setCaptionSearchQuery] = useState<string>("");
+  const [videoFile, setVideoFile] = useState<File | null>(null);
+  const [audioBlob, setAudioBlob] = useState<Blob | null>(null);
+  const [sourceLanguage, setSourceLanguage] = useState<SourceLanguage>("en");
+  const [language, setLanguage] = useState<CaptionLanguage>("en");
+  const [whisperModel, setWhisperModel] = useState<"tiny" | "base">("tiny");
+  const [transcriptionBackend, setTranscriptionBackend] = useState<"cloud" | "local">("cloud");
+
+  const [isTranscribing, setIsTranscribing] = useState(false);
+  const [transcriptionStatus, setTranscriptionStatus] = useState("");
+  const [transcriptionProgress, setTranscriptionProgress] = useState(0);
+  const [transcriptionProcessedDuration, setTranscriptionProcessedDuration] = useState(0);
+  const [transcriptionTotalDuration, setTranscriptionTotalDuration] = useState(0);
+  const [transcriptionError, setTranscriptionError] = useState("");
+  const [modelStatus, setModelStatus] = useState<LocalModelStatus>("idle");
+  const [modelProgress, setModelProgress] = useState(0);
+  const [audioReady, setAudioReady] = useState(false);
+  const [showExportPage, setShowExportPage] = useState(false);
+  const [projectTitle, setProjectTitle] = useState("Untitled Caption Project");
+  const [copiedCaption, setCopiedCaption] = useState<Subtitle | null>(null);
+
   const audioBlobRef = useRef<Blob | null>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
   const transcriptionSessionRef = useRef(new TranscriptionSession());
@@ -246,11 +258,11 @@ function App({ initialTemplateId: _initialTemplateId, initialFile, projectId, on
   useEffect(() => {
     const isTextInput = (target: EventTarget | null) => {
       if (!(target instanceof HTMLElement)) return false;
-      if (target.isContentEditable || target.tagName === 'TEXTAREA') return true;
-      return target.tagName === 'INPUT';
+      if (target.isContentEditable || target.tagName === "TEXTAREA") return true;
+      return target.tagName === "INPUT";
     };
     const handleUndoRedo = (event: KeyboardEvent) => {
-      if (isTextInput(event.target) || (!event.ctrlKey && !event.metaKey) || event.key.toLowerCase() !== 'z') return;
+      if (isTextInput(event.target) || (!event.ctrlKey && !event.metaKey) || event.key.toLowerCase() !== "z") return;
       event.preventDefault();
       if (event.shiftKey) {
         redo();
@@ -258,19 +270,19 @@ function App({ initialTemplateId: _initialTemplateId, initialFile, projectId, on
         undo();
       }
     };
-    window.addEventListener('keydown', handleUndoRedo);
-    return () => window.removeEventListener('keydown', handleUndoRedo);
+    window.addEventListener("keydown", handleUndoRedo);
+    return () => window.removeEventListener("keydown", handleUndoRedo);
   }, [redo, undo]);
 
   const updateSubtitles: React.Dispatch<React.SetStateAction<Subtitle[]>> = (update) => {
     setSubtitles(previous => {
-        const next = typeof update === 'function' ? update(previous) : update;
-        const limit = mediaDuration > 0 ? mediaDuration : Number.POSITIVE_INFINITY;
+      const next = typeof update === "function" ? update(previous) : update;
+      const limit = mediaDuration > 0 ? mediaDuration : Number.POSITIVE_INFINITY;
       return normalizeSubtitles(next, limit);
     });
   };
 
-const applyProgress = (progress: LocalTranscriptionProgress) => {
+  const applyProgress = (progress: LocalTranscriptionProgress) => {
     setTranscriptionProgress(progress.percent);
     setTranscriptionProcessedDuration(progress.processedDuration);
     setTranscriptionTotalDuration(progress.totalDuration);
@@ -280,23 +292,23 @@ const applyProgress = (progress: LocalTranscriptionProgress) => {
     );
   };
 
-  const startGeminiTranscription = async (audioBlob: Blob) => {
+  const startCloudTranscription = async (blob: Blob) => {
     const session = transcriptionSessionRef.current;
-    const jobId = session.start(audioBlob, sourceLanguage, 0);
+    const jobId = session.start(blob, sourceLanguage, 0);
     if (jobId === null) return;
 
     abortControllerRef.current?.abort();
     const controller = new AbortController();
     abortControllerRef.current = controller;
     setIsTranscribing(true);
-    setTranscriptionError('');
+    setTranscriptionError("");
     setTranscriptionProgress(0);
     setTranscriptionProcessedDuration(0);
     setSubtitles([]);
-    setTranscriptionStatus('Sending audio to Create Captions AI…');
+    setTranscriptionStatus("Sending audio to Create Captions AI…");
 
     try {
-      const result = await transcribeWithGemini(audioBlob, {
+      const result = await transcribeWithCloudAi(blob, {
         sourceLanguage,
         captionLanguage: language,
         signal: controller.signal,
@@ -306,7 +318,7 @@ const applyProgress = (progress: LocalTranscriptionProgress) => {
           setTranscriptionProcessedDuration(progress.processedDuration);
           setTranscriptionTotalDuration(progress.totalDuration);
           setTranscriptionStatus(
-             `Create Captions AI transcribing chunk ${progress.completedChunks}/${progress.totalChunks} · ` +
+            `Create Captions AI transcribing chunk ${progress.completedChunks}/${progress.totalChunks} · ` +
             `${formatSeconds(progress.processedDuration)} / ${formatSeconds(progress.totalDuration)}`,
           );
         },
@@ -321,21 +333,21 @@ const applyProgress = (progress: LocalTranscriptionProgress) => {
       setSettings(prev => (prev.selectedTemplateId === "classic-white" || !prev.selectedTemplateId) ? applyTemplateToSettings(prev, "classic-two-tone") : prev);
       setTranscriptionProgress(100);
       setTranscriptionProcessedDuration(previous => Math.max(previous, mediaDuration));
-      setTranscriptionStatus(`Complete · ${result.length} caption segment${result.length === 1 ? '' : 's'}`);
-      setTranscriptionError('');
+      setTranscriptionStatus(`Complete · ${result.length} caption segment${result.length === 1 ? "" : "s"}`);
+      setTranscriptionError("");
       session.complete(jobId);
     } catch (error) {
       if (controller.signal.aborted || !session.isCurrent(jobId)) return;
-      if (error instanceof GeminiKeyMissingError) {
+      if (error instanceof AiKeyMissingError) {
         setTranscriptionError(error.message);
-      } else if (error instanceof GeminiTranscriptionError) {
+      } else if (error instanceof CloudTranscriptionError) {
         session.recordCompleted(jobId, error.failedChunkIndex);
         updateSubtitles(error.partialSubtitles);
         setTranscriptionError(`${error.message} Completed segments were kept.`);
       } else {
-         setTranscriptionError(error instanceof Error ? error.message : 'Create Captions AI transcription failed.');
+        setTranscriptionError(error instanceof Error ? error.message : "Create Captions AI transcription failed.");
       }
-      setTranscriptionStatus('Transcription failed');
+      setTranscriptionStatus("Transcription failed");
     } finally {
       if (session.finish(jobId)) {
         abortControllerRef.current = null;
@@ -345,29 +357,29 @@ const applyProgress = (progress: LocalTranscriptionProgress) => {
   };
 
   const startTranscription = async (
-    audioBlob: Blob,
+    blob: Blob,
     startChunkIndex = 0,
     initialSubtitles: Subtitle[] = [],
   ) => {
     const session = transcriptionSessionRef.current;
-    const jobId = session.start(audioBlob, sourceLanguage, startChunkIndex);
+    const jobId = session.start(blob, sourceLanguage, startChunkIndex);
     if (jobId === null) return;
 
     abortControllerRef.current?.abort();
     const controller = new AbortController();
     abortControllerRef.current = controller;
     setIsTranscribing(true);
-    setTranscriptionError('');
+    setTranscriptionError("");
     if (startChunkIndex === 0) {
       setTranscriptionProgress(0);
       setTranscriptionProcessedDuration(0);
       setSubtitles(initialSubtitles);
     }
-    setTranscriptionStatus(startChunkIndex > 0 ? 'Resuming from the next unfinished audio chunk…' : 'Starting full-duration transcription…');
+    setTranscriptionStatus(startChunkIndex > 0 ? "Resuming from the next unfinished audio chunk…" : "Starting full-duration transcription…");
 
     try {
-      const modelId = whisperModel === 'base' ? LOCAL_WHISPER_BASE_MODEL_ID : LOCAL_WHISPER_MODEL_ID;
-      const result = await localTranscriptionRef.current.transcribe(audioBlob, {
+      const modelId = whisperModel === "base" ? LOCAL_WHISPER_BASE_MODEL_ID : LOCAL_WHISPER_MODEL_ID;
+      const result = await localTranscriptionRef.current.transcribe(blob, {
         modelId,
         startChunkIndex,
         initialSubtitles,
@@ -380,7 +392,7 @@ const applyProgress = (progress: LocalTranscriptionProgress) => {
         },
         onModelProgress: progress => {
           if (!session.isCurrent(jobId)) return;
-          if (progress.status === 'progress' && typeof progress.progress === 'number') setModelProgress(progress.progress);
+          if (progress.status === "progress" && typeof progress.progress === "number") setModelProgress(progress.progress);
         },
         onProgress: progress => {
           if (session.isCurrent(jobId)) applyProgress(progress);
@@ -397,8 +409,8 @@ const applyProgress = (progress: LocalTranscriptionProgress) => {
       setSettings(prev => (prev.selectedTemplateId === "classic-white" || !prev.selectedTemplateId) ? applyTemplateToSettings(prev, "classic-two-tone") : prev);
       setTranscriptionProgress(100);
       setTranscriptionProcessedDuration(previous => Math.max(previous, transcriptionTotalDuration, mediaDuration));
-      setTranscriptionStatus(`Complete · ${result.length} caption segment${result.length === 1 ? '' : 's'}`);
-      setTranscriptionError('');
+      setTranscriptionStatus(`Complete · ${result.length} caption segment${result.length === 1 ? "" : "s"}`);
+      setTranscriptionError("");
       session.complete(jobId);
     } catch (error) {
       if (controller.signal.aborted || !session.isCurrent(jobId)) return;
@@ -409,9 +421,9 @@ const applyProgress = (progress: LocalTranscriptionProgress) => {
           `${error.message} Completed caption segments were kept. Retry can resume from the failed chunk.`,
         );
       } else {
-        setTranscriptionError(error instanceof Error ? error.message : 'Transcription failed.');
+        setTranscriptionError(error instanceof Error ? error.message : "Transcription failed.");
       }
-      setTranscriptionStatus('Transcription failed');
+      setTranscriptionStatus("Transcription failed");
     } finally {
       if (session.finish(jobId)) {
         abortControllerRef.current = null;
@@ -429,17 +441,17 @@ const applyProgress = (progress: LocalTranscriptionProgress) => {
     audioBlobRef.current = null;
     setAudioBlob(null);
     setVideoFile(file);
-    setProjectTitle(file.name.replace(/\.[^.]+$/, '') || 'Untitled Caption Project');
-    const isVideo = Boolean(file.type.startsWith('video/') || /\.(mp4|mov|webm|mkv)$/i.test(file.name));
+    setProjectTitle(file.name.replace(/.[^.]+$/, "") || "Untitled Caption Project");
+    const isVideo = Boolean(file.type.startsWith("video/") || /.(mp4|mov|webm|mkv)$/i.test(file.name));
     setSettings(prev => ({
       ...prev,
-      backgroundTheme: isVideo ? 'original-video' : 'midnight',
+      backgroundTheme: isVideo ? "original-video" : "midnight",
     }));
     setSubtitles([]);
     setSelectedSubtitleId(null);
     setMediaDuration(0);
     setAudioReady(false);
-    setTranscriptionError('');
+    setTranscriptionError("");
     setTranscriptionProgress(0);
     setTranscriptionProcessedDuration(0);
     setTranscriptionTotalDuration(0);
@@ -447,18 +459,18 @@ const applyProgress = (progress: LocalTranscriptionProgress) => {
     const mediaValidationError = validateMediaFile(file);
     if (mediaValidationError) {
       setIsTranscribing(false);
-      setTranscriptionStatus('Unsupported or empty media file');
+      setTranscriptionStatus("Unsupported or empty media file");
       setTranscriptionError(mediaValidationError);
       return;
     }
 
-    setTranscriptionStatus('Extracting and resampling audio to mono 16 kHz…');
+    setTranscriptionStatus("Extracting and resampling audio to mono 16 kHz…");
     try {
-      const audioBlob = await extractAudioToWav(file);
+      const blob = await extractAudioToWav(file);
       if (!session.isCurrent(jobId)) return;
-      audioBlobRef.current = audioBlob;
-      setAudioBlob(audioBlob);
-      const duration = await getWavDurationFromBlob(audioBlob);
+      audioBlobRef.current = blob;
+      setAudioBlob(blob);
+      const duration = await getWavDurationFromBlob(blob);
       if (!session.isCurrent(jobId)) return;
       setAudioReady(true);
       setMediaDuration(duration);
@@ -468,10 +480,11 @@ const applyProgress = (progress: LocalTranscriptionProgress) => {
     } catch (error) {
       if (!session.isCurrent(jobId)) return;
       setIsTranscribing(false);
-      setTranscriptionStatus('Audio preparation failed');
-      setTranscriptionError(error instanceof Error ? error.message : 'Unable to prepare audio.');
+      setTranscriptionStatus("Audio preparation failed");
+      setTranscriptionError(error instanceof Error ? error.message : "Unable to prepare audio.");
     }
   };
+
   useEffect(() => {
     if (initialFile) {
       setShowLanding(false);
@@ -509,33 +522,32 @@ const applyProgress = (progress: LocalTranscriptionProgress) => {
     }
   }, [initialFile, projectId]);
 
-
   const handleGenerateCaptions = () => {
-    const audioBlob = audioBlobRef.current;
-    if (!audioBlob || !audioReady) {
-      setTranscriptionError('Upload and prepare audio before generating captions.');
+    const blob = audioBlobRef.current;
+    if (!blob || !audioReady) {
+      setTranscriptionError("Upload and prepare audio before generating captions.");
       return;
     }
-    if (subtitles.length > 0 && !window.confirm('Regenerate captions and replace the current edited segments?')) return;
-    const shouldUseGemini = transcriptionBackend === "gemini" && sourceLanguage !== "en";
-    if (shouldUseGemini) {
-      void startGeminiTranscription(audioBlob);
+    if (subtitles.length > 0 && !window.confirm("Regenerate captions and replace the current edited segments?")) return;
+    const shouldUseCloudAi = transcriptionBackend === "cloud" && sourceLanguage !== "en";
+    if (shouldUseCloudAi) {
+      void startCloudTranscription(blob);
     } else {
-      void startTranscription(audioBlob);
+      void startTranscription(blob);
     }
   };
 
   const handleRetry = () => {
-    const audioBlob = audioBlobRef.current;
-    const nextChunkIndex = transcriptionSessionRef.current.resume(audioBlob, sourceLanguage);
-    if (!audioBlob || nextChunkIndex === null) {
+    const blob = audioBlobRef.current;
+    const nextChunkIndex = transcriptionSessionRef.current.resume(blob, sourceLanguage);
+    if (!blob || nextChunkIndex === null) {
       handleGenerateCaptions();
       return;
     }
-    if (transcriptionBackend === "gemini" && sourceLanguage !== "en") {
-      void startGeminiTranscription(audioBlob);
+    if (transcriptionBackend === "cloud" && sourceLanguage !== "en") {
+      void startCloudTranscription(blob);
     } else {
-      void startTranscription(audioBlob, nextChunkIndex, subtitles);
+      void startTranscription(blob, nextChunkIndex, subtitles);
     }
   };
 
@@ -544,15 +556,14 @@ const applyProgress = (progress: LocalTranscriptionProgress) => {
     abortControllerRef.current?.abort();
     abortControllerRef.current = null;
     localTranscriptionRef.current.cancel();
-    setModelStatus('idle');
+    setModelStatus("idle");
     setModelProgress(0);
     setIsTranscribing(false);
-    setTranscriptionError('');
-    setTranscriptionStatus('');
+    setTranscriptionError("");
+    setTranscriptionStatus("");
     setTranscriptionProgress(0);
   };
 
-  
   const handleSaveDraftAndExit = async () => {
     setIsSavingDraft(true);
     const targetId = projectId || ("p" + Date.now());
@@ -574,9 +585,9 @@ const applyProgress = (progress: LocalTranscriptionProgress) => {
         songBlob: currentSongBlobRef.current || undefined,
         songName: draftSongName || undefined,
         songUrl: draftSongUrl || undefined,
-        updatedAt: new Date().toISOString()
+        updatedAt: new Date().toISOString(),
       });
-      // Also update Supabase metadata if logged in
+
       const { data: { user } } = await supabase.auth.getUser();
       if (user && projectId) {
         await supabase.from("projects").update({
@@ -584,7 +595,7 @@ const applyProgress = (progress: LocalTranscriptionProgress) => {
           words_count: subtitles.reduce((acc, s) => acc + (s.text ? s.text.trim().split(/s+/).length : 0), 0),
           ratio: settings.aspectRatio || "9:16",
           status: "Draft",
-          updated_at: new Date().toISOString()
+          updated_at: new Date().toISOString(),
         }).eq("id", projectId);
       }
     } catch (err) {
@@ -619,42 +630,22 @@ const applyProgress = (progress: LocalTranscriptionProgress) => {
 
   const handleRemoveMedia = () => {
     setShowExitConfirmModal(true);
-    return;
-    transcriptionSessionRef.current.reset();
-    abortControllerRef.current?.abort();
-    abortControllerRef.current = null;
-    audioBlobRef.current = null;
-    setAudioBlob(null);
-    setVideoFile(null);
-    setShowExportPage(false);
-    setSubtitles([]);
-    setSelectedSubtitleId(null);
-    setMediaDuration(0);
-    setAudioReady(false);
-    setIsTranscribing(false);
-    setTranscriptionStatus('');
-    setTranscriptionError('');
-    setTranscriptionProgress(0);
-    setTranscriptionProcessedDuration(0);
-    setTranscriptionTotalDuration(0);
-    setModelStatus('idle');
-    setModelProgress(0);
   };
 
   const handleSourceLanguageChange = (next: SourceLanguage) => {
     if (transcriptionSessionRef.current.running) return;
     if (next !== sourceLanguage) {
       transcriptionSessionRef.current.reset();
-      setTranscriptionError('');
+      setTranscriptionError("");
       setTranscriptionProgress(0);
       setTranscriptionProcessedDuration(0);
-      setTranscriptionStatus('Source language changed · generate captions to start again');
+      setTranscriptionStatus("Source language changed · generate captions to start again");
     }
     setSourceLanguage(next);
-    setLanguage(next === 'te' ? 'te' : 'en');
-    setTranscriptionBackend(next === 'te' ? 'gemini' : 'local');
-    if (next === 'te') {
-      setWhisperModel('base');
+    setLanguage(next === "te" ? "te" : "en");
+    setTranscriptionBackend(next === "te" ? "cloud" : "local");
+    if (next === "te") {
+      setWhisperModel("base");
     }
   };
 
@@ -680,7 +671,6 @@ const applyProgress = (progress: LocalTranscriptionProgress) => {
     if (currentLayer === "audio") return;
     if (currentLayer === "caption") {
       const needle = playbackState.currentTime;
-      // Split target caption where needle is located
       setSubtitles(prev => {
         const targetIdx = prev.findIndex(s => 
           (selectedSubtitleId && s.id === selectedSubtitleId && needle > s.start + 0.05 && needle < s.end - 0.05) ||
@@ -735,7 +725,7 @@ const applyProgress = (progress: LocalTranscriptionProgress) => {
     const audioLimit = mediaDuration || playbackState.duration || 0;
     if (copiedCaption) {
       const needle = playbackState.currentTime || 0;
-      if (needle >= audioLimit - 0.05) return; // Cannot paste outside background
+      if (needle >= audioLimit - 0.05) return;
 
       const origLen = Math.max(0.1, copiedCaption.end - copiedCaption.start);
       const start = Math.max(0, needle);
@@ -765,7 +755,7 @@ const applyProgress = (progress: LocalTranscriptionProgress) => {
     if (audioLimit <= 0) return;
 
     const playhead = playbackState.currentTime || 0;
-    if (playhead >= audioLimit - 0.05) return; // Cannot add outside background
+    if (playhead >= audioLimit - 0.05) return;
 
     const start = Math.max(0, playhead);
     const end = Math.min(start + 2, audioLimit);
@@ -785,24 +775,20 @@ const applyProgress = (progress: LocalTranscriptionProgress) => {
   if (showExportPage && videoFile && audioReady) {
     return (
       <div className="app-frame">
-
-      
-
-
-      <ExportPage
+        <ExportPage
           userPlan={userPlan}
           aspectRatio={settings.aspectRatio}
           subtitles={subtitles}
           language={language}
           duration={mediaDuration}
-          initialFilename={videoFile.name.replace(/\.[^.]+$/, '')}
+          initialFilename={videoFile.name.replace(/.[^.]+$/, "")}
           onBack={() => setShowExportPage(false)}
           renderExport={async (options, onProgress, signal) => {
             const activeSongUrl = draftSongUrl || playbackState.localSongUrl || undefined;
             const blob = await renderProjectToBlob(videoFile, subtitles, settings, language, {
               ...options,
               watermark: userPlan === "starter",
-          bgSegments,
+              bgSegments,
               musicUrl: activeSongUrl,
               musicVolume: playbackState.songVolume ?? 0.8,
               audioVolume: playbackState.volume ?? 1,
@@ -822,7 +808,7 @@ const applyProgress = (progress: LocalTranscriptionProgress) => {
                   project_title: videoFile.name.replace(/.[^/.]+$/, "") || "Untitled Project",
                   script_format: language === "te" ? "Telugu Lipi" : language === "tenglish" ? "Tenglish" : "English",
                   export_types: "MP4 1080p, Subtitles (Burned-in)",
-                  download_url: "local:" + exportId
+                  download_url: "local:" + exportId,
                 });
               }
             } catch (err) {
@@ -842,12 +828,7 @@ const applyProgress = (progress: LocalTranscriptionProgress) => {
 
   return (
     <div className="app-frame">
-
-      
-
-      {showLanding && !videoFile ? (
-        <LandingPage onStart={() => setShowLanding(false)} />
-      ) : !videoFile || !audioReady ? (
+      {!videoFile || !audioReady ? (
         <div style={{
           minHeight: "100vh",
           display: "flex",
@@ -857,7 +838,7 @@ const applyProgress = (progress: LocalTranscriptionProgress) => {
           background: "#070b09",
           color: "var(--accent-primary)",
           fontFamily: "inherit",
-          gap: "16px"
+          gap: "16px",
         }}>
           <div style={{
             width: "40px",
@@ -865,7 +846,7 @@ const applyProgress = (progress: LocalTranscriptionProgress) => {
             border: "3px solid #14231b",
             borderTopColor: "var(--accent-primary)",
             borderRadius: "50%",
-            animation: "cc-spin 0.8s linear infinite"
+            animation: "cc-spin 0.8s linear infinite",
           }} />
           <style>{"@keyframes cc-spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }"}</style>
           <div style={{ fontSize: "14px", fontWeight: 600, color: "#e5e7eb" }}>
@@ -881,7 +862,7 @@ const applyProgress = (progress: LocalTranscriptionProgress) => {
             <Sidebar
               bgSegmentsCount={playbackState.bgSegmentsCount ?? 1}
               hasSong={Boolean(playbackState.hasSong)}
-            onSearchQueryChange={setCaptionSearchQuery}
+              onSearchQueryChange={setCaptionSearchQuery}
               onFileUpload={handleFileUpload}
               onBackToUpload={handleRemoveMedia}
               isTranscribing={isTranscribing}
@@ -910,19 +891,19 @@ const applyProgress = (progress: LocalTranscriptionProgress) => {
               transcriptionBackend={transcriptionBackend}
               onSelectBackend={(backend) => {
                 if (transcriptionSessionRef.current.running) return;
-                const forceBackend = sourceLanguage === 'te' ? 'gemini' : 'local';
+                const forceBackend = sourceLanguage === "te" ? "cloud" : "local";
                 if (backend !== forceBackend) return;
                 setTranscriptionBackend(forceBackend);
-                setTranscriptionError('');
+                setTranscriptionError("");
                 setTranscriptionProgress(0);
                 setTranscriptionProcessedDuration(0);
                 setTranscriptionStatus(
-                  forceBackend === 'gemini'
-                    ? 'Switched to Create Captions AI · click Generate captions'
-                    : 'Switched to Local Whisper · click Generate captions',
+                  forceBackend === "cloud"
+                    ? "Switched to Create Captions AI · click Generate captions"
+                    : "Switched to Local Whisper · click Generate captions",
                 );
               }}
-              geminiKeyMissing={!import.meta.env.VITE_GEMINI_API_KEY || import.meta.env.VITE_GEMINI_API_KEY === 'your_gemini_api_key_here'}
+              aiKeyMissing={!import.meta.env.VITE_AI_API_KEY || import.meta.env.VITE_AI_API_KEY === "your_ai_api_key_here"}
               canUndo={editorHistory.canUndo}
               canRedo={editorHistory.canRedo}
               onUndo={undo}
@@ -935,7 +916,7 @@ const applyProgress = (progress: LocalTranscriptionProgress) => {
               onCopyOrPaste={handleCopyOrPaste}
               onAddSubtitle={addTimelineCaption}
               hasSelectedSubtitle={Boolean(selectedSubtitleId)}
-                hasSelectedSegment={Boolean(playbackState.selectedSegmentId)}
+              hasSelectedSegment={Boolean(playbackState.selectedSegmentId)}
               isPlaying={playbackState.isPlaying}
               onTogglePlay={playbackState.togglePlay}
               currentTime={playbackState.currentTime}
@@ -955,19 +936,19 @@ const applyProgress = (progress: LocalTranscriptionProgress) => {
               }}
             />
             <Workspace
-                userPlan={userPlan}
-                initialSongUrl={draftSongUrl}
-                initialSongName={draftSongName}
-                onSongChange={({ songUrl, songName, songBlob }) => {
-                  setDraftSongUrl(songUrl);
-                  setDraftSongName(songName);
-                  if (songBlob !== undefined) currentSongBlobRef.current = songBlob;
-                }}
-                bgSegments={bgSegments}
-                setBgSegments={setBgSegments}
-                songSegments={songSegments}
-                setSongSegments={setSongSegments}
-            captionSearchQuery={captionSearchQuery}
+              userPlan={userPlan}
+              initialSongUrl={draftSongUrl}
+              initialSongName={draftSongName}
+              onSongChange={({ songUrl, songName, songBlob }) => {
+                setDraftSongUrl(songUrl);
+                setDraftSongName(songName);
+                if (songBlob !== undefined) currentSongBlobRef.current = songBlob;
+              }}
+              bgSegments={bgSegments}
+              setBgSegments={setBgSegments}
+              songSegments={songSegments}
+              setSongSegments={setSongSegments}
+              captionSearchQuery={captionSearchQuery}
               onPlaybackStateChange={(st) => setPlaybackState(prev => ({ ...prev, ...st }))}
               videoFile={videoFile}
               audioBlob={audioBlob}
@@ -983,15 +964,15 @@ const applyProgress = (progress: LocalTranscriptionProgress) => {
                 setMediaDuration(duration);
                 setTranscriptionTotalDuration(previous => Math.max(previous, duration));
               }}
-               onBackToUpload={handleRemoveMedia}
-               onOpenExport={() => setShowExportPage(true)}
-               projectTitle={projectTitle}
-               onProjectTitleChange={setProjectTitle}
-               canUndo={editorHistory.canUndo}
-               canRedo={editorHistory.canRedo}
-               onUndo={undo}
-               onRedo={redo}
-             />
+              onBackToUpload={handleRemoveMedia}
+              onOpenExport={() => setShowExportPage(true)}
+              projectTitle={projectTitle}
+              onProjectTitleChange={setProjectTitle}
+              canUndo={editorHistory.canUndo}
+              canRedo={editorHistory.canRedo}
+              onUndo={undo}
+              onRedo={redo}
+            />
           </div>
         </div>
       )}
@@ -1006,7 +987,7 @@ const applyProgress = (progress: LocalTranscriptionProgress) => {
           alignItems: "center",
           justifyContent: "center",
           zIndex: 99999,
-          padding: "20px"
+          padding: "20px",
         }}>
           <div style={{
             background: "#12141c",
@@ -1019,7 +1000,7 @@ const applyProgress = (progress: LocalTranscriptionProgress) => {
             display: "flex",
             flexDirection: "column",
             gap: "16px",
-            textAlign: "center"
+            textAlign: "center",
           }}>
             <div style={{ fontSize: "17px", fontWeight: 600, color: "#fff" }}>
               {modelStatus === "loading" ? "Initializing speech model" : "Generating captions"}
@@ -1036,14 +1017,14 @@ const applyProgress = (progress: LocalTranscriptionProgress) => {
               height: "7px",
               background: "rgba(255, 255, 255, 0.08)",
               borderRadius: "999px",
-              overflow: "hidden"
+              overflow: "hidden",
             }}>
               <div style={{
                 height: "100%",
                 width: `${Math.min(100, Math.max(0, modelStatus === "loading" ? modelProgress : transcriptionProgress))}%`,
                 background: "linear-gradient(90deg, var(--accent-primary), var(--accent-primary))",
                 borderRadius: "999px",
-                transition: "width 0.25s ease"
+                transition: "width 0.25s ease",
               }} />
             </div>
 
@@ -1067,7 +1048,7 @@ const applyProgress = (progress: LocalTranscriptionProgress) => {
                 fontSize: "13px",
                 fontWeight: 500,
                 cursor: "pointer",
-                transition: "background 0.2s"
+                transition: "background 0.2s",
               }}
             >
               Cancel transcription
@@ -1075,7 +1056,7 @@ const applyProgress = (progress: LocalTranscriptionProgress) => {
           </div>
         </div>
       )}
-    
+
       {/* EXIT & SAVE DRAFT CONFIRMATION MODAL */}
       {showExitConfirmModal && (
         <div style={{
@@ -1087,7 +1068,7 @@ const applyProgress = (progress: LocalTranscriptionProgress) => {
           justifyContent: "center",
           backgroundColor: "rgba(0, 0, 0, 0.7)",
           backdropFilter: "blur(6px)",
-          padding: "20px"
+          padding: "20px",
         }}
         onClick={() => setShowExitConfirmModal(false)}
         >
@@ -1103,7 +1084,7 @@ const applyProgress = (progress: LocalTranscriptionProgress) => {
               display: "flex",
               flexDirection: "column",
               gap: "16px",
-              color: "#ffffff"
+              color: "#ffffff",
             }}
             onClick={e => e.stopPropagation()}
           >
@@ -1128,7 +1109,7 @@ const applyProgress = (progress: LocalTranscriptionProgress) => {
                   color: "#f87171",
                   fontSize: "12px",
                   fontWeight: 600,
-                  cursor: "pointer"
+                  cursor: "pointer",
                 }}
               >
                 Discard & Exit
@@ -1145,7 +1126,7 @@ const applyProgress = (progress: LocalTranscriptionProgress) => {
                   color: "#cbd5e1",
                   fontSize: "12px",
                   fontWeight: 600,
-                  cursor: "pointer"
+                  cursor: "pointer",
                 }}
               >
                 Cancel
@@ -1164,7 +1145,7 @@ const applyProgress = (progress: LocalTranscriptionProgress) => {
                   fontSize: "12px",
                   fontWeight: 700,
                   cursor: isSavingDraft ? "not-allowed" : "pointer",
-                  boxShadow: "0 2px 8px rgba(0,0,0,0.3)"
+                  boxShadow: "0 2px 8px rgba(0,0,0,0.3)",
                 }}
               >
                 {isSavingDraft ? "Saving..." : "Save as Draft"}
@@ -1173,7 +1154,7 @@ const applyProgress = (progress: LocalTranscriptionProgress) => {
           </div>
         </div>
       )}
-</div>
+    </div>
   );
 }
 

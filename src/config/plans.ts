@@ -117,7 +117,7 @@ export const PLANS: Plan[] = [
       { text: "Full access to 42+ animated kinetic templates" },
       { text: "Unlimited photo & video background uploads" },
       { text: "Dual audio mixer (voiceover + background music)" },
-      { text: "Priority Gemini Telugu AI transcription" }
+      { text: "Priority Create Captions Telugu AI transcription" }
     ],
     ctaText: "Upgrade to Creator Pro"
   },
