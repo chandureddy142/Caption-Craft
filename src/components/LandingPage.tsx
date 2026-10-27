@@ -1,5 +1,6 @@
+import React, { useState, useEffect } from "react";
+import WorkflowMotionGraphic from "./WorkflowMotionGraphic";
 import { useNavigate } from "react-router-dom";
-import React, { useState } from "react";
 import {
   ShieldCheck,
   Languages,
@@ -15,6 +16,19 @@ import {
   Video
 } from "lucide-react";
 
+const LANGUAGE_WORDS = [
+  "language.",
+  "భాష.",     // Telugu
+  "भाषा.",     // Hindi
+  "மொழி.",    // Tamil
+  "ಭಾಷೆ.",    // Kannada
+  "ഭാഷ.",     // Malayalam
+  "भाषा.",     // Marathi
+  "ভাষা.",     // Bengali
+  "ભાષા.",     // Gujarati
+  "ਬੋਲੀ.",     // Punjabi
+];
+
 interface LandingPageProps {
   onStart: () => void;
 }
@@ -22,6 +36,47 @@ interface LandingPageProps {
 export const LandingPage: React.FC<LandingPageProps> = ({ onStart }) => {
   const routerNavigate = useNavigate();
   const [activeTab, setActiveTab] = useState<"tenglish" | "telugu" | "english">("tenglish");
+  const [langIndex, setLangIndex] = useState<number>(0);
+  const [fadeState, setFadeState] = useState<"in" | "out">("in");
+
+  // Rotating language word effect
+  useEffect(() => {
+    let timeoutId: ReturnType<typeof setTimeout>;
+    const timer = setInterval(() => {
+      setFadeState("out");
+      timeoutId = setTimeout(() => {
+        setLangIndex((prev) => (prev + 1) % LANGUAGE_WORDS.length);
+        setFadeState("in");
+      }, 300);
+    }, 2400);
+
+    return () => {
+      clearInterval(timer);
+      clearTimeout(timeoutId);
+    };
+  }, []);
+
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          // Adds when scrolled into view, removes when scrolled out (bidirectional reverse)
+          if (entry.isIntersecting) {
+            entry.target.classList.add("cc-in-view");
+          } else {
+            entry.target.classList.remove("cc-in-view");
+          }
+        });
+      },
+      { threshold: 0.1, rootMargin: "0px 0px -40px 0px" }
+    );
+
+    const elements = document.querySelectorAll(".cc-scroll-reveal, .cc-player-stage");
+    elements.forEach((el) => observer.observe(el));
+
+    return () => observer.disconnect();
+  }, []);
+
 
   const scrollTo = (id: string) => {
     const el = document.getElementById(id);
@@ -33,6 +88,70 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onStart }) => {
   return (
     <div className="cc-page">
       <style>{`
+        @keyframes badgePulse {
+          0%, 100% { transform: scale(1); opacity: 0.8; }
+          50% { transform: scale(1.3); opacity: 1; }
+        }
+
+        .cc-eyebrow-redesign {
+          display: inline-flex;
+          align-items: center;
+          gap: 10px;
+          font-size: 11.5px;
+          font-weight: 800;
+          color: var(--accent-primary);
+          background: rgba(232, 99, 67, 0.08);
+          border: 1px solid rgba(232, 99, 67, 0.28);
+          padding: 6px 16px;
+          border-radius: 999px;
+          margin-bottom: 22px;
+          letter-spacing: 0.06em;
+          text-transform: uppercase;
+          backdrop-filter: blur(8px);
+        }
+
+        .cc-proof-pill {
+          display: inline-flex;
+          align-items: center;
+          gap: 8px;
+          padding: 7px 14px;
+          border-radius: 10px;
+          background: var(--nav-bg);
+          border: 1px solid var(--box-border);
+          font-size: 12.5px;
+          font-weight: 600;
+          color: var(--text-secondary);
+          box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+          transition: all 0.2s ease;
+        }
+        .cc-proof-pill:hover {
+          border-color: var(--accent-primary);
+          transform: translateY(-1px);
+        }
+
+        .cc-hero {
+          position: relative;
+          height: calc(100vh - 68px);
+          min-height: 600px;
+          margin-top: 68px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          box-sizing: border-box;
+          overflow: hidden;
+          padding: 0;
+        }
+
+        .cc-hero-container {
+          width: 100%;
+          max-width: 1600px;
+          margin: 0 auto;
+          padding: 0 48px;
+          box-sizing: border-box;
+          display: flex;
+          align-items: center;
+        }
+
         .cc-page {
           background-color: var(--bg-app) !important;
           color: var(--text-primary) !important;
@@ -43,16 +162,17 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onStart }) => {
         }
 
         .cc-container {
-          max-width: 1200px;
+          width: 100%;
+          max-width: 1440px;
           margin: 0 auto;
-          padding: 0 24px;
+          padding: 0 40px;
+          box-sizing: border-box;
         }
 
         .cc-section {
-          padding: 88px 0;
           position: relative;
-          background-color: var(--bg-app);
-          transition: background-color 0.2s ease;
+          padding: 100px 0;
+          box-sizing: border-box;
         }
 
         .cc-eyebrow {
@@ -71,25 +191,8 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onStart }) => {
           text-transform: uppercase;
         }
 
-        .cc-h1 {
-          font-size: clamp(44px, 6.2vw, 80px);
-          font-weight: 900;
-          line-height: 1.08;
-          letter-spacing: -0.04em;
-          margin: 0 0 24px;
-          color: var(--text-primary) !important;
-        }
-
         .cc-h1-accent {
           color: var(--accent-primary) !important;
-        }
-
-        .cc-lead {
-          font-size: clamp(17px, 1.5vw, 21px);
-          color: var(--text-secondary) !important;
-          line-height: 1.6;
-          margin: 0 auto 40px;
-          max-width: 760px;
         }
 
         .cc-section-title {
@@ -121,12 +224,13 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onStart }) => {
           border-radius: 10px;
           border: none;
           cursor: pointer;
-          transition: background-color 0.15s ease, transform 0.15s ease;
+          transition: background-color 0.15s ease, transform 0.15s ease, box-shadow 0.2s ease;
           text-decoration: none;
         }
         .cc-btn-primary:hover {
           background: var(--accent-primary-hover) !important;
-          transform: translateY(-1px);
+          transform: translateY(-2px);
+          box-shadow: 0 10px 28px rgba(232, 99, 67, 0.45);
         }
 
         .cc-btn-secondary {
@@ -143,38 +247,31 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onStart }) => {
           border: 1px solid var(--box-border) !important;
           box-shadow: var(--card-shadow);
           cursor: pointer;
-          transition: all 0.15s ease;
+          transition: all 0.2s ease;
         }
         .cc-btn-secondary:hover {
           border-color: var(--accent-primary) !important;
-          transform: translateY(-1px);
+          transform: translateY(-2px);
         }
 
         .cc-hero-grid {
-          display: flex;
-          flex-direction: column;
+          display: grid;
+          grid-template-columns: 1fr 1.35fr;
           align-items: center;
-          text-align: center;
-          max-width: 960px;
-          margin: 0 auto;
+          width: 100%;
+          gap: 20px;
         }
 
-        .cc-hero-proof {
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          gap: 32px;
-          flex-wrap: wrap;
-          margin-top: 40px;
-        }
-
-        .cc-proof-item {
-          display: inline-flex;
-          align-items: center;
-          gap: 8px;
-          font-size: 14px;
-          font-weight: 500;
-          color: var(--text-secondary) !important;
+        @media (max-width: 960px) {
+          .cc-hero-grid {
+            grid-template-columns: 1fr;
+            text-align: center;
+          }
+          .cc-hero-left {
+            align-items: center !important;
+            text-align: center !important;
+            transform: none !important;
+          }
         }
 
         .cc-tab-bar {
@@ -212,6 +309,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onStart }) => {
           margin-top: 48px;
         }
 
+        /* Card interactive motion */
         .cc-card {
           background: var(--nav-bg) !important;
           border: 1px solid var(--box-border);
@@ -219,7 +317,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onStart }) => {
           padding: 28px;
           box-shadow: var(--card-shadow);
           color: var(--card-text-primary) !important;
-          transition: all 0.2s ease;
+          transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.35s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.25s ease;
         }
         .cc-card h3 {
           color: var(--card-text-primary) !important;
@@ -228,9 +326,9 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onStart }) => {
           color: var(--card-text-secondary) !important;
         }
         .cc-card:hover {
-          border-color: var(--accent-primary);
-          transform: translateY(-3px);
-          box-shadow: var(--card-shadow-hover);
+          border-color: var(--accent-primary) !important;
+          transform: translateY(-6px) scale(1.015);
+          box-shadow: 0 16px 36px rgba(232, 99, 67, 0.16), var(--card-shadow-hover);
         }
 
         .cc-icon-box {
@@ -244,6 +342,59 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onStart }) => {
           align-items: center;
           justify-content: center;
           margin-bottom: 20px;
+          transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1), background-color 0.25s ease;
+        }
+        .cc-card:hover .cc-icon-box {
+          transform: scale(1.14) rotate(4deg);
+          background: var(--accent-surface);
+          border-color: var(--accent-primary);
+        }
+
+        /* ==========================================
+           BIDIRECTIONAL SCROLL MOTION GRAPHICS
+           ========================================== */
+        .cc-scroll-reveal {
+          opacity: 0;
+          transform: translateY(32px);
+          transition: opacity 0.65s cubic-bezier(0.16, 1, 0.3, 1), transform 0.65s cubic-bezier(0.16, 1, 0.3, 1);
+          will-change: opacity, transform;
+        }
+        .cc-scroll-reveal.cc-in-view {
+          opacity: 1;
+          transform: translateY(0);
+        }
+
+        /* Stagger timings */
+        .cc-stagger-1 { transition-delay: 0.04s; }
+        .cc-stagger-2 { transition-delay: 0.12s; }
+        .cc-stagger-3 { transition-delay: 0.20s; }
+        .cc-stagger-4 { transition-delay: 0.28s; }
+        .cc-stagger-5 { transition-delay: 0.36s; }
+        .cc-stagger-6 { transition-delay: 0.44s; }
+
+        /* Desktop Player Stage: default opacity 1 with smooth scale transitions */
+        .cc-player-stage {
+          width: 100%;
+          max-width: 960px;
+          margin: 0 auto;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          opacity: 0;
+          transform: translateY(36px) scale(0.96);
+          transition: opacity 0.75s cubic-bezier(0.16, 1, 0.3, 1), transform 0.75s cubic-bezier(0.16, 1, 0.3, 1);
+          will-change: opacity, transform;
+        }
+        .cc-player-stage.cc-in-view {
+          opacity: 1;
+          transform: translateY(0) scale(1);
+        }
+
+        .cc-step-circle {
+          transition: transform 0.45s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+        .cc-scroll-reveal.cc-in-view .cc-step-circle {
+          transform: scale(1.08);
         }
 
         @media (max-width: 900px) {
@@ -257,49 +408,170 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onStart }) => {
         }
       `}</style>
 
-      {/* 1. Hero */}
-      <section id="home" className="cc-section" style={{ paddingTop: "64px" }}>
-        <div className="cc-container">
+      {/* 1. Hero Redesign: Split with On-Device Pipeline Visual */}
+      <section id="home" className="cc-hero" style={{ height: "calc(100vh - 68px)", minHeight: "600px", marginTop: "68px", display: "flex", alignItems: "center", justifyContent: "center", overflow: "hidden", padding: 0 }}>
+        <div className="cc-hero-container">
           <div className="cc-hero-grid">
-            <div style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
-              <div className="cc-eyebrow">
+
+            {/* Left Column: Aligned flush to the logo border with CAPSLOCK modern font */}
+            <div
+              className="cc-hero-left"
+              style={{
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "flex-start",
+                textAlign: "left",
+                width: "100%",
+                alignSelf: "center",
+                transform: "translateY(-85px)",
+              }}>
+              {/* Eyebrow Pill */}
+              <div
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: "8px",
+                  fontSize: "11px",
+                  fontWeight: 800,
+                  color: "var(--accent-primary)",
+                  letterSpacing: "0.08em",
+                  textTransform: "uppercase",
+                  marginBottom: "20px",
+                  padding: "4px 12px",
+                  borderRadius: "999px",
+                  border: "1px solid rgba(232, 99, 67, 0.25)",
+                  background: "rgba(232, 99, 67, 0.06)",
+                }}
+              >
+                <span style={{ width: "6px", height: "6px", borderRadius: "50%", background: "var(--accent-primary)" }} />
                 <span>The #1 Regional Caption Studio for Creators</span>
               </div>
 
-              <h1 className="cc-h1">
-                Captions that speak <br />
-                <span className="cc-h1-accent">your audience&apos;s language.</span>
+              {/* Headings */}
+              <h1
+                style={{
+                  margin: "0 0 20px",
+                  display: "flex",
+                  flexDirection: "column",
+                  alignItems: "flex-start",
+                  lineHeight: 1.02,
+                }}
+              >
+                {/* 1. "CAPTIONS" - Bold Geometric Caps Lock */}
+                <span
+                  style={{
+                    fontSize: "clamp(58px, 7.4vw, 96px)",
+                    fontWeight: 900,
+                    color: "var(--text-primary)",
+                    letterSpacing: "0.05em",
+                    textTransform: "uppercase",
+                    fontFamily: "system-ui, -apple-system, 'Montserrat', 'Inter', sans-serif",
+                  }}
+                >
+                  CAPTIONS
+                </span>
+
+                {/* 2. "that speak your audience's" */}
+                <span
+                  style={{
+                    fontSize: "clamp(22px, 2.6vw, 36px)",
+                    fontWeight: 600,
+                    color: "var(--text-secondary)",
+                    letterSpacing: "-0.01em",
+                    marginTop: "8px",
+                    marginBottom: "4px",
+                    fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
+                  }}
+                >
+                  that speak your audience&apos;s
+                </span>
+
+                {/* 3. Dynamic Regional Language Word */}
+                <span
+                  className="cc-h1-accent"
+                  style={{
+                    display: "inline-block",
+                    fontSize: "clamp(58px, 7.6vw, 100px)",
+                    fontWeight: 900,
+                    color: "var(--accent-primary)",
+                    letterSpacing: "0.01em",
+                    lineHeight: 1.05,
+                    marginTop: "4px",
+                    opacity: fadeState === "in" ? 1 : 0,
+                    transform: fadeState === "in" ? "translateY(0)" : "translateY(6px)",
+                    transition: "opacity 0.25s cubic-bezier(0.16, 1, 0.3, 1), transform 0.25s cubic-bezier(0.16, 1, 0.3, 1)",
+                  }}
+                >
+                  {LANGUAGE_WORDS[langIndex]}
+                </span>
               </h1>
 
-              <p className="cc-lead">
-                Stop losing viewers to boring, unreadable subtitles. Generate viral animated captions in authentic Telugu Lipi, conversational Tenglish, and English in seconds. Edit effortlessly and export scroll-stopping Reels and Shorts.
+              {/* Subtitle Description */}
+              <p
+                style={{
+                  fontSize: "15px",
+                  lineHeight: 1.6,
+                  color: "var(--text-secondary)",
+                  maxWidth: "520px",
+                  margin: "0 0 28px 0",
+                  fontFamily: "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace",
+                  opacity: 0.88,
+                }}
+              >
+                Stop losing viewers to boring, unreadable subtitles.<br />
+                Auto-generate word-synced animated captions in authentic Telugu, conversational Tenglish, and English in seconds.
               </p>
 
-              <div style={{ display: "flex", gap: "16px", flexWrap: "wrap", justifyContent: "center" }}>
-                <button onClick={onStart} className="cc-btn-primary" style={{ padding: "14px 30px", fontSize: "16px" }}>
+              {/* CTAs */}
+              <div style={{ display: "flex", gap: "14px", flexWrap: "wrap", marginBottom: "30px" }}>
+                <button
+                  onClick={onStart}
+                  className="cc-btn-primary"
+                  style={{
+                    padding: "14px 28px",
+                    fontSize: "15px",
+                    boxShadow: "0 8px 24px rgba(232, 99, 67, 0.3)",
+                  }}
+                >
                   <Upload size={18} />
                   <span>Start Captioning for Free</span>
                 </button>
-                <button onClick={() => scrollTo("demo")} className="cc-btn-secondary" style={{ padding: "14px 28px", fontSize: "16px" }}>
+                <button onClick={() => scrollTo("demo")} className="cc-btn-secondary" style={{ padding: "14px 26px", fontSize: "15px" }}>
                   <span>See How It Works</span>
                 </button>
               </div>
 
-              <div className="cc-hero-proof">
-                <div className="cc-proof-item">
-                  <ShieldCheck size={18} color="var(--accent-primary)" />
-                  <span>100% Private (Runs on Your Device)</span>
+              {/* Feature Badges */}
+              <div style={{ display: "flex", gap: "10px", flexWrap: "wrap" }}>
+                <div className="cc-proof-pill">
+                  <ShieldCheck size={16} color="var(--accent-primary)" />
+                  <span>100% Private (Runs on Device)</span>
                 </div>
-                <div className="cc-proof-item">
-                  <Languages size={18} color="var(--accent-primary)" />
-                  <span>Perfect Telugu Lipi & Tenglish</span>
+                <div className="cc-proof-pill">
+                  <Languages size={16} color="var(--accent-primary)" />
+                  <span>Telugu &amp; Tenglish</span>
                 </div>
-                <div className="cc-proof-item">
-                  <Zap size={18} color="var(--accent-primary)" />
+                <div className="cc-proof-pill">
+                  <Zap size={16} color="var(--accent-primary)" />
                   <span>Word-by-Word Viral Sync</span>
                 </div>
               </div>
             </div>
+
+            {/* Right Column: Workflow Motion Graphic Tour */}
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "flex-end",
+                alignItems: "center",
+                position: "relative",
+                width: "100%",
+                transform: "translateX(10px)",
+              }}
+            >
+              <WorkflowMotionGraphic theme="auto" />
+            </div>
+
           </div>
         </div>
       </section>
@@ -307,7 +579,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onStart }) => {
       {/* 2. Demo Section */}
       <section id="demo" className="cc-section">
         <div className="cc-container">
-          <div style={{ textAlign: "center", marginBottom: "32px" }}>
+          <div className="cc-scroll-reveal" style={{ textAlign: "center", marginBottom: "32px" }}>
             <div className="cc-eyebrow">
               <span>Interactive Preview</span>
             </div>
@@ -333,13 +605,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onStart }) => {
             </div>
           </div>
 
-          <div style={{
-            maxWidth: "960px",
-            margin: "0 auto",
-            display: "flex",
-            flexDirection: "column",
-            alignItems: "center"
-          }}>
+          <div className="cc-player-stage">
             <div style={{
               width: "100%",
               background: "var(--nav-bg)",
@@ -446,7 +712,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onStart }) => {
       {/* 3. Templates Section */}
       <section id="templates" className="cc-section">
         <div className="cc-container">
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", flexWrap: "wrap", gap: "20px", marginBottom: "40px" }}>
+          <div className="cc-scroll-reveal" style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", flexWrap: "wrap", gap: "20px", marginBottom: "40px" }}>
             <div>
               <div className="cc-eyebrow" style={{ marginBottom: "12px" }}>
                 <span>Viral Templates Library</span>
@@ -465,7 +731,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onStart }) => {
           </div>
 
           <div className="cc-grid-3">
-            <div className="cc-card" style={{ display: "flex", flexDirection: "column", justifyContent: "space-between" }}>
+            <div className="cc-card cc-scroll-reveal" style={{ display: "flex", flexDirection: "column", justifyContent: "space-between" }}>
               <div>
                 <div style={{ fontSize: "11px", fontWeight: 800, color: "var(--accent-primary)", letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: "12px" }}>
                   Audience Retention
@@ -484,7 +750,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onStart }) => {
               </div>
             </div>
 
-            <div className="cc-card" style={{ display: "flex", flexDirection: "column", justifyContent: "space-between" }}>
+            <div className="cc-card cc-scroll-reveal" style={{ display: "flex", flexDirection: "column", justifyContent: "space-between" }}>
               <div>
                 <div style={{ fontSize: "11px", fontWeight: 800, color: "var(--accent-primary)", letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: "12px" }}>
                   Zero Font Glitches
@@ -497,13 +763,13 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onStart }) => {
                 </p>
               </div>
               <div style={{ marginTop: "24px", paddingTop: "16px", borderTop: "1px solid var(--box-border)", display: "flex", gap: "8px", flexWrap: "wrap" }}>
-                <span style={{ fontSize: "11px", background: "var(--bg-surface-elevated)", padding: "3px 8px", borderRadius: "6px", color: "var(--card-text-muted)", border: "1px solid var(--box-border)" }}>Telugu Lipi</span>
+                <span style={{ fontSize: "11px", background: "var(--bg-surface-elevated)", padding: "3px 8px", borderRadius: "6px", color: "var(--card-text-muted)", border: "1px solid var(--box-border)" }}>Telugu</span>
                 <span style={{ fontSize: "11px", background: "var(--bg-surface-elevated)", padding: "3px 8px", borderRadius: "6px", color: "var(--card-text-muted)", border: "1px solid var(--box-border)" }}>Phonetic Tenglish</span>
                 <span style={{ fontSize: "11px", background: "var(--bg-surface-elevated)", padding: "3px 8px", borderRadius: "6px", color: "var(--card-text-muted)", border: "1px solid var(--box-border)" }}>Mandali Font</span>
               </div>
             </div>
 
-            <div className="cc-card" style={{ display: "flex", flexDirection: "column", justifyContent: "space-between" }}>
+            <div className="cc-card cc-scroll-reveal" style={{ display: "flex", flexDirection: "column", justifyContent: "space-between" }}>
               <div>
                 <div style={{ fontSize: "11px", fontWeight: 800, color: "var(--accent-primary)", letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: "12px" }}>
                   One-Click Styling
@@ -528,7 +794,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onStart }) => {
       {/* 4. Features Section */}
       <section id="features" className="cc-section">
         <div className="cc-container">
-          <div style={{ textAlign: "center", marginBottom: "48px" }}>
+          <div className="cc-scroll-reveal" style={{ textAlign: "center", marginBottom: "48px" }}>
             <div className="cc-eyebrow">
               <span>Why Creators Choose Us</span>
             </div>
@@ -539,7 +805,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onStart }) => {
           </div>
 
           <div className="cc-grid-3">
-            <div className="cc-card">
+            <div className="cc-card cc-scroll-reveal">
               <div className="cc-icon-box"><Languages size={20} /></div>
               <h3 style={{ fontSize: "17px", fontWeight: 800, margin: "0 0 8px 0" }}>
                 Native Telugu & Tenglish AI
@@ -549,7 +815,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onStart }) => {
               </p>
             </div>
 
-            <div className="cc-card">
+            <div className="cc-card cc-scroll-reveal">
               <div className="cc-icon-box"><Type size={20} /></div>
               <h3 style={{ fontSize: "17px", fontWeight: 800, margin: "0 0 8px 0" }}>
                 More Indian Languages Coming Soon
@@ -559,7 +825,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onStart }) => {
               </p>
             </div>
 
-            <div className="cc-card">
+            <div className="cc-card cc-scroll-reveal">
               <div className="cc-icon-box"><ShieldCheck size={20} /></div>
               <h3 style={{ fontSize: "17px", fontWeight: 800, margin: "0 0 8px 0" }}>
                 100% Private & Device-Powered
@@ -569,7 +835,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onStart }) => {
               </p>
             </div>
 
-            <div className="cc-card">
+            <div className="cc-card cc-scroll-reveal">
               <div className="cc-icon-box"><Sliders size={20} /></div>
               <h3 style={{ fontSize: "17px", fontWeight: 800, margin: "0 0 8px 0" }}>
                 Precise Word-Level Timing
@@ -579,7 +845,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onStart }) => {
               </p>
             </div>
 
-            <div className="cc-card">
+            <div className="cc-card cc-scroll-reveal">
               <div className="cc-icon-box"><Eye size={20} /></div>
               <h3 style={{ fontSize: "17px", fontWeight: 800, margin: "0 0 8px 0" }}>
                 Social Media Safe Zones
@@ -589,7 +855,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onStart }) => {
               </p>
             </div>
 
-            <div className="cc-card">
+            <div className="cc-card cc-scroll-reveal">
               <div className="cc-icon-box"><Film size={20} /></div>
               <h3 style={{ fontSize: "17px", fontWeight: 800, margin: "0 0 8px 0" }}>
                 Crisp High-Definition Export
@@ -605,7 +871,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onStart }) => {
       {/* 5. How It Works */}
       <section id="how-it-works" className="cc-section">
         <div className="cc-container">
-          <div style={{ textAlign: "center", marginBottom: "64px" }}>
+          <div className="cc-scroll-reveal" style={{ textAlign: "center", marginBottom: "64px" }}>
             <div className="cc-eyebrow">
               <span>Simple 4-Step Workflow</span>
             </div>
@@ -685,11 +951,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onStart }) => {
                 zIndex: 1
               }}>
                 <div>
-                  <div style={{
-                    width: "44px",
-                    height: "44px",
-                    borderRadius: "50%",
-                    background: "var(--bg-app)",
+                  <div className="cc-step-badge" style={{ width: "44px", height: "44px", borderRadius: "50%", background: "var(--bg-app)",
                     border: "2px solid var(--accent-primary)",
                     color: "var(--accent-primary)",
                     display: "flex",
@@ -716,11 +978,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onStart }) => {
                 </div>
 
                 <div>
-                  <div style={{
-                    width: "44px",
-                    height: "44px",
-                    borderRadius: "50%",
-                    background: "var(--bg-app)",
+                  <div className="cc-step-badge" style={{ width: "44px", height: "44px", borderRadius: "50%", background: "var(--bg-app)",
                     border: "2px solid var(--accent-primary)",
                     color: "var(--accent-primary)",
                     display: "flex",
@@ -739,7 +997,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onStart }) => {
                     Select Language
                   </h3>
                   <p style={{ fontSize: "13px", color: "var(--text-secondary)", lineHeight: 1.6, margin: 0 }}>
-                    Choose your spoken style. Generate word-synced subtitles in authentic Telugu Lipi, English, or conversational Tenglish.
+                    Choose your spoken style. Generate word-synced subtitles in authentic Telugu, English, or conversational Tenglish.
                   </p>
                   <div style={{ marginTop: "12px", fontSize: "12px", color: "var(--text-muted)", fontFamily: "monospace" }}>
                     తెలుగు · Tenglish · English
@@ -747,11 +1005,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onStart }) => {
                 </div>
 
                 <div>
-                  <div style={{
-                    width: "44px",
-                    height: "44px",
-                    borderRadius: "50%",
-                    background: "var(--bg-app)",
+                  <div className="cc-step-badge" style={{ width: "44px", height: "44px", borderRadius: "50%", background: "var(--bg-app)",
                     border: "2px solid var(--accent-primary)",
                     color: "var(--accent-primary)",
                     display: "flex",
@@ -778,11 +1032,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onStart }) => {
                 </div>
 
                 <div>
-                  <div style={{
-                    width: "44px",
-                    height: "44px",
-                    borderRadius: "50%",
-                    background: "var(--bg-app)",
+                  <div className="cc-step-badge" style={{ width: "44px", height: "44px", borderRadius: "50%", background: "var(--bg-app)",
                     border: "2px solid var(--accent-primary)",
                     color: "var(--accent-primary)",
                     display: "flex",
@@ -831,13 +1081,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onStart }) => {
             </p>
           </div>
 
-          <div style={{
-            background: "var(--nav-bg)",
-            border: "1px solid var(--box-border)",
-            borderRadius: "16px",
-            overflowX: "auto",
-            boxShadow: "var(--card-shadow)"
-          }}>
+          <div className="cc-scroll-reveal cc-delay-2" style={{ background: "var(--nav-bg)", border: "1px solid var(--box-border)", borderRadius: "16px", overflowX: "auto", boxShadow: "var(--card-shadow)" }}>
             <table style={{ width: "100%", borderCollapse: "collapse", textAlign: "left", minWidth: "640px" }}>
               <thead>
                 <tr style={{ borderBottom: "1px solid var(--box-border)" }}>
@@ -858,7 +1102,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onStart }) => {
                   <td style={{ padding: "20px 24px", color: "var(--card-text-primary)", fontSize: "13.5px" }}>
                     <div style={{ display: "flex", alignItems: "flex-start", gap: "10px" }}>
                       <Check size={16} color="var(--accent-primary)" style={{ marginTop: "2px", flexShrink: 0 }} />
-                      <span>Tuned specifically for South Indian phonetics, everyday slang, and English blending</span>
+                      <span>Tuned specifically for regional accents, everyday slang, and English blending</span>
                     </div>
                   </td>
                   <td style={{ padding: "20px 24px", color: "var(--card-text-muted)", fontSize: "13px" }}>
@@ -888,7 +1132,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onStart }) => {
                   <td style={{ padding: "20px 24px", color: "var(--card-text-primary)", fontSize: "13.5px" }}>
                     <div style={{ display: "flex", alignItems: "flex-start", gap: "10px" }}>
                       <Check size={16} color="var(--accent-primary)" style={{ marginTop: "2px", flexShrink: 0 }} />
-                      <span>Switch between native Telugu Lipi, phonetic Tenglish, and English anytime</span>
+                      <span>Switch between native Telugu, Tenglish, and English anytime</span>
                     </div>
                   </td>
                   <td style={{ padding: "20px 24px", color: "var(--card-text-muted)", fontSize: "13px" }}>

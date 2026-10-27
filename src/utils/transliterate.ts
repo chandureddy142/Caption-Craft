@@ -5,7 +5,7 @@
  * vowel sign or a virama. Processing code points rather than whitespace-
  * separated words keeps English, URLs, numbers, punctuation, and spacing
  * byte-for-byte intact while also handling conjunct consonants and
- * phonetic anusvara correctly.
+ * contextual anusvara correctly.
  */
 
 import type { CaptionLanguage } from '../types';
@@ -91,7 +91,7 @@ const VIRAMA = '్';
 const ZWNJ = '\u200C';
 const ZWJ = '\u200D';
 
-// Consonant groups for phonetic anusvara ('ం') transliteration:
+// Consonant groups for contextual anusvara ('ం') transliteration:
 // Bilabials (p, ph, b, bh, m) -> 'm'
 const bilabialConsonants = new Set(['ప', 'ఫ', 'బ', 'భ', 'మ']);
 // Coronal/Velar/Palatal consonants (t, th, d, dh, ch, j, k, g, etc.) -> 'n'
@@ -204,7 +204,7 @@ export function transliterateTeluguToTenglish(text: string): string {
 /**
  * Return the text that should be shown/exported for the selected caption mode.
  * `text` is deliberately kept as the canonical value so switching between
- * Telugu Lipi, Tenglish, and English never destroys the source transcript.
+ * Telugu, Tenglish, and English never destroys the source transcript.
  * When a user edits Tenglish directly, that edit is stored in `tenglishText`
  * and reused until the canonical Telugu text is edited again.
  */

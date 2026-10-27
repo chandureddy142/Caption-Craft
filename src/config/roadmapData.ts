@@ -26,7 +26,7 @@ export const INITIAL_ROADMAP_STOPS: RoadmapStop[] = [
     title: "Telugu Script & Tenglish Dual Engine",
     category: "Regional",
     dateOrStage: "Oct 2026",
-    description: "Instant one-click toggle between authentic native Telugu Lipi and phonetic English-Telugu (Tenglish) with exact syllable-level sync.",
+    description: "Instant one-click toggle between authentic native Telugu and English-Telugu (Tenglish) with exact syllable-level sync.",
     status: "delivered",
     shippedDate: "Oct 2026",
     side: "right"

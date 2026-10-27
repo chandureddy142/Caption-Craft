@@ -130,7 +130,7 @@ describe('Composition, Templates & Background switching', () => {
     expect(drawCalls.some(call => call.includes('నమస్కారం'))).toBe(true);
   });
 
-  it('exports SRT and VTT consistently with Telugu Lipi and Tenglish without altering subtitles', () => {
+  it('exports SRT and VTT consistently with Telugu and Tenglish without altering subtitles', () => {
     const srtTelugu = exportToSRT(initialSubtitles, 'te');
     expect(srtTelugu).toContain('1\n00:00:00,500 --> 00:00:03,200\nనమస్కారం');
     expect(srtTelugu).toContain('2\n00:00:03,500 --> 00:00:06,000\nఈ రోజు వాతావరణం బాగుంది');

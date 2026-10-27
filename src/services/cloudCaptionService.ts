@@ -2,7 +2,7 @@
  * Cloud AI Caption Service
  * ----------------------
  * Replaces Whisper/WebWorker pipeline with Create Captions Cloud AI for audio
- * transcription that natively supports Telugu, Tenglish (Roman-phonetic
+ * transcription that natively supports Telugu, Tenglish (Roman-scripted
  * Telugu), and English. Returns timestamped SubtitleSegment[] objects
  * ready to feed directly into the caption editor.
  *
@@ -64,7 +64,7 @@ export interface CloudTranscriptionOptions {
    * Caption output language format:
    * - 'en'       → clean English with punctuation
    * - 'te'       → native Unicode Telugu script
-   * - 'tenglish' → Roman-phonetic Tenglish (transliteration, NOT translation)
+   * - 'tenglish' → Roman-scripted Tenglish (transliteration, NOT translation)
    */
   captionLanguage?: CaptionLanguage;
   /** Abort signal to cancel in-flight requests. */
@@ -143,7 +143,7 @@ LANGUAGE RULES:
 LANGUAGE RULES — TENGLISH MODE (CRITICAL):
 - The audio contains spoken Telugu.
 - Transcribe the PHONETIC SOUNDS of Telugu speech using the Roman/Latin alphabet ONLY.
-- This is called "Tenglish" — it is social-media style phonetic transliteration.
+- This is called "Tenglish" — it is social-media style natural transliteration.
 - Examples: "నేను రేపు వస్తున్నా" → "Nenu repu vasthunna", "చాలా బాగుంది" → "Chala bagundi".
 - DO NOT translate meaning into English words.
 - DO NOT use Telugu script Unicode characters.

@@ -14,7 +14,7 @@ describe('Telugu transliteration', () => {
     expect(transliterateTeluguToTenglish('కీకు')).toBe('keeku');
   });
 
-  it('handles phonetic anusvara correctly before dentals, velars, and bilabials', () => {
+  it('handles contextual anusvara correctly before dentals, velars, and bilabials', () => {
     // Before dental/coronal 'ద' -> 'n'
     expect(transliterateTeluguToTenglish('బాగుంది')).toBe('baagundi');
     expect(transliterateTeluguToTenglish('ఉంది')).toBe('undi');

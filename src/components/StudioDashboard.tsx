@@ -179,7 +179,7 @@ export const StudioDashboard: React.FC<StudioDashboardProps> = ({
               combinedExports = dbExports.map((e: any) => ({
                 id: e.id,
                 project_title: e.project_title || "Exported Video",
-                script_format: e.script_format || "Telugu Lipi",
+                script_format: e.script_format || "Telugu",
                 export_types: e.export_types || "MP4 1080p, Subtitles (Burned-in)",
                 download_url: e.download_url || "#",
                 created_at: e.created_at ? new Date(e.created_at).toLocaleDateString() : "Recently"
@@ -196,7 +196,7 @@ export const StudioDashboard: React.FC<StudioDashboardProps> = ({
                 combinedExports.push({
                   id: loc.id,
                   project_title: loc.name.replace(/.[^/.]+$/, "") || "Rendered Video",
-                  script_format: "Telugu Lipi",
+                  script_format: "Telugu",
                   export_types: "MP4 1080p (Local IndexedDB)",
                   download_url: "local:" + loc.id,
                   created_at: new Date(loc.createdAt).toLocaleDateString()
@@ -696,7 +696,7 @@ export const StudioDashboard: React.FC<StudioDashboardProps> = ({
           <div style={{ display: "flex", alignItems: "center", gap: "24px", marginTop: "24px", fontSize: "11px", color: "var(--card-text-secondary)" }}>
             <span style={{ display: "flex", alignItems: "center", gap: "6px" }}><Zap size={13} color="#f59e0b" /> High-Speed AI</span>
             <span style={{ display: "flex", alignItems: "center", gap: "6px" }}><Lock size={13} color="#10b981" /> 100% Private (Runs In-Browser)</span>
-            <span style={{ display: "flex", alignItems: "center", gap: "6px" }}><Sparkles size={13} color="var(--accent-primary)" /> Telugu Lipi & Tenglish Dual Engine</span>
+            <span style={{ display: "flex", alignItems: "center", gap: "6px" }}><Sparkles size={13} color="var(--accent-primary)" /> Telugu & Tenglish Dual Engine</span>
           </div>
         </div>
 

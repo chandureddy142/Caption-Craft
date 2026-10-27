@@ -1,8 +1,27 @@
-import React from "react";
+import React, { useEffect } from "react";
 import { Link } from "react-router-dom";
 import { ArrowLeft, FileText, ShieldCheck } from "lucide-react";
 
 export const TermsPage: React.FC = () => {
+
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            entry.target.classList.add("cc-in-view");
+          } else {
+            entry.target.classList.remove("cc-in-view");
+          }
+        });
+      },
+      { threshold: 0.08, rootMargin: "0px 0px -30px 0px" }
+    );
+    const elements = document.querySelectorAll(".cc-scroll-reveal");
+    elements.forEach((el) => observer.observe(el));
+    return () => observer.disconnect();
+  }, []);
+
   return (
     <div
       style={{
@@ -15,6 +34,25 @@ export const TermsPage: React.FC = () => {
       }}
     >
       <div style={{ maxWidth: "800px", margin: "0 auto" }}>
+
+      <style>{`
+        .cc-scroll-reveal {
+          opacity: 0;
+          transform: translateY(28px);
+          transition: opacity 0.65s cubic-bezier(0.16, 1, 0.3, 1), transform 0.65s cubic-bezier(0.16, 1, 0.3, 1);
+          will-change: opacity, transform;
+        }
+        .cc-scroll-reveal.cc-in-view {
+          opacity: 1;
+          transform: translateY(0);
+        }
+        .cc-stagger-1 { transition-delay: 0.05s; }
+        .cc-stagger-2 { transition-delay: 0.12s; }
+        .cc-stagger-3 { transition-delay: 0.20s; }
+        .cc-stagger-4 { transition-delay: 0.28s; }
+        .cc-stagger-5 { transition-delay: 0.36s; }
+        .cc-stagger-6 { transition-delay: 0.44s; }
+      `}</style>
         <Link
           to="/"
           style={{
@@ -91,7 +129,7 @@ export const TermsPage: React.FC = () => {
           </div>
         </div>
 
-        <section style={{ marginBottom: "36px" }}>
+        <section className="cc-scroll-reveal" style={{ marginBottom: "36px" }}>
           <h2 style={{ fontSize: "20px", fontWeight: 800, color: "var(--text-primary)", marginBottom: "14px" }}>
             1. Acceptance, Eligibility & Account Responsibilities
           </h2>
@@ -105,7 +143,7 @@ export const TermsPage: React.FC = () => {
           </ul>
         </section>
 
-        <section style={{ marginBottom: "36px" }}>
+        <section className="cc-scroll-reveal" style={{ marginBottom: "36px" }}>
           <h2 style={{ fontSize: "20px", fontWeight: 800, color: "var(--text-primary)", marginBottom: "14px" }}>
             2. Video Ownership & Intellectual Property Rights
           </h2>
@@ -125,7 +163,7 @@ export const TermsPage: React.FC = () => {
           </ul>
         </section>
 
-        <section style={{ marginBottom: "36px" }}>
+        <section className="cc-scroll-reveal" style={{ marginBottom: "36px" }}>
           <h2 style={{ fontSize: "20px", fontWeight: 800, color: "var(--text-primary)", marginBottom: "14px" }}>
             3. Acceptable Use & Creator Conduct
           </h2>
@@ -143,7 +181,7 @@ export const TermsPage: React.FC = () => {
           </p>
         </section>
 
-        <section style={{ marginBottom: "36px" }}>
+        <section className="cc-scroll-reveal" style={{ marginBottom: "36px" }}>
           <h2 style={{ fontSize: "20px", fontWeight: 800, color: "var(--text-primary)", marginBottom: "14px" }}>
             4. Service Tiers, Minutes Billing & Export Limits
           </h2>
@@ -177,7 +215,7 @@ export const TermsPage: React.FC = () => {
           </div>
         </section>
 
-        <section style={{ marginBottom: "36px" }}>
+        <section className="cc-scroll-reveal" style={{ marginBottom: "36px" }}>
           <h2 style={{ fontSize: "20px", fontWeight: 800, color: "var(--text-primary)", marginBottom: "14px" }}>
             5. Subscriptions, UPI Autopay & Cancellation Rules
           </h2>
@@ -197,7 +235,7 @@ export const TermsPage: React.FC = () => {
           </ul>
         </section>
 
-        <section style={{ marginBottom: "36px" }}>
+        <section className="cc-scroll-reveal" style={{ marginBottom: "36px" }}>
           <h2 style={{ fontSize: "20px", fontWeight: 800, color: "var(--text-primary)", marginBottom: "14px" }}>
             6. Refund Policy & Dispute Protocols
           </h2>
@@ -217,7 +255,7 @@ export const TermsPage: React.FC = () => {
           </ul>
         </section>
 
-        <section style={{ marginBottom: "36px" }}>
+        <section className="cc-scroll-reveal" style={{ marginBottom: "36px" }}>
           <h2 style={{ fontSize: "20px", fontWeight: 800, color: "var(--text-primary)", marginBottom: "14px" }}>
             7. Speech Accuracy & Technical Disclaimers
           </h2>
@@ -225,11 +263,11 @@ export const TermsPage: React.FC = () => {
             Create Captions is provided on an &ldquo;as is&rdquo; and &ldquo;as available&rdquo; basis without warranties of any kind, whether express or implied.
           </p>
           <p style={{ color: "var(--text-secondary)", fontSize: "14px", lineHeight: 1.7, margin: 0 }}>
-            While our regional speech processing pipeline is optimized for Telugu Lipi syntax and conversational Tenglish, transcription accuracy is naturally dependent on audio recording clarity, background ambient noise, musical overlap, and regional dialect variations. Creators are advised to preview their subtitle timeline before rendering final video exports.
+            While our regional speech processing pipeline is optimized for Telugu syntax and conversational Tenglish, transcription accuracy is naturally dependent on audio recording clarity, background ambient noise, musical overlap, and regional dialect variations. Creators are advised to preview their subtitle timeline before rendering final video exports.
           </p>
         </section>
 
-        <section style={{ marginBottom: "36px" }}>
+        <section className="cc-scroll-reveal" style={{ marginBottom: "36px" }}>
           <h2 style={{ fontSize: "20px", fontWeight: 800, color: "var(--text-primary)", marginBottom: "14px" }}>
             8. Limitation of Liability
           </h2>
@@ -238,7 +276,7 @@ export const TermsPage: React.FC = () => {
           </p>
         </section>
 
-        <section style={{ marginBottom: "36px" }}>
+        <section className="cc-scroll-reveal" style={{ marginBottom: "36px" }}>
           <h2 style={{ fontSize: "20px", fontWeight: 800, color: "var(--text-primary)", marginBottom: "14px" }}>
             9. Indemnification
           </h2>
@@ -247,7 +285,7 @@ export const TermsPage: React.FC = () => {
           </p>
         </section>
 
-        <section style={{ marginBottom: "20px" }}>
+        <section className="cc-scroll-reveal" style={{ marginBottom: "20px" }}>
           <h2 style={{ fontSize: "20px", fontWeight: 800, color: "var(--text-primary)", marginBottom: "14px" }}>
             10. Governing Law & Dispute Resolution
           </h2>

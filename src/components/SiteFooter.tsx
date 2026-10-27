@@ -48,7 +48,7 @@ export const SiteFooter: React.FC = () => {
               margin: 0
             }}
           >
-            AI speech-to-text video captioning studio tailored for Telugu Lipi, Tenglish transliteration, and English creators. 100% private on-device transcription.
+            AI speech-to-text video captioning studio tailored for Telugu, Tenglish transliteration, and English creators. 100% private on-device transcription.
           </p>
           <div style={{ display: "flex", gap: "14px", marginTop: "4px" }}>
             <span style={{ display: "inline-flex", alignItems: "center", gap: "6px", fontSize: "11px", color: "var(--card-text-secondary)" }}>
@@ -111,7 +111,7 @@ export const SiteFooter: React.FC = () => {
           © {new Date().getFullYear()} Create Captions Studio. Built for Indian digital creators.
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: "6px", color: "var(--card-text-secondary)" }}>
-          Built with <Heart size={13} color="var(--accent-primary)" fill="var(--accent-primary)" /> for Telugu & multilingual creators
+          Built with <Heart size={13} color="var(--accent-primary)" fill="var(--accent-primary)" /> for Regional Creators.
         </div>
       </div>
     </footer>

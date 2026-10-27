@@ -1,5 +1,5 @@
 import type { ReactElement } from "react";
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import AnimatedTemplatePreview from "../components/AnimatedTemplatePreview";
 import { CAPTION_SECTIONS, CAPTION_TEMPLATES } from "../utils/captionTemplates";
@@ -27,6 +27,28 @@ export default function TemplatesPage(): ReactElement {
     return CAPTION_TEMPLATES.filter(t => t.category === selectedCategory);
   }, [selectedCategory]);
 
+  
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            entry.target.classList.add("cc-in-view");
+          } else {
+            entry.target.classList.remove("cc-in-view");
+          }
+        });
+      },
+      { threshold: 0.05, rootMargin: "0px 0px -20px 0px" }
+    );
+
+    // Observe all current cards and animated elements
+    const elements = document.querySelectorAll(".cc-scroll-reveal");
+    elements.forEach((el) => observer.observe(el));
+
+    return () => observer.disconnect();
+  }, [selectedCategory, filteredTemplates]);
+
   const activeLabel = useMemo(() => {
     if (selectedCategory === "all") return "All Templates";
     const found = categories.find(c => c.key === selectedCategory);
@@ -45,6 +67,25 @@ export default function TemplatesPage(): ReactElement {
       }}
     >
       <div style={{ maxWidth: "1360px", margin: "0 auto" }}>
+
+      <style>{`
+        .cc-scroll-reveal {
+          opacity: 0;
+          transform: translateY(28px);
+          transition: opacity 0.65s cubic-bezier(0.16, 1, 0.3, 1), transform 0.65s cubic-bezier(0.16, 1, 0.3, 1);
+          will-change: opacity, transform;
+        }
+        .cc-scroll-reveal.cc-in-view {
+          opacity: 1;
+          transform: translateY(0);
+        }
+        .cc-stagger-1 { transition-delay: 0.05s; }
+        .cc-stagger-2 { transition-delay: 0.12s; }
+        .cc-stagger-3 { transition-delay: 0.20s; }
+        .cc-stagger-4 { transition-delay: 0.28s; }
+        .cc-stagger-5 { transition-delay: 0.36s; }
+        .cc-stagger-6 { transition-delay: 0.44s; }
+      `}</style>
         
         {/* Kicker & Headline Header */}
         <div style={{ marginBottom: "34px", maxWidth: "860px" }}>
@@ -177,8 +218,7 @@ export default function TemplatesPage(): ReactElement {
         {/* Templates Grid */}
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(320px, 1fr))", gap: "24px" }}>
           {filteredTemplates.map(template => (
-            <div
-              key={template.id}
+            <div key={template.id} className="cc-scroll-reveal"
               onClick={() => navigate("/studio", { state: { templateId: template.id } })}
               style={{
                 background: "var(--nav-bg)",

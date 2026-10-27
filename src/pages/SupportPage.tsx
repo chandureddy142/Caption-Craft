@@ -12,8 +12,8 @@ const faqs: FAQItem[] = [
     answer: "Create Captions runs speech recognition directly inside your browser on your device. This ensures complete privacy so your unedited videos and audio never leave your computer."
   },
   {
-    question: "How do I switch between Telugu Lipi and Tenglish?",
-    answer: "Before starting transcription or inside the editor, you can toggle between native Telugu Lipi and phonetic Tenglish. You can also re-transliterate any specific word directly from the timeline."
+    question: "How do I switch between Telugu and Tenglish?",
+    answer: "Before starting transcription or inside the editor, you can toggle between native Telugu and Tenglish. You can also re-transliterate any specific word directly from the timeline."
   },
   {
     question: "What video and audio formats are supported?",
@@ -50,6 +50,25 @@ export const SupportPage: React.FC = () => {
     }
   }, []);
 
+  
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            entry.target.classList.add("cc-in-view");
+          } else {
+            entry.target.classList.remove("cc-in-view");
+          }
+        });
+      },
+      { threshold: 0.08, rootMargin: "0px 0px -30px 0px" }
+    );
+    const elements = document.querySelectorAll(".cc-scroll-reveal");
+    elements.forEach((el) => observer.observe(el));
+    return () => observer.disconnect();
+  }, []);
+
   const toggleFaq = (index: number) => {
     setOpenFaq(openFaq === index ? null : index);
   };
@@ -64,6 +83,25 @@ export const SupportPage: React.FC = () => {
       transition: "background-color 0.2s ease, color 0.2s ease"
     }}>
       <div style={{ maxWidth: "800px", margin: "0 auto" }}>
+
+      <style>{`
+        .cc-scroll-reveal {
+          opacity: 0;
+          transform: translateY(28px);
+          transition: opacity 0.65s cubic-bezier(0.16, 1, 0.3, 1), transform 0.65s cubic-bezier(0.16, 1, 0.3, 1);
+          will-change: opacity, transform;
+        }
+        .cc-scroll-reveal.cc-in-view {
+          opacity: 1;
+          transform: translateY(0);
+        }
+        .cc-stagger-1 { transition-delay: 0.05s; }
+        .cc-stagger-2 { transition-delay: 0.12s; }
+        .cc-stagger-3 { transition-delay: 0.20s; }
+        .cc-stagger-4 { transition-delay: 0.28s; }
+        .cc-stagger-5 { transition-delay: 0.36s; }
+        .cc-stagger-6 { transition-delay: 0.44s; }
+      `}</style>
         
         {/* Header */}
         <div style={{ textAlign: "center", marginBottom: "48px" }}>

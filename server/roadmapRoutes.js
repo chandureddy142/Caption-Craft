@@ -70,7 +70,7 @@ function getRoadmapData() {
         category: "Publishing",
         dateOrStage: "Oct 2026",
         title: "Telugu Script or Tenglish Toggle",
-        description: "Choose native Telugu Lipi or phonetic English-Telugu before generating, with word-level sync tuned for Reels and Shorts.",
+        description: "Choose native Telugu or English-Telugu before generating, with word-level sync tuned for Reels and Shorts.",
         status: "delivered",
         side: "left"
       },

@@ -62,7 +62,7 @@ export function segmentIntoShortCaptions(
   // Break words into groups of 2–3 words, preferring natural punctuation boundaries
   const wordGroups: string[][] = partitionWords(words, minWords, maxWords);
 
-  // Allocate speech time across all individual words based on character/phonetic weight
+  // Allocate speech time across all individual words based on character length weight
   const allWordDurations = allocateWordDurations(words, totalDuration);
 
   const subtitles: Subtitle[] = [];
@@ -177,7 +177,7 @@ function hasPunctuationBoundary(word: string): boolean {
 }
 
 /**
- * Calculates duration for each word proportional to its phonetic/character length
+ * Calculates duration for each word proportional to its text/character length
  * and punctuation pauses within the parent segment duration.
  */
 function allocateWordDurations(words: string[], totalDuration: number): number[] {

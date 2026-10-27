@@ -1,8 +1,27 @@
-import React from "react";
+import React, { useEffect } from "react";
 import { Link } from "react-router-dom";
 import { ArrowLeft, Shield, Lock } from "lucide-react";
 
 export const PrivacyPage: React.FC = () => {
+
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            entry.target.classList.add("cc-in-view");
+          } else {
+            entry.target.classList.remove("cc-in-view");
+          }
+        });
+      },
+      { threshold: 0.08, rootMargin: "0px 0px -30px 0px" }
+    );
+    const elements = document.querySelectorAll(".cc-scroll-reveal");
+    elements.forEach((el) => observer.observe(el));
+    return () => observer.disconnect();
+  }, []);
+
   return (
     <div
       style={{
@@ -15,6 +34,25 @@ export const PrivacyPage: React.FC = () => {
       }}
     >
       <div style={{ maxWidth: "800px", margin: "0 auto" }}>
+
+      <style>{`
+        .cc-scroll-reveal {
+          opacity: 0;
+          transform: translateY(28px);
+          transition: opacity 0.65s cubic-bezier(0.16, 1, 0.3, 1), transform 0.65s cubic-bezier(0.16, 1, 0.3, 1);
+          will-change: opacity, transform;
+        }
+        .cc-scroll-reveal.cc-in-view {
+          opacity: 1;
+          transform: translateY(0);
+        }
+        .cc-stagger-1 { transition-delay: 0.05s; }
+        .cc-stagger-2 { transition-delay: 0.12s; }
+        .cc-stagger-3 { transition-delay: 0.20s; }
+        .cc-stagger-4 { transition-delay: 0.28s; }
+        .cc-stagger-5 { transition-delay: 0.36s; }
+        .cc-stagger-6 { transition-delay: 0.44s; }
+      `}</style>
         <Link
           to="/"
           style={{
@@ -67,7 +105,7 @@ export const PrivacyPage: React.FC = () => {
           </p>
         </div>
 
-        <section style={{ marginBottom: "32px", lineHeight: 1.7, fontSize: "14.5px", color: "var(--text-secondary)" }}>
+        <section className="cc-scroll-reveal" style={{ marginBottom: "32px", lineHeight: 1.7, fontSize: "14.5px", color: "var(--text-secondary)" }}>
           <p style={{ margin: "0 0 14px 0" }}>
             This Privacy Policy governs the operations of <strong>Create Captions</strong> (&ldquo;we&rdquo;, &ldquo;us&rdquo;, or &ldquo;our&rdquo;), registered in India. It details our commitments regarding the information we gather when creators access our web studio, how media files and transcripts are processed, our subprocessor safeguards, and your data sovereignty rights under Indian and international privacy statutes.
           </p>
@@ -100,7 +138,7 @@ export const PrivacyPage: React.FC = () => {
           </div>
         </div>
 
-        <section style={{ marginBottom: "36px" }}>
+        <section className="cc-scroll-reveal" style={{ marginBottom: "36px" }}>
           <h2 style={{ fontSize: "20px", fontWeight: 800, color: "var(--text-primary)", marginBottom: "14px" }}>
             1. Information We Collect
           </h2>
@@ -122,7 +160,7 @@ export const PrivacyPage: React.FC = () => {
                 Creator Workspace & Timeline Data
               </div>
               <div style={{ fontSize: "13.5px", color: "var(--card-text-secondary)", lineHeight: 1.6 }}>
-                Project titles, timestamp cues, phonetic Telugu Lipi and Tenglish transliteration selections, font choices, animation templates, and color preferences needed to allow you to resume editing across browser sessions.
+                Project titles, timestamp cues, Telugu and Tenglish transliteration selections, font choices, animation templates, and color preferences needed to allow you to resume editing across browser sessions.
               </div>
             </div>
 
@@ -155,7 +193,7 @@ export const PrivacyPage: React.FC = () => {
           </div>
         </section>
 
-        <section style={{ marginBottom: "36px" }}>
+        <section className="cc-scroll-reveal" style={{ marginBottom: "36px" }}>
           <h2 style={{ fontSize: "20px", fontWeight: 800, color: "var(--text-primary)", marginBottom: "14px" }}>
             2. Video & Audio Processing Architecture
           </h2>
@@ -164,7 +202,7 @@ export const PrivacyPage: React.FC = () => {
           </p>
           <ul style={{ paddingLeft: "22px", color: "var(--text-secondary)", fontSize: "14px", lineHeight: 1.8 }}>
             <li>
-              <strong>On-Device Speech Inference:</strong> When you select a video for transcription, audio decoding and phonetic recognition take place using browser execution environments. Audio waveforms are parsed in transient, volatile device memory.
+              <strong>On-Device Speech Inference:</strong> When you select a video for transcription, audio decoding and speech recognition take place using browser execution environments. Audio waveforms are parsed in transient, volatile device memory.
             </li>
             <li>
               <strong>Transient Buffer Lifecycles:</strong> Raw media files are not permanently stored on our external servers. Once your editing session ends or your final video is rendered and saved to your device, temporary in-browser media caches are cleared.
@@ -175,7 +213,7 @@ export const PrivacyPage: React.FC = () => {
           </ul>
         </section>
 
-        <section style={{ marginBottom: "36px" }}>
+        <section className="cc-scroll-reveal" style={{ marginBottom: "36px" }}>
           <h2 style={{ fontSize: "20px", fontWeight: 800, color: "var(--text-primary)", marginBottom: "14px" }}>
             3. How We Share Data (Subprocessors)
           </h2>
@@ -191,7 +229,7 @@ export const PrivacyPage: React.FC = () => {
           </ul>
         </section>
 
-        <section style={{ marginBottom: "36px" }}>
+        <section className="cc-scroll-reveal" style={{ marginBottom: "36px" }}>
           <h2 style={{ fontSize: "20px", fontWeight: 800, color: "var(--text-primary)", marginBottom: "14px" }}>
             4. Data Retention Schedules
           </h2>
@@ -211,7 +249,7 @@ export const PrivacyPage: React.FC = () => {
           </div>
         </section>
 
-        <section style={{ marginBottom: "36px" }}>
+        <section className="cc-scroll-reveal" style={{ marginBottom: "36px" }}>
           <h2 style={{ fontSize: "20px", fontWeight: 800, color: "var(--text-primary)", marginBottom: "14px" }}>
             5. Your Rights Under the DPDP Act, 2023
           </h2>
@@ -229,7 +267,7 @@ export const PrivacyPage: React.FC = () => {
           </ul>
         </section>
 
-        <section style={{ marginBottom: "36px" }}>
+        <section className="cc-scroll-reveal" style={{ marginBottom: "36px" }}>
           <h2 style={{ fontSize: "20px", fontWeight: 800, color: "var(--text-primary)", marginBottom: "14px" }}>
             6. Government & Law Enforcement Requests
           </h2>
@@ -244,7 +282,7 @@ export const PrivacyPage: React.FC = () => {
           </ul>
         </section>
 
-        <section style={{ marginBottom: "36px" }}>
+        <section className="cc-scroll-reveal" style={{ marginBottom: "36px" }}>
           <h2 style={{ fontSize: "20px", fontWeight: 800, color: "var(--text-primary)", marginBottom: "14px" }}>
             7. Minors & Children&apos;s Privacy
           </h2>
@@ -253,7 +291,7 @@ export const PrivacyPage: React.FC = () => {
           </p>
         </section>
 
-        <section style={{ marginBottom: "36px" }}>
+        <section className="cc-scroll-reveal" style={{ marginBottom: "36px" }}>
           <h2 style={{ fontSize: "20px", fontWeight: 800, color: "var(--text-primary)", marginBottom: "14px" }}>
             8. Policy Modifications
           </h2>
@@ -262,7 +300,7 @@ export const PrivacyPage: React.FC = () => {
           </p>
         </section>
 
-        <section style={{ marginBottom: "20px" }}>
+        <section className="cc-scroll-reveal" style={{ marginBottom: "20px" }}>
           <h2 style={{ fontSize: "20px", fontWeight: 800, color: "var(--text-primary)", marginBottom: "14px" }}>
             9. Grievance Officer & Official Inquiries
           </h2>

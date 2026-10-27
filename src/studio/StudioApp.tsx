@@ -806,7 +806,7 @@ function App({ initialTemplateId: _initialTemplateId, initialFile, projectId, on
                   user_id: user.id,
                   project_id: projectId || null,
                   project_title: videoFile.name.replace(/.[^/.]+$/, "") || "Untitled Project",
-                  script_format: language === "te" ? "Telugu Lipi" : language === "tenglish" ? "Tenglish" : "English",
+                  script_format: language === "te" ? "Telugu" : language === "tenglish" ? "Tenglish" : "English",
                   export_types: "MP4 1080p, Subtitles (Burned-in)",
                   download_url: "local:" + exportId,
                 });

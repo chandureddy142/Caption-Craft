@@ -12,10 +12,21 @@ export interface UserSubscription {
  * Fetches the user profile and evaluates active plan tier.
  * Automatically falls back to "starter" if expired or unavailable.
  */
+function normalizePlanName(raw: string | null | undefined): string {
+  if (!raw) return "starter";
+  const s = raw.toLowerCase().trim();
+  if (s === "max" || s === "studio_max" || s === "studio-max") return "studio_max";
+  if (s === "pro" || s === "creator_pro" || s === "creator-pro") return "creator_pro";
+  if (s === "lite" || s === "creator_lite" || s === "creator-lite") return "creator_lite";
+  if (s === "weekly" || s === "weekly_pro") return "weekly_pro";
+  return s;
+}
+
 export async function getCurrentUserPlan(): Promise<string> {
   try {
     const { data: { user }, error: userError } = await supabase.auth.getUser();
     if (userError || !user) {
+      console.warn("[userService] No active user session detected; defaulting to starter.");
       return "starter";
     }
 
@@ -26,19 +37,20 @@ export async function getCurrentUserPlan(): Promise<string> {
       .maybeSingle();
 
     if (error || !profile) {
-      // Fallback to user metadata if profiles record is not yet generated
-      return (user.user_metadata?.plan as string) || "starter";
+      const metaPlan = (user.user_metadata?.plan as string) || (user.app_metadata?.plan as string);
+      console.warn("[userService] No profile row found, using metadata:", metaPlan);
+      return normalizePlanName(metaPlan);
     }
 
-    // Check expiration if a period end is set
     if (profile.plan_period_end) {
       const isExpired = new Date(profile.plan_period_end).getTime() < Date.now();
       if (isExpired) {
+        console.warn("[userService] Plan period expired, falling back to starter.");
         return "starter";
       }
     }
 
-    return profile.plan || "starter";
+    return normalizePlanName(profile.plan);
   } catch (err) {
     console.warn("Failed to fetch user subscription plan:", err);
     return "starter";
