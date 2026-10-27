@@ -1,4 +1,5 @@
 import { supabase } from "./supabase";
+import { API_BASE_URL } from "../config/api";
 
 const LOCAL_AUDIT_PREFIX = "cc_usage_audit_";
 
@@ -6,7 +7,7 @@ export async function getPersistentEmailUsage(email: string): Promise<number> {
   if (!email) return 0;
   const normalizedEmail = email.trim().toLowerCase();
 
-  // 1. Check local persistent audit storage
+  // 1. Read local storage
   let localMinutes = 0;
   try {
     const raw = localStorage.getItem(LOCAL_AUDIT_PREFIX + normalizedEmail);
@@ -15,7 +16,7 @@ export async function getPersistentEmailUsage(email: string): Promise<number> {
     console.warn("Could not read local usage audit:", e);
   }
 
-  // 2. Query Supabase persistent table if available
+  // 2. Query Supabase (read-only allowed for user)
   try {
     const { data, error } = await supabase
       .from("account_usage_audit")
@@ -28,9 +29,7 @@ export async function getPersistentEmailUsage(email: string): Promise<number> {
       localStorage.setItem(LOCAL_AUDIT_PREFIX + normalizedEmail, highest.toString());
       return highest;
     }
-  } catch (err) {
-    // If table does not exist or user is offline, fallback to local storage
-  }
+  } catch (err) {}
 
   return localMinutes;
 }
@@ -42,21 +41,27 @@ export async function recordPersistentUsage(email: string, minutesToAdd: number)
   const current = await getPersistentEmailUsage(normalizedEmail);
   const updated = Math.round((current + minutesToAdd) * 10) / 10;
 
-  // Persist locally
+  // Local optimistic update
   try {
     localStorage.setItem(LOCAL_AUDIT_PREFIX + normalizedEmail, updated.toString());
   } catch (e) {}
 
-  // Sync with Supabase audit table
+  // Securely sync via backend API
   try {
-    await supabase
-      .from("account_usage_audit")
-      .upsert({
-        email: normalizedEmail,
-        minutes_used: updated,
-        updated_at: new Date().toISOString()
-      }, { onConflict: "email" });
-  } catch (err) {}
+    const { data: sessionData } = await supabase.auth.getSession();
+    const token = sessionData.session?.access_token;
+
+    const headers: Record<string, string> = { "Content-Type": "application/json" };
+    if (token) headers["Authorization"] = `Bearer ${token}`;
+
+    await fetch(`${API_BASE_URL}/api/usage/record`, {
+      method: "POST",
+      headers,
+      body: JSON.stringify({ email: normalizedEmail, minutesToAdd }),
+    });
+  } catch (err) {
+    console.warn("Background usage sync skipped:", err);
+  }
 
   return updated;
 }

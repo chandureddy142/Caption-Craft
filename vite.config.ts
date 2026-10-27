@@ -2,6 +2,12 @@
 export default {
   server: {
     allowedHosts: true,
+    proxy: {
+      "/api": {
+        target: "http://localhost:5000",
+        changeOrigin: true,
+      },
+    },
   },
   esbuild: {
     rollupOptions: {
@@ -10,6 +16,6 @@ export default {
         warn(warning);
       },
     },
-    jsx: 'automatic',
+    jsx: "automatic",
   },
-}
+};

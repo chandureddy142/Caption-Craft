@@ -1,3 +1,5 @@
+import { supabase } from "../lib/supabase";
+import { API_BASE_URL } from "../config/api";
 import type { CanvasSettings, CaptionLanguage, Subtitle, TimelineBgSegment } from "../types";
 import { drawBackgroundToCanvas } from "./backgroundThemes";
 import { renderSubtitlesToCanvas } from "./SubtitleRenderer";
@@ -92,6 +94,29 @@ export async function renderProjectToBlob(
       progress => onProgress(75 + progress * 0.25),
       signal,
     );
+  }
+
+    // Server-authorized export verification
+  let enforceWatermark = true;
+  try {
+    const { data: sessionData } = await supabase.auth.getSession();
+    const token = sessionData.session?.access_token;
+    const headers: Record<string, string> = { "Content-Type": "application/json" };
+    if (token) headers["Authorization"] = "Bearer " + token;
+
+    const authRes = await fetch(API_BASE_URL + "/api/export/authorize", {
+      method: "POST",
+      headers,
+    });
+
+    if (authRes.ok) {
+      const authData = await authRes.json();
+      if (authData.allowWatermarkFree === true) {
+        enforceWatermark = false;
+      }
+    }
+  } catch (e) {
+    console.warn("Server export authorization failed, defaulting to watermark fallback:", e);
   }
 
   const { width, height, videoBitsPerSecond } = getExportDimensions(options.resolution, options.aspectRatio);
@@ -350,7 +375,7 @@ export async function renderProjectToBlob(
 
           
           // Watermark pass for Starter tier (matches studio preview)
-          if (options.watermark) {
+          if (enforceWatermark) {
             context.save();
             const evalT = t || 0;
             const totalDur = media.duration || 30;

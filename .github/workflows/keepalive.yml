@@ -1,0 +1,13 @@
+name: Render Keepalive Cron
+
+on:
+  schedule:
+    - cron: "*/14 * * * *"
+  workflow_dispatch:
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping Render Backend
+        run: curl -sSf https://createcaptions-api.onrender.com/health || true

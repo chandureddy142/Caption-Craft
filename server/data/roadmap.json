@@ -1,0 +1,83 @@
+[
+  {
+    "id": "u4",
+    "category": "AI Tools",
+    "dateOrStage": "Planned",
+    "title": "Automatic B-Roll & Kinetic Emoji Hooks",
+    "description": "Detects emotional emphasis and keywords in your speech to automatically pop relevant 3D emojis and visual zoom cuts.",
+    "status": "upcoming",
+    "side": "left"
+  },
+  {
+    "id": "u3",
+    "category": "Publishing",
+    "dateOrStage": "Planned",
+    "title": "Direct Export to Instagram Reels & YouTube",
+    "description": "One-click publish straight to your connected social channels with auto-generated hashtags and hook titles.",
+    "status": "upcoming",
+    "side": "right"
+  },
+  {
+    "id": "u2",
+    "category": "Editor",
+    "dateOrStage": "Next Up",
+    "title": "Smarter Telugu Phonetic Auto-Correct",
+    "description": "Learns frequent creator terminology and slang to automatically fix first-pass spellings.",
+    "status": "upcoming",
+    "side": "left"
+  },
+  {
+    "id": "u1",
+    "category": "Engine",
+    "dateOrStage": "Next Up",
+    "title": "High-Speed On-Device Processing",
+    "description": "Utilize your computer or phone GPU shaders to transcribe 1-minute reels in under 10 seconds locally.",
+    "status": "upcoming",
+    "side": "right"
+  },
+  {
+    "id": "s1",
+    "category": "Publishing",
+    "dateOrStage": "Oct 2026",
+    "title": "Telugu Script or Tenglish Toggle",
+    "description": "Choose native Telugu or English-Telugu before generating, with word-level sync tuned for Reels and Shorts.",
+    "status": "delivered",
+    "side": "left"
+  },
+  {
+    "id": "s2",
+    "category": "Editor",
+    "dateOrStage": "Sep 2026",
+    "title": "Kinetic Word-by-Word Highlights",
+    "description": "Real-time karaoke style animation that highlights each spoken syllable with custom glow and outline effects.",
+    "status": "delivered",
+    "side": "right"
+  },
+  {
+    "id": "s3",
+    "category": "Privacy & Engine",
+    "dateOrStage": "Sep 2026",
+    "title": "100% On-Device Browser Transcription",
+    "description": "On-device AI processes audio securely inside your browser. Your private footage never leaves your machine.",
+    "status": "delivered",
+    "side": "left"
+  },
+  {
+    "id": "s4",
+    "category": "Editor",
+    "dateOrStage": "Aug 2026",
+    "title": "Regional Font Library & Custom Typography",
+    "description": "Curated display fonts specifically tuned for regional headlines, safe zone overlays, and 9:16 mobile viewports.",
+    "status": "delivered",
+    "side": "right"
+  },
+  {
+    "id": "s5",
+    "category": "Export",
+    "dateOrStage": "Aug 2026",
+    "title": "SRT & VTT Subtitle Downloads",
+    "description": "Export clean timecoded subtitle files alongside burned-in video for direct YouTube Shorts and Reels uploads.",
+    "status": "delivered",
+    "side": "left"
+  }
+]

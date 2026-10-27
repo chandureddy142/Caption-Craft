@@ -19,6 +19,7 @@
  */
 
 import type { CaptionLanguage, SourceLanguage, Subtitle } from '../types';
+import { API_BASE_URL } from '../config/api';
 import { createAudioChunkIterator } from '../utils/audioExtractor';
 import { segmentIntoShortCaptions } from '../utils/captionSegmentation';
 import { mergeOverlappingSubtitles } from '../utils/subtitleValidation';
@@ -27,8 +28,6 @@ import { mergeOverlappingSubtitles } from '../utils/subtitleValidation';
 // Constants
 // ---------------------------------------------------------------------------
 
-const AI_MODEL = 'cloud-3.5-flash-lite';
-const AI_API_BASE = 'https://generativelanguage.googleapis.com/v1beta/models';
 
 /** Maximum audio chunk duration sent per CloudAi request (seconds). */
 const CHUNK_DURATION_SECONDS = 10 * 60; // 10 minutes
@@ -161,29 +160,6 @@ LANGUAGE RULES:
 }
 
 // ---------------------------------------------------------------------------
-// JSON schema for structured output
-// ---------------------------------------------------------------------------
-
-const SEGMENTS_RESPONSE_SCHEMA = {
-  type: 'object',
-  properties: {
-    segments: {
-      type: 'array',
-      items: {
-        type: 'object',
-        properties: {
-          start: { type: 'number' },
-          end: { type: 'number' },
-          text: { type: 'string' },
-        },
-        required: ['start', 'end', 'text'],
-      },
-    },
-  },
-  required: ['segments'],
-} as const;
-
-// ---------------------------------------------------------------------------
 // Base64 helpers
 // ---------------------------------------------------------------------------
 
@@ -220,82 +196,52 @@ async function transcribeChunkWithCloudAi(
   chunkBlob: Blob,
   chunkOffsetSeconds: number,
   systemPrompt: string,
-  apiKey: string,
   signal?: AbortSignal,
 ): Promise<RawSegment[]> {
   const base64Audio = await blobToBase64(chunkBlob);
   const mimeType = getBlobMimeType(chunkBlob);
 
-  const requestBody = {
-    system_instruction: {
-      parts: [{ text: systemPrompt }],
-    },
-    contents: [
-      {
-        role: 'user',
-        parts: [
-          {
-            inline_data: {
-              mime_type: mimeType,
-              data: base64Audio,
-            },
-          },
-          {
-            text: 'Transcribe this audio clip and return the timed segments JSON.',
-          },
-        ],
-      },
-    ],
-    generationConfig: {
-      responseMimeType: 'application/json',
-      responseSchema: SEGMENTS_RESPONSE_SCHEMA,
-      temperature: 0.1, // low temperature for factual transcription
-    },
-  };
-
-  const url = `${AI_API_BASE}/${AI_MODEL}:generateContent?key=${apiKey}`;
+  const url = `${API_BASE_URL}/api/ai/transcribe-chunk`;
 
   let response: Response;
   try {
     response = await fetch(url, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(requestBody),
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ base64Audio, mimeType, systemPrompt }),
       signal,
     });
   } catch (error) {
-    if ((error as Error).name === 'AbortError') throw error;
+    if ((error as Error).name === "AbortError") throw error;
     throw new Error(`Network error calling Create Captions AI: ${(error as Error).message}`);
   }
 
   if (response.status === 429) throw new CloudRateLimitError();
   if (response.status === 400) {
-    const body = await response.text().catch(() => '');
-    throw new CloudPayloadError(body || 'Bad request');
+    const body = await response.text().catch(() => "");
+    throw new CloudPayloadError(body || "Bad request");
   }
   if (!response.ok) {
-    const body = await response.text().catch(() => '');
+    const body = await response.text().catch(() => "");
     throw new Error(`Create Captions AI error ${response.status}: ${body || response.statusText}`);
   }
 
   const json = (await response.json()) as {
-    candidates?: Array<{
-      content?: { parts?: Array<{ text?: string }> };
-    }>;
-    error?: { message: string };
+    success?: boolean;
+    text?: string;
+    error?: string;
   };
 
-  if (json.error) throw new Error(`Create Captions AI: ${json.error.message}`);
+  if (json.error) throw new Error(`Create Captions AI: ${json.error}`);
 
-  const rawText = json.candidates?.[0]?.content?.parts?.[0]?.text ?? '';
+  const rawText = json.text ?? "";
   if (!rawText) return [];
 
   let parsed: { segments?: RawSegment[] };
   try {
     parsed = JSON.parse(rawText) as { segments?: RawSegment[] };
   } catch {
-    // Try extracting JSON from markdown code fences
-    const match = /```(?:json)?\s*([\s\S]*?)```/i.exec(rawText);
+    const match = /```(?:json)?s*([sS]*?)```/i.exec(rawText);
     if (match) {
       try {
         parsed = JSON.parse(match[1]) as { segments?: RawSegment[] };
@@ -309,19 +255,18 @@ async function transcribeChunkWithCloudAi(
 
   const rawSegments = parsed.segments ?? [];
 
-  // Apply chunk time offset and filter malformed entries
   return rawSegments
     .filter(
       (s): s is RawSegment =>
-        typeof s.start === 'number' &&
-        typeof s.end === 'number' &&
-        typeof s.text === 'string' &&
+        typeof s.start === "number" &&
+        typeof s.end === "number" &&
+        typeof s.text === "string" &&
         s.text.trim().length > 0 &&
         Number.isFinite(s.start) &&
         Number.isFinite(s.end) &&
         s.end > s.start,
     )
-    .map(s => ({
+    .map((s) => ({
       start: s.start + chunkOffsetSeconds,
       end: s.end + chunkOffsetSeconds,
       text: s.text.trim(),
@@ -376,11 +321,7 @@ export async function transcribeWithCloudAi(
   audioBlob: Blob,
   options: CloudTranscriptionOptions = {},
 ): Promise<Subtitle[]> {
-  // Validate API key
-  const apiKey = import.meta.env.VITE_AI_API_KEY as string | undefined;
-  if (!apiKey || apiKey === 'your_cloud_api_key_here') {
-    throw new AiKeyMissingError();
-  }
+  // API key is handled securely on the backend proxy
 
   if (!(audioBlob instanceof Blob) || audioBlob.size === 0) {
     throw new Error('No audio blob provided for Create Captions AI transcription.');
@@ -415,7 +356,6 @@ export async function transcribeWithCloudAi(
         chunk.blob,
         chunk.start,
         systemPrompt,
-        apiKey,
         signal,
       );
     } catch (error) {

@@ -1,3 +1,4 @@
+import { supabase } from "../lib/supabase";
 import { 
   ArrowLeft, 
   CheckCircle2, 
@@ -97,6 +98,17 @@ export function ExportPage({
   };
 
   const handleRender = async () => {
+    // Re-verify plan on render trigger
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        const { data: profile } = await supabase.from("profiles").select("plan").eq("id", user.id).maybeSingle();
+        if (profile?.plan && profile.plan !== userPlan) {
+          // If plan upgraded, reflect it immediately
+          userPlan = profile.plan;
+        }
+      }
+    } catch {}
     const maxSeconds = planConfig.maxDurationMinutes * 60;
     if (duration > maxSeconds) {
       setError(`Project duration (${Math.round(duration)}s) exceeds ${planConfig.name} limit of ${planConfig.maxDurationMinutes} minutes. Upgrade to export longer videos.`);

@@ -965,7 +965,7 @@ function App({ initialTemplateId: _initialTemplateId, initialFile, projectId, on
                 setTranscriptionTotalDuration(previous => Math.max(previous, duration));
               }}
               onBackToUpload={handleRemoveMedia}
-              onOpenExport={() => setShowExportPage(true)}
+              onOpenExport={async () => { const active = await getCurrentUserPlan(); setUserPlan(active); setShowExportPage(true); }}
               projectTitle={projectTitle}
               onProjectTitleChange={setProjectTitle}
               canUndo={editorHistory.canUndo}
